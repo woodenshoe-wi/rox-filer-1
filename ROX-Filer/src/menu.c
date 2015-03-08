@@ -320,7 +320,7 @@ gboolean ensure_filer_menu(void)
 #endif
 
 	GET_SMENU_ITEM(filer_new_menu, "filer", "New");
-	GET_SMENU_ITEM(item, "filer", "Window", "Follow Sym Links");
+	GET_SMENU_ITEM(item, "filer", "Follow Sym Links");
 	filer_follow_sym = GTK_BIN(item)->child;
 
 	/* File '' label... */
