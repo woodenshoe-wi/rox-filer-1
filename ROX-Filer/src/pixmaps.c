@@ -400,7 +400,7 @@ MaskedPixmap *pixmap_try_thumb(const gchar *path, gboolean can_load)
 
 		dir = g_path_get_dirname(path);
 		
-		/* If the image itself is in ~/.thumbnails, load it now
+		/* If the image itself is in ~/.cache/thumbnails, load it now
 		 * (ie, don't create thumbnails for thumbnails!).
 		 */
 		if (mc_stat(dir, &info1) != 0)
@@ -410,7 +410,7 @@ MaskedPixmap *pixmap_try_thumb(const gchar *path, gboolean can_load)
 		}
 		g_free(dir);
 
-		if (mc_stat(make_path(home_dir, ".thumbnails/normal"),
+		if (mc_stat(make_path(home_dir, ".cache/thumbnails/normal"),
 			    &info2) == 0 &&
 			    info1.st_dev == info2.st_dev &&
 			    info1.st_ino == info2.st_ino)
@@ -475,7 +475,9 @@ static void save_thumbnail(const char *pathname, GdkPixbuf *full)
 	g_free(path);
 		
 	to = g_string_new(home_dir);
-	g_string_append(to, "/.thumbnails");
+	g_string_append(to, "/.cache");
+	mkdir(to->str, 0700);
+	g_string_append(to, "/thumbnails");
 	mkdir(to->str, 0700);
 	g_string_append(to, "/normal/");
 	mkdir(to->str, 0700);
@@ -530,7 +532,9 @@ static gchar *thumbnail_path(const char *path)
 	md5 = md5_hash(uri);
 		
 	to = g_string_new(home_dir);
-	g_string_append(to, "/.thumbnails");
+	g_string_append(to, "/.cache");
+	mkdir(to->str, 0700);
+	g_string_append(to, "/thumbnails");
 	mkdir(to->str, 0700);
 	g_string_append(to, "/normal/");
 	mkdir(to->str, 0700);
@@ -636,7 +640,7 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 	md5 = md5_hash(uri);
 	g_free(uri);
 	
-	thumb_path = g_strdup_printf("%s/.thumbnails/normal/%s.png",
+	thumb_path = g_strdup_printf("%s/.cache/thumbnails/normal/%s.png",
 					home_dir, md5);
 	g_free(md5);
 
@@ -993,7 +997,7 @@ static void purge_disk_cache(GtkWidget *button, gpointer data)
 
 	g_fscache_purge(pixmap_cache, 0);
 
-	path = g_strconcat(home_dir, "/.thumbnails/normal/", NULL);
+	path = g_strconcat(home_dir, "/.cache/thumbnails/normal/", NULL);
 
 	dir = opendir(path);
 	if (!dir)
