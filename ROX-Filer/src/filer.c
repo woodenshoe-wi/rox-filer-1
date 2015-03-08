@@ -3512,7 +3512,7 @@ void filer_save_settings(FilerWindow *fwin)
 	set->show_hidden=fwin->show_hidden;
 
 	set->flags|=SET_STYLE;
-	set->display_style=fwin->display_style;
+	set->display_style=fwin->display_style_wanted;
 
 	set->flags|=SET_SORT;
 	set->sort_type=fwin->sort_type;
