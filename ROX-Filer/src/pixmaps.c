@@ -968,7 +968,16 @@ static void load_default_pixmaps(void)
 	im_dirs = load_pixmap("dirs");
 	im_appdir = load_pixmap("application");
 
-	pixbuf = gdk_pixbuf_new_from_file(
+	pixbuf = gtk_icon_theme_load_icon(
+ 		gtk_icon_theme_get_default(),
+ 		"rox",
+ 		HUGE_WIDTH,
+ 		0,
+ 		NULL
+ 		);
+ 
+ 	if (!pixbuf)	
+		pixbuf = gdk_pixbuf_new_from_file(
 			make_path(app_dir, ".DirIcon"), &error);
 	if (pixbuf)
 	{
