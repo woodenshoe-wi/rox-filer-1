@@ -2068,24 +2068,31 @@ void filer_set_title(FilerWindow *filer_window)
 
 	if (filer_window->scanning ||
 	    filer_window->filter != FILER_SHOW_ALL ||
-	    filer_window->show_hidden || filer_window->show_thumbs)
+ 	    (filer_window->show_hidden != o_display_show_hidden.int_value) ||
+ 		(filer_window->show_thumbs != o_display_show_thumbs.int_value))
 	{
 		if (o_short_flag_names.int_value)
 		{
-			const gchar  *hidden = "";
+ 			const gchar  *hidden = "", *notflag = "";
 
 			switch(filer_window->filter) {
 			case FILER_SHOW_ALL:
-				hidden=filer_window->show_hidden? _("A") : "";
-				break;
+ 				if (filer_window->show_hidden != o_display_show_hidden.int_value) {
+ 					hidden = _("A");
+ 					notflag = !filer_window->show_hidden ? _("!") : "";
+ 				}
+			break;
 			case FILER_SHOW_GLOB:   hidden =  _("G"); break;
 			default: break;
 			}
 
 			flags = g_strconcat(" +",
 				filer_window->scanning ? _("S") : "",
+				notflag,
 				hidden,
-				filer_window->show_thumbs ? _("T") : "",
+				filer_window->show_thumbs != o_display_show_thumbs.int_value &&
+ 					!filer_window->show_thumbs ? _("!") : "",
+ 				filer_window->show_thumbs != o_display_show_thumbs.int_value ? _("T") : "",
 				NULL);
 		}
 		else
@@ -2094,8 +2101,10 @@ void filer_set_title(FilerWindow *filer_window)
 
 			switch(filer_window->filter) {
 			case FILER_SHOW_ALL:
-				hidden = g_strdup(filer_window->show_hidden
-						? _("All, ") : "");
+ 				if (filer_window->show_hidden != o_display_show_hidden.int_value)
+ 					hidden = g_strdup(filer_window->show_hidden ? _("ALL, ") : _("Not ALL, "));
+ 				else
+ 					hidden = g_strdup("");
 				break;
 			case FILER_SHOW_GLOB:
 				hidden = g_strdup_printf(_("Glob (%s), "),
@@ -2108,7 +2117,8 @@ void filer_set_title(FilerWindow *filer_window)
 			flags = g_strconcat(" (",
 				filer_window->scanning ? _("Scanning, ") : "",
 				hidden,
-				filer_window->show_thumbs ? _("Thumbs, ") : "",
+ 				filer_window->show_thumbs != o_display_show_thumbs.int_value ?
+ 					(filer_window->show_thumbs ? _("Thumbs, ") : _("Not Thumbs, ")) : "",
 				NULL);
 			flags[strlen(flags) - 2] = ')';
 			g_free(hidden);
