@@ -1,14 +1,9 @@
 changes
 
 save the auto of display_style
-
 huge icon 96 -> 128
-
 use system 'rox' icon
-
 make relative sym links from 'realpath'  
-
-
 
 
 ROX-Filer
