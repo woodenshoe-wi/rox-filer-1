@@ -760,9 +760,9 @@ guchar *get_relative_path(const guchar *from, const guchar *to)
 	GPtrArray *src, *dst;
 	int	i, j;
 
- 	guchar real[MAXPATHLEN];
- 	realpath(from, real);
- 	src = split_path(real);
+ 	char *real = pathdup(from);
+	src = split_path(real);
+	g_free(real);
 
 	dst = split_path(to);
 
