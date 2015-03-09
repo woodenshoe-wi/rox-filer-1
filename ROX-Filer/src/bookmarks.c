@@ -119,6 +119,10 @@ void bookmarks_edit(void)
 	bookmarks_window = gtk_dialog_new();
 	number_of_windows++;
 
+	gtk_window_set_position(GTK_WINDOW(bookmarks_window),
+			GTK_WIN_POS_MOUSE);
+
+
 	gtk_dialog_add_button(GTK_DIALOG(bookmarks_window),
 			GTK_STOCK_CLOSE, GTK_RESPONSE_OK);
 
@@ -143,17 +147,17 @@ void bookmarks_edit(void)
 	g_signal_connect(G_OBJECT(cell), "edited",
 		    G_CALLBACK(cell_edited), model);
 	g_object_set(G_OBJECT(cell), "editable", TRUE, NULL);
-	g_object_set_data(G_OBJECT(cell), "column", GINT_TO_POINTER(0));
+	g_object_set_data(G_OBJECT(cell), "column", GINT_TO_POINTER(1));
 	gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(list), -1,
-		_("Path"), cell, "text", 0, NULL);
+		_("Title"), cell, "text", 1, NULL);
 	
 	cell = gtk_cell_renderer_text_new();
 	g_signal_connect(G_OBJECT(cell), "edited",
 		    G_CALLBACK(cell_edited), model);
 	g_object_set(G_OBJECT(cell), "editable", TRUE, NULL);
-	g_object_set_data(G_OBJECT(cell), "column", GINT_TO_POINTER(1));
+	g_object_set_data(G_OBJECT(cell), "column", GINT_TO_POINTER(0));
 	gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(list), -1,
-		_("Title"), cell, "text", 1, NULL);
+		_("Path"), cell, "text", 0, NULL);
 	
 	gtk_tree_view_set_reorderable(GTK_TREE_VIEW(list), TRUE);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), TRUE);
