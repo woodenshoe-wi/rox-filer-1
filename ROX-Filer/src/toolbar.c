@@ -394,11 +394,28 @@ static void toolbar_close_clicked(GtkWidget *widget, FilerWindow *filer_window)
 static void toolbar_up_clicked(GtkWidget *widget, FilerWindow *filer_window)
 {
 	GdkEvent	*event;
+	BindAction	action;
 
 	event = get_current_event(GDK_BUTTON_RELEASE);
 	if (event->type == GDK_BUTTON_RELEASE && NEW_WIN_BUTTON(event))
 	{
-		filer_open_parent(filer_window);
+		action = bind_lookup_bev(BIND_DIRECTORY_ICON, (GdkEventButton *)event);
+		if (action == ACT_OPEN_ITEM &&
+			(((GdkEventButton *)event)->button != 1 ||
+			 ((GdkEventButton *)event)->state & GDK_MOD1_MASK))
+		{
+			if (strcmp(filer_window->real_path, filer_window->sym_path) == 0)
+				change_to_parent(filer_window);
+			else
+			{ /* to realpath parent */
+				gchar *dir = g_path_get_dirname(filer_window->real_path);
+				gchar *base = g_path_get_basename(filer_window->real_path);
+				filer_change_to(filer_window, dir, base);
+				g_free(dir);
+				g_free(base);
+			}
+		} else
+			filer_open_parent(filer_window);
 	}
 	else
 		change_to_parent(filer_window);
