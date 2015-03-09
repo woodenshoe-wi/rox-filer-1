@@ -394,12 +394,12 @@ static void toolbar_close_clicked(GtkWidget *widget, FilerWindow *filer_window)
 static void toolbar_up_clicked(GtkWidget *widget, FilerWindow *filer_window)
 {
 	GdkEvent	*event;
-	BindAction	action;
 
 	event = get_current_event(GDK_BUTTON_RELEASE);
 	if (event->type == GDK_BUTTON_RELEASE && NEW_WIN_BUTTON(event))
 	{
-		action = bind_lookup_bev(BIND_DIRECTORY_ICON, (GdkEventButton *)event);
+		BindAction action = bind_lookup_bev(
+				BIND_DIRECTORY_ICON, (GdkEventButton *)event);
 		if (action == ACT_OPEN_ITEM &&
 			(((GdkEventButton *)event)->button != 1 ||
 			 ((GdkEventButton *)event)->state & GDK_MOD1_MASK))
