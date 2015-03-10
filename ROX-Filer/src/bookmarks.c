@@ -56,6 +56,8 @@ static void bookmarks_activate(GtkMenuShell *item, FilerWindow *filer_window);
 static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window);
 static void position_menu(GtkMenu *menu, gint *x, gint *y,
 		   	  gboolean *push_in, gpointer data);
+static void position_menu_widget(GtkMenu *menu, gint *x, gint *y,
+		   	  gboolean *push_in, gpointer data);
 static void cell_edited(GtkCellRendererText *cell,
 	     const gchar *path_string,
 	     const gchar *new_text,
@@ -78,7 +80,7 @@ static void commit_edits(GtkTreeModel *model);
  ****************************************************************/
 
 /* Shows the bookmarks menu */
-void bookmarks_show_menu(FilerWindow *filer_window)
+void bookmarks_show_menu(FilerWindow *filer_window, GtkWidget *widget)
 {
 	GdkEvent *event;
 	GtkMenu *menu;
@@ -94,8 +96,13 @@ void bookmarks_show_menu(FilerWindow *filer_window)
 	}
 
 	menu = GTK_MENU(bookmarks_build_menu(filer_window));
-	gtk_menu_popup(menu, NULL, NULL, position_menu, filer_window,
+	if (widget)
+		gtk_menu_popup(menu, NULL, NULL, position_menu_widget, widget,
 			button, gtk_get_current_event_time());
+	else
+		gtk_menu_popup(menu, NULL, NULL, position_menu, filer_window,
+			button, gtk_get_current_event_time());
+
 }
 
 /* Show the Edit Bookmarks dialog */
@@ -190,7 +197,7 @@ void bookmarks_edit(void)
 		xmlFree(mark);
 	}
 	
-	gtk_widget_set_size_request(list, 300, 300);
+	gtk_widget_set_size_request(list, 400, 300);
 	gtk_container_add(GTK_CONTAINER(swin), list);
 
 	hbox = gtk_hbutton_box_new();
@@ -341,6 +348,18 @@ static void position_menu(GtkMenu *menu, gint *x, gint *y,
 	gdk_window_get_origin(GTK_WIDGET(filer_window->view)->window, x, y);
 }
 
+static void position_menu_widget(GtkMenu *menu, gint *x, gint *y,
+		   	  gboolean *push_in, gpointer data)
+{
+	GtkWidget *widget = (GtkWidget *) data;
+
+	gdk_window_get_origin(gtk_widget_get_parent_window(widget), x, y);
+	*x = *x + widget->allocation.x;
+
+	widget = gtk_widget_get_parent(widget);
+	*y = *y + widget->allocation.y + widget->allocation.height;
+}
+
 /* Makes sure that 'bookmarks' is up-to-date, reloading from file if it has
  * changed. If no bookmarks were loaded and there is no file then initialise
  * bookmarks to an empty document.
@@ -430,18 +449,26 @@ static void bookmarks_add(GtkMenuItem *menuitem, gpointer user_data)
 static void bookmarks_add_dir(const guchar *dir)
 {
 	xmlNode	*bookmark;
+	gchar *basename, *path;
 
-	if (bookmark_find(dir))
+	path = collapse_path(dir);
+	if (bookmark_find(path)){
+		g_free(path);
 		return;
-
+	}
+	
+	basename = g_path_get_basename(path);
 	bookmark = xmlNewTextChild(xmlDocGetRootElement(bookmarks->doc),
-				NULL, "bookmark", dir);
-	xmlSetProp(bookmark, "title", dir);
+				NULL, "bookmark", path);
+	xmlSetProp(bookmark, "title", basename);
 
 	bookmarks_save();
 
 	if (bookmarks_window)
 		gtk_widget_destroy(bookmarks_window);
+	
+	g_free(basename);
+	g_free(path);
 }
 
 /* Called when a bookmark has been chosen */
@@ -743,9 +770,10 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 	{
 		GtkWidget *item;
 		const char *path = (char *) items->pdata[i];
-		gchar *copy;
+		gchar *copy, *disppath;
 
-		item = gtk_menu_item_new_with_label(path);
+		disppath = collapse_path(path);
+		item = gtk_menu_item_new_with_label(disppath);
 
 		copy=g_strdup(path);
 		g_object_set_data(G_OBJECT(item), "bookmark-path", copy);
@@ -761,6 +789,8 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 
 		gtk_widget_show(item);
 		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+
+		g_free(disppath);
 	}
 
 	g_ptr_array_free(items, TRUE);
@@ -777,6 +807,8 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 	GtkWidget *item;
 	xmlNode *node;
 	gboolean need_separator = TRUE;
+	int maxwidth = 0;
+	GList *labels = NULL;
 
 	menu = gtk_menu_new();
 
@@ -807,6 +839,12 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 	for (node = node->xmlChildrenNode; node; node = node->next)
 	{
 		gchar *mark, *title, *path;
+		GtkWidget **links;
+		GtkLabel *label;
+		GtkFixed *fix;
+		PangoLayout *layout;
+		int width;
+
 
 		if (node->type != XML_ELEMENT_NODE)
 			continue;
@@ -817,27 +855,21 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 					    node->xmlChildrenNode, 1);
 		if (!mark)
 			continue;
-		path=g_strdup(mark);
+		path=expand_path(mark);
 		
 		title=xmlGetProp(node, "title");
 		if(!title)
 			title=mark;
 		
-		item = gtk_menu_item_new_with_label(title);
+		item = gtk_menu_item_new();
 		
 		g_object_set_data(G_OBJECT(item), "bookmark-path", path);
 		g_signal_connect(item, "destroy",
 				 G_CALLBACK(free_path_for_item), path);
 
-		if(title!=mark)
-			xmlFree(title);
-		xmlFree(mark);
-
 		g_signal_connect(item, "activate",
 				G_CALLBACK(bookmarks_activate),
 				filer_window);
-
-		gtk_widget_show(item);
 
 		if (need_separator)
 		{
@@ -848,8 +880,45 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 			need_separator = FALSE;
 		}
 
-		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+		fix = gtk_fixed_new();
+		links = g_new(GtkWidget *, 2);
+		links[0] = fix;
 
+		label = gtk_label_new(title);
+		
+		layout = gtk_label_get_layout(label);
+		pango_layout_get_pixel_size(layout, &width, NULL);
+		if (width > maxwidth)
+			maxwidth = width + 12;
+
+		gtk_fixed_put(fix, label, 0, 0);
+
+		label = gtk_label_new(mark);
+		links[1] = label;
+		gtk_widget_set_sensitive(label, FALSE);
+		gtk_label_set_max_width_chars(label, 30);
+		gtk_label_set_ellipsize(label, PANGO_ELLIPSIZE_MIDDLE);
+
+		gtk_fixed_put(fix, label, maxwidth, 0);
+
+		gtk_container_add(GTK_CONTAINER(item), fix);
+		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+		
+		labels = g_list_append(labels, links);
+
+		gtk_widget_show_all(item);
+
+		if(title!=mark)
+			xmlFree(title);
+		xmlFree(mark);
+	}
+
+	while (labels)
+	{
+		gtk_fixed_move(((GtkFixed **)(labels->data))[0],
+				((GtkWidget **)(labels->data))[1], maxwidth, 0);
+		g_free(labels->data);
+		labels = g_list_delete_link(labels, labels);
 	}
 
 	return menu;

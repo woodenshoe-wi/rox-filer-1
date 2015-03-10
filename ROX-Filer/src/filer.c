@@ -2129,21 +2129,13 @@ void filer_set_title(FilerWindow *filer_window)
 	        title = g_strconcat("//", our_host_name(),
 			    filer_window->sym_path, flags, NULL);
 	
-	if (!title && home_dir_len > 1 &&
-		strncmp(filer_window->sym_path, home_dir, home_dir_len) == 0)
+	if (!title)
 	{
-		guchar 	sep = filer_window->sym_path[home_dir_len];
-
-		if (sep == '\0' || sep == '/')
-			title = g_strconcat("~",
-					filer_window->sym_path + home_dir_len,
-					flags,
-					NULL);
+		gchar *cpath = collapse_path(filer_window->sym_path);
+		title = g_strconcat(cpath, flags, NULL);
+		g_free(cpath);
 	}
 	
-	if (!title)
-		title = g_strconcat(filer_window->sym_path, flags, NULL);
-
 	ensure_utf8(&title);
 
 	if (filer_window->directory->error)

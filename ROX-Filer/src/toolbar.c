@@ -364,7 +364,7 @@ static void toolbar_bookmarks_clicked(GtkWidget *widget,
 	if (event->type == GDK_BUTTON_PRESS &&
 			((GdkEventButton *) event)->button == 1)
 	{
-		bookmarks_show_menu(filer_window);
+		bookmarks_show_menu(filer_window, widget);
 	}
 	else if (event->type == GDK_BUTTON_RELEASE &&
 			((GdkEventButton *) event)->button != 1)

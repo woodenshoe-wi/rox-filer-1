@@ -44,6 +44,7 @@ gchar *from_utf8(const gchar *src);
 void ensure_utf8(gchar **string);
 char *md5_hash(const char *message);
 gchar *expand_path(const gchar *path);
+gchar *collapse_path(const gchar *path);
 void destroy_glist(GList **list);
 void null_g_free(gpointer p);
 CollateKey *collate_key_new(const guchar *name);

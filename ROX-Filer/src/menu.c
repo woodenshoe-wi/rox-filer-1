@@ -1748,7 +1748,7 @@ static void show_bookmarks(gpointer data, guint action, GtkWidget *widget)
 {
 	g_return_if_fail(window_with_focus != NULL);
 
-	bookmarks_show_menu(window_with_focus);
+	bookmarks_show_menu(window_with_focus, NULL);
 }
 
 static void show_log(gpointer data, guint action, GtkWidget *widget)

@@ -1150,6 +1150,32 @@ gchar *expand_path(const gchar *path)
 	return retval;
 }
 
+/* swap home_dir to '~/'
+ * g_free() the result.
+ */
+gchar *collapse_path(const gchar *path)
+{
+	guchar *retval = NULL;
+
+	g_return_val_if_fail(path != NULL, NULL);
+
+	if (home_dir_len > 1 &&
+		strncmp(path, home_dir, home_dir_len) == 0)
+	{
+		guchar sep = path[home_dir_len];
+
+		if (sep == '\0' || sep == '/')
+			retval = g_strconcat("~",
+					path + home_dir_len,
+					NULL);
+	}
+
+	if (!retval)	
+		retval = g_strdup(path);
+
+	return retval;
+}
+
 /* g_free() every element in the list, then free the list itself and
  * NULL the pointer to the list.
  */
