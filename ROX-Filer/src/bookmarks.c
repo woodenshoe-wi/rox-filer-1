@@ -840,8 +840,7 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 	{
 		gchar *mark, *title, *path;
 		GtkWidget **links;
-		GtkLabel *label;
-		GtkFixed *fix;
+		GtkWidget *label, *fix;
 		PangoLayout *layout;
 		int width;
 
@@ -886,20 +885,20 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 
 		label = gtk_label_new(title);
 		
-		layout = gtk_label_get_layout(label);
+		layout = gtk_label_get_layout(GTK_LABEL(label));
 		pango_layout_get_pixel_size(layout, &width, NULL);
 		if (width > maxwidth)
 			maxwidth = width + 12;
 
-		gtk_fixed_put(fix, label, 0, 0);
+		gtk_fixed_put(GTK_FIXED(fix), label, 0, 0);
 
 		label = gtk_label_new(mark);
 		links[1] = label;
 		gtk_widget_set_sensitive(label, FALSE);
-		gtk_label_set_max_width_chars(label, 30);
-		gtk_label_set_ellipsize(label, PANGO_ELLIPSIZE_MIDDLE);
+		gtk_label_set_max_width_chars(GTK_LABEL(label), 30);
+		gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_MIDDLE);
 
-		gtk_fixed_put(fix, label, maxwidth, 0);
+		gtk_fixed_put(GTK_FIXED(fix), label, maxwidth, 0);
 
 		gtk_container_add(GTK_CONTAINER(item), fix);
 		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
