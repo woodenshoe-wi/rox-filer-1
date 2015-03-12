@@ -174,6 +174,7 @@ static Option o_short_flag_names;
 static Option o_filer_view_type;
 Option o_filer_auto_resize, o_unique_filer_windows;
 Option o_filer_size_limit;
+Option o_right_gap, o_bottom_gap, o_auto_move;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 
@@ -192,6 +193,10 @@ void filer_init(void)
 
 	option_add_int(&o_filer_view_type, "filer_view_type",
 			VIEW_TYPE_COLLECTION); 
+
+	option_add_int(&o_right_gap, "right_gap", 32);
+	option_add_int(&o_bottom_gap, "bottom_gap", 32);
+	option_add_int(&o_auto_move, "auto_move", FALSE);
 
 	option_add_notify(filer_options_changed);
 
@@ -244,8 +249,6 @@ static gboolean if_deleted(gpointer item, gpointer removed)
 	return FALSE;
 }
 
-#define DECOR_BORDER 32
-
 /* Resize the filer window to w x h pixels, plus border (not clamped).
  * If triggered by a key event, warp the pointer (for SloppyFocus users).
  */
@@ -267,36 +270,35 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 
 	if (GTK_WIDGET_VISIBLE(window))
 	{
-		gint x, y, m;
 		GtkRequisition	*req = &window->requisition;
 		GdkWindow *gdk_window = window->window;
 		GdkEvent *event;
 
 		w = MAX(req->width, w);
 		h = MAX(req->height, h);
-		gdk_window_get_pointer(NULL, &x, &y, NULL);
-		m = gdk_screen_get_monitor_at_point(gdk_screen_get_default(),
-				x, y);
-		gdk_window_get_position(gdk_window, &x, &y);
 
-		if (x + w + DECOR_BORDER >
-				monitor_geom[m].x + monitor_geom[m].width ||
-				y + h + DECOR_BORDER >
-				monitor_geom[m].y + monitor_geom[m].height)
+		if (o_auto_move.int_value)
 		{
-			if (x + w + DECOR_BORDER >
-				monitor_geom[m].x + monitor_geom[m].width)
-			{
-				x = monitor_geom[m].x + monitor_geom[m].width -
-					w - 4 - DECOR_BORDER;
-			}
-			if (y + h + DECOR_BORDER >
-				monitor_geom[m].y + monitor_geom[m].height)
-			{
-				y = monitor_geom[m].y + monitor_geom[m].height -
-					h - 4 - DECOR_BORDER;
-			}
-			gdk_window_move_resize(gdk_window, x, y, w, h);
+			gint x, y, m, currentw, currenth, tox, toy;
+			GdkRectangle frect = {0, 0, 0, 0};
+
+			gdk_window_get_pointer(NULL, &x, &y, NULL);
+			m = gdk_screen_get_monitor_at_point(gdk_screen_get_default(), x, y);
+
+			gtk_window_get_size(GTK_WINDOW(window), &currentw, &currenth);
+			gdk_window_get_frame_extents(gdk_window, &frect);
+
+			tox = monitor_geom[m].x + monitor_geom[m].width -
+					(frect.width - currentw + w + o_right_gap.int_value);
+			
+			toy = monitor_geom[m].y + monitor_geom[m].height -
+					(frect.height - currenth + h + o_bottom_gap.int_value);
+
+			x = MAX(MIN(frect.x, tox), 0);
+			y = MAX(MIN(frect.y, toy), 0);
+
+			if (x != frect.x || y != frect.y || w != currentw || h != currenth)
+				gdk_window_move_resize(gdk_window, x, y, w, h);
 		}
 		else
 			gdk_window_resize(gdk_window, w, h);
@@ -1387,9 +1389,6 @@ void filer_change_to(FilerWindow *filer_window,
 	check_settings(filer_window);
 
 	display_set_actual_size(filer_window, FALSE);
-
-	if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
-		view_autosize(filer_window->view);
 
 	if (filer_window->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, filer_window);

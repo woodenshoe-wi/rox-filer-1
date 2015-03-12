@@ -320,6 +320,13 @@ xterm -e wget $1</entry>
       <toggle name='panel_is_dock' label="Panel is a 'dock'">Makes sure panels stay against screen edges. Disable this option if the panel stays above other windows against your wishes. Requires a restart to take effect.</toggle>
       <toggle name='panel_on_top' label="Panel stays on top">Keeps the panel above other windows. Enable this option to make sure the dock option works correctly in some versions of compiz. May require a restart to take effect.</toggle>
       <toggle name='panel_obey_workarea' label="Panel confined to work area">Keeps the panel confined to the work area specified by the Extended Window Manager Specification. Applies to new panels.</toggle>
+	  <toggle name='auto_move' label="Override control of the window move in the auto-resize">Normaly leave it for window managers.</toggle>
+	  <hbox>
+        <numentry name='bottom_gap' label='Bottom gap:' unit='pixels' min='-99' max='999' width='3'>For overrided auto-move in the auto-resize.</numentry>
+	  <spacer/>
+        <numentry name='right_gap' label='Right gap:' unit='pixels' min='-99' max='999' width='3'>For overrided auto-move in the auto-resize.</numentry>
+      </hbox>
+
     </frame>
     <frame label='Drag and drop'>
       <toggle name='dnd_no_hostnames' label="Don't use hostnames">Some older applications don't support XDND fully and may need to have this option turned on. Use this if dragging files to an application shows a + sign on the pointer but the drop doesn't work.</toggle>
