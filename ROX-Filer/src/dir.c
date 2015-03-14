@@ -323,7 +323,7 @@ void dir_check_this(const guchar *path)
 	g_free(real_path);
 }
 
-#ifdef USE_NOTIFY
+#ifdef USE_DNOTIFY
 static void drop_notify(gpointer key, gpointer value, gpointer data)
 {
 #ifdef USE_INOTIFY
