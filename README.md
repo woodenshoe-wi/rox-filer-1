@@ -3,7 +3,14 @@ changes
 save the auto of display_style,
 huge icon 96 -> 128,
 use system 'rox' icon,
-make relative sym links from 'realpath'  
+make relative sym links from 'realpath',
+titlebar's AT,
+bookmarks,
+window-move,
+menu-customize,
+icon from arch official package,
+thumbs dir to .cache,
+move positon the 'follow sym links',
 
 
 ROX-Filer
