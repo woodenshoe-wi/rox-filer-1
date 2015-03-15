@@ -1187,6 +1187,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 	ViewIter cursor;
 	GtkWidget *focus = GTK_WINDOW(widget)->focus_widget;
 	guint key = event->keyval;
+	GdkModifierType modifiers = gtk_accelerator_get_default_mod_mask();
 	char group[2] = "1";
 
 	window_with_focus = filer_window;
@@ -1264,10 +1265,12 @@ gint filer_key_press_event(GtkWidget	*widget,
 				return FALSE;
 			}
 
-			if (event->state & GDK_CONTROL_MASK)
+			if ((event->state & modifiers) == GDK_CONTROL_MASK)
 				group_save(filer_window, group);
-			else
+			else if (!(event->state & modifiers))
 				group_restore(filer_window, group);
+			else
+				return FALSE;
 	}
 
 	return TRUE;
