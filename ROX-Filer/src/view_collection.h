@@ -16,4 +16,13 @@ typedef struct _ViewCollectionClass ViewCollectionClass;
 GtkWidget *view_collection_new(FilerWindow *filer_window);
 GType view_collection_get_type(void);
 
+struct _ViewCollection {
+	GtkViewport viewport;
+
+	Collection *collection;
+	FilerWindow *filer_window;	/* Used for styles, etc */
+
+	int	cursor_base;		/* Cursor when minibuffer opened */
+};
+
 #endif /* __VIEW_COLLECTION_H__ */

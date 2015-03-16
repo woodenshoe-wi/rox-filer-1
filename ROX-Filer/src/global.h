@@ -115,6 +115,7 @@ typedef enum {
 	MINI_SELECT_IF,
 	MINI_FILTER,
 	MINI_SELECT_BY_NAME,
+	MINI_EASY_SELECT,
 } MiniType;
 
 /* The next three correspond to the styles on the Display submenu: */

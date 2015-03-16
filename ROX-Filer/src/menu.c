@@ -240,6 +240,7 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">" N_("Clear Selection"),	NULL, clear_selection, 0, NULL},
 {">" N_("Invert Selection"),	NULL, invert_selection, 0, NULL},
 {">" N_("Select by Name..."),	"period", mini_buffer, MINI_SELECT_BY_NAME, NULL},
+{">" N_("Easy Select (reg/i)"),	"asciicircum", mini_buffer, MINI_EASY_SELECT, NULL},
 {">" N_("Select If..."),	"<Shift>question", mini_buffer, MINI_SELECT_IF, NULL},
 {N_("Options..."),		NULL, menu_show_options, 0, "<StockItem>", GTK_STOCK_PREFERENCES},
 {N_("New"),			NULL, NULL, 0, "<Branch>"},
@@ -1833,7 +1834,7 @@ static void mini_buffer(gpointer data, guint action, GtkWidget *widget)
 	if (type == MINI_SHELL)
 		window_with_focus->temp_item_selected = FALSE;
 
-	minibuffer_show(window_with_focus, type);
+	minibuffer_show(window_with_focus, type, 0);
 }
 
 void menu_rox_help(gpointer data, guint action, GtkWidget *widget)

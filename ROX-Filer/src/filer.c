@@ -59,6 +59,7 @@
 #include "mount.h"
 #include "xml.h"
 #include "view_iface.h"
+#include "collection.h"
 #include "view_collection.h"
 #include "view_details.h"
 #include "action.h"
@@ -474,6 +475,9 @@ static void detach(FilerWindow *filer_window)
 {
 	g_return_if_fail(filer_window->directory != NULL);
 
+	if (filer_window->mini_type == MINI_EASY_SELECT)
+		minibuffer_hide(filer_window);
+	
 	dir_detach(filer_window->directory,
 			(DirCallback) update_display, filer_window);
 	g_object_unref(filer_window->directory);
@@ -1255,10 +1259,16 @@ gint filer_key_press_event(GtkWidget	*widget,
 				group[0] = key - GDK_0 + '0';
 			else if (key >= GDK_KP_0 && key <= GDK_KP_9)
 				group[0] = key - GDK_KP_0 + '0';
+			else if (!(event->state & modifiers) &&
+						key >= GDK_a && key <= GDK_z)
+			{
+				minibuffer_show(filer_window, MINI_EASY_SELECT, key);
+				return TRUE;
+			}
 			else
 			{
 				if (focus && focus != widget &&
-				    gtk_widget_get_toplevel(focus) == widget)
+					gtk_widget_get_toplevel(focus) == widget) 
 					if (gtk_widget_event(focus,
 							(GdkEvent *) event))
 						return TRUE;	/* Handled */
@@ -2015,7 +2025,7 @@ void filer_close_recursive(const char *path)
 static gboolean minibuffer_show_cb(FilerWindow *filer_window)
 {
 	if (filer_exists(filer_window))
-		minibuffer_show(filer_window, MINI_PATH);
+		minibuffer_show(filer_window, MINI_PATH, 0);
 	return FALSE;
 }
 
@@ -2544,6 +2554,9 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 				return;
 		}
 	}
+
+	if (filer_window->mini_type == MINI_EASY_SELECT)
+		minibuffer_hide(filer_window);
 
 	action = bind_lookup_bev(
 			item ? BIND_DIRECTORY_ICON : BIND_DIRECTORY,

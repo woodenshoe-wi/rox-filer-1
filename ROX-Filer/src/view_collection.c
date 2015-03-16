@@ -53,15 +53,6 @@ struct _ViewCollectionClass {
 	GtkViewportClass parent;
 };
 
-struct _ViewCollection {
-	GtkViewport viewport;
-
-	Collection *collection;
-	FilerWindow *filer_window;	/* Used for styles, etc */
-
-	int	cursor_base;		/* Cursor when minibuffer opened */
-};
-
 typedef struct _Template Template;
 
 struct _Template {
