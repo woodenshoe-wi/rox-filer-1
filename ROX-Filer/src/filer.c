@@ -1268,7 +1268,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 			else
 			{
 				if (focus && focus != widget &&
-					gtk_widget_get_toplevel(focus) == widget) 
+					gtk_widget_get_toplevel(focus) == widget)
 					if (gtk_widget_event(focus,
 							(GdkEvent *) event))
 						return TRUE;	/* Handled */
