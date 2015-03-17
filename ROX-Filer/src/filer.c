@@ -185,7 +185,7 @@ void filer_init(void)
 	const gchar *dpy;
 	gchar *dpyhost, *tmp;
   
-	option_add_int(&o_filer_size_limit, "filer_size_limit", 75);
+	option_add_int(&o_filer_size_limit, "filer_size_limit", 60);
 	option_add_int(&o_filer_auto_resize, "filer_auto_resize",
 							RESIZE_ALWAYS);
 	option_add_int(&o_unique_filer_windows, "filer_unique_windows", 0);
@@ -2555,9 +2555,6 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 		}
 	}
 
-	if (filer_window->mini_type == MINI_EASY_SELECT)
-		minibuffer_hide(filer_window);
-
 	action = bind_lookup_bev(
 			item ? BIND_DIRECTORY_ICON : BIND_DIRECTORY,
 			event);
@@ -2630,6 +2627,9 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 			g_warning("Unsupported action : %d\n", action);
 			break;
 	}
+
+	if (filer_window->mini_type == MINI_EASY_SELECT)
+		minibuffer_hide(filer_window);
 }
 
 /* It's time to make the tooltip appear. If we're not over the item any
