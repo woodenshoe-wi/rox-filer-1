@@ -11,7 +11,7 @@ menu-customize,
 icon from arch official package,
 thumbs dir to .cache,
 move positon the 'follow sym links',
-
+key assign [a-z] to search,
 
 ROX-Filer
 =========
