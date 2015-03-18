@@ -322,9 +322,9 @@ xterm -e wget $1</entry>
       <toggle name='panel_obey_workarea' label="Panel confined to work area">Keeps the panel confined to the work area specified by the Extended Window Manager Specification. Applies to new panels.</toggle>
 	  <toggle name='auto_move' label="Override control of the window move in the auto-resize">Normaly leave it for window managers.</toggle>
 	  <hbox>
-        <numentry name='bottom_gap' label='Bottom gap:' unit='pixels' min='-99' max='999' width='3'>For overrided auto-move in the auto-resize.</numentry>
+        <numentry name='bottom_gap' label='Bottom gap:' unit='pixels' min='-99' max='999' width='3'>For the overrided auto-move in the auto-resize and the display settings.</numentry>
 	  <spacer/>
-        <numentry name='right_gap' label='Right gap:' unit='pixels' min='-99' max='999' width='3'>For overrided auto-move in the auto-resize.</numentry>
+        <numentry name='right_gap' label='Right gap:' unit='pixels' min='-99' max='999' width='3'>For the overrided auto-move in the auto-resize and the display settings.</numentry>
       </hbox>
 
     </frame>

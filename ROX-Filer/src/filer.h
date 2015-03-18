@@ -116,6 +116,12 @@ struct _FilerWindow
 	gint		auto_scroll;		/* Timer */
 
 	char		*window_id;		/* For remote control */
+
+	/* dir settings */
+	gint		reqx;
+	gint		reqy;
+	gint		req_width;
+	gint		req_height;
 };
 
 extern FilerWindow 	*window_with_focus;
