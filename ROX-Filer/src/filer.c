@@ -160,7 +160,7 @@ static void load_learnt_mounts(void);
 static void save_learnt_mounts(void);
 static void load_settings(void);
 static void save_settings(void);
-static void check_settings(FilerWindow *filer_window);
+static gboolean check_settings(FilerWindow *filer_window);
 static char *tip_from_desktop_file(const char *full_path);
 
 static GdkCursor *busy_cursor = NULL;
@@ -255,60 +255,98 @@ static gboolean if_deleted(gpointer item, gpointer removed)
  */
 void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 {
-	GtkWidget *window;
-
 	g_return_if_fail(filer_window != NULL);
 
-	if (filer_window->scrollbar)
-		w += filer_window->scrollbar->allocation.width;
-	
-	if (o_toolbar.int_value != TOOLBAR_NONE)
-		h += filer_window->toolbar->allocation.height;
-	if (filer_window->message)
-		h += filer_window->message->allocation.height;
+	GtkWidget *window = filer_window->window;
+	GtkRequisition *req = &window->requisition;
 
-	window = filer_window->window;
+	if (filer_window->req_width >= 0)
+	{
+		w = filer_window->req_width;
+		h = filer_window->req_height;
+		filer_window->req_width = filer_window->req_height = -1;
+	}
+	else
+	{
+		if (filer_window->scrollbar)
+			w += filer_window->scrollbar->allocation.width;
+		
+		if (o_toolbar.int_value != TOOLBAR_NONE)
+			h += filer_window->toolbar->allocation.height;
+		if (filer_window->message)
+			h += filer_window->message->allocation.height;
+	}
+
+	w = MAX(req->width, w);
+	h = MAX(req->height, h);
+
+	if (o_auto_move.int_value || filer_window->reqx >= 0)
+	{
+		GdkWindow *gdk_window = window->window;
+		gint x, y, m, currentw, currenth, lx, ly;
+		GdkRectangle frect = {0, 0, 0, 0};
+
+		gdk_window_get_pointer(NULL, &x, &y, NULL);
+		m = gdk_screen_get_monitor_at_point(gdk_screen_get_default(), x, y);
+
+		gtk_window_get_size(GTK_WINDOW(window), &currentw, &currenth);
+		gdk_window_get_frame_extents(gdk_window, &frect);
+
+		lx = monitor_geom[m].x + monitor_geom[m].width -
+				(frect.width - currentw + w + o_right_gap.int_value);
+		
+		ly = monitor_geom[m].y + monitor_geom[m].height -
+				(frect.height - currenth + h + o_bottom_gap.int_value);
+
+/* There are todo, so these g_print are still there */
+//g_print("reqx:%i, reqy:%i\n", filer_window->reqx, filer_window->reqy);
+
+		if (filer_window->reqx >= 0)
+		{
+			if (GTK_WIDGET_VISIBLE(window))
+			{ /* If visible there are window decorations */
+				/* todo: In xfwm4 4.12, x is not point of decorations. */
+				gtk_window_get_position(GTK_WINDOW(window),&x, &y);
+				x = filer_window->reqx + x - frect.x;
+				y = filer_window->reqy + y - frect.y;
+			}
+			else
+			{ /* todo: There is no clue to get the size of decorations */
+				lx -= 0;	
+				ly -= 0;	
+				x = filer_window->reqx;
+				y = filer_window->reqy;
+			}
+			filer_window->reqx = filer_window->reqy = -1;
+		}
+		else
+		{
+			x = frect.x;
+			y = frect.y;
+		}
+		
+		x = MAX(MIN(x, lx), 0);
+		y = MAX(MIN(y, ly), 0);
+
+//g_print("x:%i, y:%i, fx:%i, fy:%i, lx:%i, ly:%i\n", x, y, frect.x, frect.y, lx, ly);
+//g_print("cw:%i, ch:%i, w:%i, h:%i, fw:%i, fh:%i\n", currentw, currenth, w, h, frect.width, frect.height);
+
+		/* In start up, there is no GDK_window. Have to use GTK. */
+		if (x != frect.x || y != frect.y)
+			gtk_window_move(GTK_WINDOW(window), x, y); 
+		if (w != currentw || h != currenth)
+			gtk_window_resize(GTK_WINDOW(window), w, h);
+	}
+	else
+		gtk_window_resize(GTK_WINDOW(window), w, h);
 
 	if (GTK_WIDGET_VISIBLE(window))
 	{
-		GtkRequisition	*req = &window->requisition;
-		GdkWindow *gdk_window = window->window;
-		GdkEvent *event;
-
-		w = MAX(req->width, w);
-		h = MAX(req->height, h);
-
-		if (o_auto_move.int_value)
-		{
-			gint x, y, m, currentw, currenth, tox, toy;
-			GdkRectangle frect = {0, 0, 0, 0};
-
-			gdk_window_get_pointer(NULL, &x, &y, NULL);
-			m = gdk_screen_get_monitor_at_point(gdk_screen_get_default(), x, y);
-
-			gtk_window_get_size(GTK_WINDOW(window), &currentw, &currenth);
-			gdk_window_get_frame_extents(gdk_window, &frect);
-
-			tox = monitor_geom[m].x + monitor_geom[m].width -
-					(frect.width - currentw + w + o_right_gap.int_value);
-			
-			toy = monitor_geom[m].y + monitor_geom[m].height -
-					(frect.height - currenth + h + o_bottom_gap.int_value);
-
-			x = MAX(MIN(frect.x, tox), 0);
-			y = MAX(MIN(frect.y, toy), 0);
-
-			if (x != frect.x || y != frect.y || w != currentw || h != currenth)
-				gdk_window_move_resize(gdk_window, x, y, w, h);
-		}
-		else
-			gdk_window_resize(gdk_window, w, h);
-
 		/* If the resize was triggered by a key press, keep
 		 * the pointer inside the window so that it doesn't
 		 * lose focus when using pointer-follows-mouse.
 		 */
-		event = gtk_get_current_event();
+		GdkEvent *event = gtk_get_current_event();
 		if (event && event->type == GDK_KEY_PRESS)
 		{
 			int x, y;
@@ -334,8 +372,6 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 		if (event)
 			gdk_event_free(event);
 	}
-	else
-		gtk_window_set_default_size(GTK_WINDOW(window), w, h);
 }
 
 /* Called on a timeout while scanning or when scanning ends
@@ -343,15 +379,6 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
  */
 static gint open_filer_window(FilerWindow *filer_window)
 {
-	Settings *dir_settings;
-	gboolean force_resize;
-
-	dir_settings = (Settings *) g_hash_table_lookup(settings_table,
-					      filer_window->sym_path);
-
-	force_resize = !(o_filer_auto_resize.int_value == RESIZE_NEVER &&
-			 dir_settings && dir_settings->flags & SET_POSITION);
-
 	view_style_changed(filer_window->view, 0);
 
 	if (filer_window->open_timeout)
@@ -362,7 +389,7 @@ static gint open_filer_window(FilerWindow *filer_window)
 
 	if (!GTK_WIDGET_VISIBLE(filer_window->window))
 	{
-		display_set_actual_size(filer_window, force_resize);
+		display_set_actual_size(filer_window, TRUE);
 		gtk_widget_show(filer_window->window);
 	}
 
@@ -1345,6 +1372,7 @@ void filer_change_to(FilerWindow *filer_window,
 	char	*from_dup;
 	char	*sym_path, *real_path;
 	Directory *new_dir;
+	gboolean force_resize;
 
 	g_return_if_fail(filer_window != NULL);
 
@@ -1388,10 +1416,11 @@ void filer_change_to(FilerWindow *filer_window,
 	g_free(filer_window->auto_select);
 	filer_window->auto_select = from_dup;
 
+	force_resize = check_settings(filer_window);
+
 	filer_window->had_cursor = filer_window->had_cursor ||
 			view_cursor_visible(filer_window->view);
 
-	filer_set_title(filer_window);
 	if (filer_window->window->window)
 		gdk_window_set_role(filer_window->window->window,
 				    filer_window->sym_path);
@@ -1399,9 +1428,7 @@ void filer_change_to(FilerWindow *filer_window,
 
 	attach(filer_window);
 	
-	check_settings(filer_window);
-
-	display_set_actual_size(filer_window, FALSE);
+	display_set_actual_size(filer_window, force_resize);
 
 	if (filer_window->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, filer_window);
@@ -1456,8 +1483,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	DetailsType     dtype;
 	SortType	s_type;
 	GtkSortType	s_order;
-	Settings	*dir_settings = NULL;
-	gboolean 	force_resize = TRUE;
 
 	/* Get the real pathname of the directory and copy it */
 	real_path = pathdup(path);
@@ -1553,43 +1578,10 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 		filer_window->view_type = o_filer_view_type.int_value;
 	}
 
-	dir_settings = (Settings *) g_hash_table_lookup(settings_table,
-					      filer_window->sym_path);
-	if (dir_settings)
-	{
-		/* Override the current defaults with the per-directory
-		 * user settings.
-		 */
-		if (dir_settings->flags & SET_HIDDEN)
-			filer_window->show_hidden = dir_settings->show_hidden;
-
-		if (dir_settings->flags & SET_STYLE)
-			dstyle = dir_settings->display_style;
-
-		if (dir_settings->flags & SET_DETAILS)
-		{
-			dtype = dir_settings->details_type;
-			filer_window->view_type = dir_settings->view_type;
-		}
-
-		if (dir_settings->flags & SET_SORT)
-		{
-			s_type = dir_settings->sort_type;
-			s_order = dir_settings->sort_order;
-		}
-
-		if (dir_settings->flags & SET_THUMBS)
-			filer_window->show_thumbs = dir_settings->show_thumbs;
-		
-		if (dir_settings->flags & SET_FILTER)
-		{
-			filer_set_filter(filer_window,
-					   dir_settings->filter_type,
-					   dir_settings->filter);
-			filer_set_filter_directories(filer_window,
-					     dir_settings->filter_directories);
-		}
-	}
+	filer_window->display_style_wanted = dstyle;
+	filer_window->details_type = dtype;
+	filer_window->sort_type = s_type;
+	filer_window->sort_order = s_order;
 
 	/* Add all the user-interface elements & realise */
 	filer_add_widgets(filer_window, wm_class);
@@ -1597,27 +1589,13 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 		gtk_window_set_position(GTK_WINDOW(filer_window->window),
 					GTK_WIN_POS_MOUSE);
 
-	if (dir_settings)
-	{
-		if (dir_settings->flags & SET_POSITION)
-		{
-			gtk_window_move(GTK_WINDOW(filer_window->window),
-					    dir_settings->x, dir_settings->y);
-		}
-		if (dir_settings->flags & SET_SIZE)
-		{
-			filer_window_set_size(filer_window,
-					      dir_settings->width,
-					      dir_settings->height);
-			force_resize = o_filer_auto_resize.int_value != RESIZE_NEVER;
-		}
-	}
+	/* Override the current defaults with the per-directory
+	 * user settings.
+	 */
+	check_settings(filer_window);
 
 	/* Connect to all the signal handlers */
 	filer_add_signals(filer_window);
-
-	display_set_layout(filer_window, dstyle, dtype, force_resize);
-	display_set_sort_type(filer_window, s_type, s_order);
 
 	/* Open the window after a timeout, or when scanning stops.
 	 * Do this before attaching, because attach() might tell us to
@@ -1823,8 +1801,6 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 	
 	gdk_window_set_role(filer_window->window->window,
 			    filer_window->sym_path);
-
-	filer_window_set_size(filer_window, 4, 4);
 }
 
 static void filer_add_signals(FilerWindow *filer_window)
@@ -3372,7 +3348,7 @@ static void add_nodes(gpointer key, gpointer value, gpointer data)
 		xmlNewChild(sub, NULL, "DetailsType", tmp);
 		g_free(tmp);
 	}
-	if(set->flags & SET_STYLE) {
+	if(set->flags & SET_THUMBS) {
 		tmp=g_strdup_printf("%d", set->show_thumbs);
 		xmlNewChild(sub, NULL, "ShowThumbs", tmp);
 		g_free(tmp);
@@ -3409,60 +3385,85 @@ static void save_settings(void)
 
 }
 
-static void check_settings(FilerWindow *filer_window)
+static gboolean check_settings(FilerWindow *filer_window)
 {
 	Settings *set;
+	gboolean force_resize = FALSE;
+	DisplayStyle dstyle = filer_window->display_style_wanted;
+	DetailsType dtype = filer_window->details_type;
+
+	filer_window->reqx = filer_window->reqy = -1;
+	filer_window->req_width = filer_window->req_height = -1;
 
 	set=(Settings *) g_hash_table_lookup(settings_table,
 					      filer_window->sym_path);
 
-	if(set) {
-		if(set->flags & SET_POSITION) 
-			gtk_window_move(GTK_WINDOW(filer_window->window),
-					    set->x, set->y);
-		if(set->flags & SET_SIZE) 
-			filer_window_set_size(filer_window, set->width,
-					      set->height);
-		if(set->flags & SET_HIDDEN)
-			filer_set_hidden(filer_window, set->show_hidden);
+	if (!set) return FALSE;
 
-		if(set->flags & (SET_STYLE|SET_DETAILS)) {
-			DisplayStyle style=filer_window->display_style;
-			DetailsType  details=filer_window->details_type;
+	if (set->flags & SET_HIDDEN)
+		filer_window->show_hidden = set->show_hidden;
 
-			if(set->flags & SET_STYLE)
-				style=set->display_style;
+	if (set->flags & SET_STYLE)
+		filer_window->display_style_wanted = set->display_style;
 
-			if(set->flags & SET_DETAILS) {
-				details=set->details_type;
-
-				filer_set_view_type(filer_window,
-						    set->view_type);
-			}
-
-			display_set_layout(filer_window, style,
-					   details, FALSE);
-		}
-
-		if(set->flags & SET_SORT)
-			display_set_sort_type(filer_window,
-					      set->sort_type,
-					      set->sort_order);
-
-		if(set->flags & SET_THUMBS)
-			display_set_thumbs(filer_window,
-					   set->show_thumbs);
-		
-		if(set->flags & SET_FILTER)
-		{
-			display_set_filter(filer_window,
-					   set->filter_type,
-					   set->filter);
-			display_set_filter_directories(filer_window,
-					   set->filter_directories);
-		}
+	if (set->flags & SET_DETAILS)
+	{
+		filer_window->details_type = set->details_type;
+		filer_window->view_type = set->view_type;
 	}
 
+	if (set->flags & SET_SORT)
+	{
+		filer_window->sort_type = set->sort_type;
+		filer_window->sort_order = set->sort_order;
+	}
+
+	if (set->flags & SET_THUMBS)
+		filer_window->show_thumbs = set->show_thumbs;
+	
+	if (set->flags & SET_FILTER)
+	{
+		filer_set_filter(filer_window,
+				   set->filter_type,
+				   set->filter);
+		filer_set_filter_directories(filer_window,
+					 set->filter_directories);
+	}
+
+
+	if (o_filer_auto_resize.int_value == RESIZE_STYLE &&
+		(filer_window->display_style_wanted != dstyle ||
+		 filer_window->details_type != dtype))
+		force_resize = TRUE;
+	
+	if (set->flags & SET_POSITION)
+	{
+		filer_window->reqx = set->x;
+		filer_window->reqy = set->y;
+
+		if (GTK_WIDGET_VISIBLE(filer_window->window) &&
+			o_filer_auto_resize.int_value != RESIZE_ALWAYS &&
+			!(set->flags & SET_SIZE) &&
+			!force_resize)
+		{ /* This case, there is no resize(move) request. */
+			/* Keep current size */
+			gtk_window_get_size(GTK_WINDOW(filer_window->window),
+					&(filer_window->req_width),
+					&(filer_window->req_height));
+
+			force_resize = TRUE;
+		}
+	}
+	
+	if (set->flags & SET_SIZE)
+	{
+		filer_window->req_width = set->width;
+		filer_window->req_height = set->height;
+
+		force_resize = TRUE;
+	}
+
+	return force_resize;
 }
 
 typedef struct settings_window {
