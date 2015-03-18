@@ -103,6 +103,7 @@ struct _FilerWindow
 	GtkWidget	*toolbar;
 	GtkWidget	*toolbar_text;
 	GtkWidget	*scrollbar;
+	GtkLabel	*toolbar_size_text;
 
 	gint		open_timeout;	/* Will resize and show window... */
 

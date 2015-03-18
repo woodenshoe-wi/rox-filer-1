@@ -1512,6 +1512,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->had_cursor = FALSE;
 	filer_window->auto_select = NULL;
 	filer_window->toolbar_text = NULL;
+	filer_window->toolbar_size_text = NULL;
 	filer_window->target_cb = NULL;
 	filer_window->mini_type = MINI_NONE;
 	filer_window->selection_state = GTK_STATE_INSENSITIVE;
