@@ -807,7 +807,7 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 	GtkWidget *item;
 	xmlNode *node;
 	gboolean need_separator = TRUE;
-	int maxwidth = 0;
+	int maxwidth = 0, count = 4;
 	GList *labels = NULL;
 
 	menu = gtk_menu_new();
@@ -816,17 +816,19 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 	g_signal_connect(item, "activate",
 			 G_CALLBACK(bookmarks_add), filer_window);
 	gtk_widget_show(item);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+//	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+	gtk_menu_attach(GTK_MENU(menu), item, 0, 1, 0, 1);
 	gtk_menu_shell_select_item(GTK_MENU_SHELL(menu), item);
 
 	item = gtk_menu_item_new_with_label(_("Edit Bookmarks"));
 	g_signal_connect(item, "activate", G_CALLBACK(activate_edit), NULL);
 	gtk_widget_show(item);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+//	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+	gtk_menu_attach(GTK_MENU(menu), item, 1, 2, 0, 1);
 
 	item = gtk_menu_item_new_with_label(_("Recently Visited"));
 	gtk_widget_show(item);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+	gtk_menu_attach(GTK_MENU(menu), item, 0, 1, 1, 2);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(item),
 			build_history_menu(filer_window));
 
@@ -843,7 +845,6 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		GtkWidget *label, *fix;
 		PangoLayout *layout;
 		int width;
-
 
 		if (node->type != XML_ELEMENT_NODE)
 			continue;
@@ -888,24 +889,26 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		layout = gtk_label_get_layout(GTK_LABEL(label));
 		pango_layout_get_pixel_size(layout, &width, NULL);
 		if (width > maxwidth)
-			maxwidth = width + 12;
+			maxwidth = width + 16;
 
-		gtk_fixed_put(GTK_FIXED(fix), label, 0, 0);
+		gtk_fixed_put(GTK_FIXED(fix), label, 6, 0);
 
 		label = gtk_label_new(mark);
 		links[1] = label;
 		gtk_widget_set_sensitive(label, FALSE);
-		gtk_label_set_max_width_chars(GTK_LABEL(label), 30);
+		gtk_label_set_max_width_chars(GTK_LABEL(label), 40);
 		gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_MIDDLE);
 
 		gtk_fixed_put(GTK_FIXED(fix), label, maxwidth, 0);
 
 		gtk_container_add(GTK_CONTAINER(item), fix);
-		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+		gtk_menu_attach(GTK_MENU(menu), item, 0, 2, count, count + 1);
 		
 		labels = g_list_append(labels, links);
 
 		gtk_widget_show_all(item);
+
+		count++;
 
 		if(title!=mark)
 			xmlFree(title);
