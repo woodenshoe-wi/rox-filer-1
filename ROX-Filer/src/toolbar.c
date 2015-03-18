@@ -253,6 +253,7 @@ void toolbar_update_info(FilerWindow *filer_window)
 	}
 
 	gtk_label_set_text(GTK_LABEL(filer_window->toolbar_text), label);
+
 	g_free(label);
 }
 
@@ -268,6 +269,7 @@ void toolbar_update_toolbar(FilerWindow *filer_window)
 		gtk_widget_destroy(filer_window->toolbar);
 		filer_window->toolbar = NULL;
 		filer_window->toolbar_text = NULL;
+		filer_window->toolbar_size_text = NULL;
 	}
 
 	if (o_toolbar.int_value != TOOLBAR_NONE)
@@ -657,7 +659,7 @@ static gint toolbar_button_released(GtkButton *button,
 static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 				FilerWindow *filer_window)
 {
-	GtkWidget 	*button, *icon_widget;
+	GtkWidget 	*button, *icon_widget, *label = NULL;
 
 	icon_widget = gtk_image_new_from_stock(tool->name,
 						GTK_ICON_SIZE_LARGE_TOOLBAR);
@@ -675,7 +677,7 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 	
 	if (o_toolbar.int_value == TOOLBAR_HORIZONTAL)
 	{
-		GtkWidget *hbox, *label;
+		GtkWidget *hbox;
 		GList	  *kids;
 		hbox = GTK_BIN(button)->child;
 		kids = gtk_container_get_children(GTK_CONTAINER(hbox));
@@ -687,6 +689,7 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 			gtk_box_set_child_packing(GTK_BOX(hbox), label,
 						TRUE, TRUE, 0, GTK_PACK_END);
 			gtk_misc_set_alignment(GTK_MISC(label), 0, 0.5);
+
 		}
 	}
 
@@ -700,6 +703,12 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 			G_CALLBACK(toolbar_button_pressed), filer_window);
 		g_signal_connect(button, "button_release_event",
 			G_CALLBACK(toolbar_button_released), filer_window);
+
+		if (tool->clicked == toolbar_size_clicked)
+		{
+			if (label)
+				filer_window->toolbar_size_text = GTK_LABEL(label);
+		}
 	}
 	else
 	{

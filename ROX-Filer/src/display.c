@@ -504,6 +504,19 @@ void display_set_layout(FilerWindow  *filer_window,
 	{
 		view_autosize(filer_window->view);
 	}
+
+	if (filer_window->toolbar_size_text)
+	{
+		gchar *size_label = g_strdup_printf("%s:%s", N_("Size"),
+			filer_window->display_style_wanted == LARGE_ICONS ? "L" :
+			filer_window->display_style_wanted == SMALL_ICONS ? "S" :
+			filer_window->display_style_wanted == HUGE_ICONS  ? "X" :
+			filer_window->display_style_wanted == AUTO_SIZE_ICONS ? "A" :
+			"?" );
+		gtk_label_set_text(filer_window->toolbar_size_text, size_label);
+
+		g_free(size_label);
+	}
 }
 
 /* Set the 'Show Thumbnails' flag for this window */

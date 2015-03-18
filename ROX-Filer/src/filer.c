@@ -1512,6 +1512,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->had_cursor = FALSE;
 	filer_window->auto_select = NULL;
 	filer_window->toolbar_text = NULL;
+	filer_window->toolbar_size_text = NULL;
 	filer_window->target_cb = NULL;
 	filer_window->mini_type = MINI_NONE;
 	filer_window->selection_state = GTK_STATE_INSENSITIVE;
@@ -3515,6 +3516,9 @@ void filer_save_settings(FilerWindow *fwin)
 	gint x, y;
 	
 	Settings *set=settings_new(fwin->sym_path);
+	Settings *bs = (Settings *) g_hash_table_lookup(
+					settings_table,
+					fwin->sym_path);
 
 	gtk_window_get_position(GTK_WINDOW(fwin->window),&x, &y);
 	set->flags|=SET_POSITION;
@@ -3548,6 +3552,9 @@ void filer_save_settings(FilerWindow *fwin)
 	if(fwin->filter_string)
 		set->filter=g_strdup(fwin->filter_string);
 	set->filter_directories=fwin->filter_directories;
+
+	if (bs)
+		set->flags&=bs->flags;
 
 	/* Store other parameters
 	*/
