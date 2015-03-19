@@ -816,14 +816,12 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 	g_signal_connect(item, "activate",
 			 G_CALLBACK(bookmarks_add), filer_window);
 	gtk_widget_show(item);
-//	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
 	gtk_menu_attach(GTK_MENU(menu), item, 0, 1, 0, 1);
 	gtk_menu_shell_select_item(GTK_MENU_SHELL(menu), item);
 
 	item = gtk_menu_item_new_with_label(_("Edit Bookmarks"));
 	g_signal_connect(item, "activate", G_CALLBACK(activate_edit), NULL);
 	gtk_widget_show(item);
-//	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
 	gtk_menu_attach(GTK_MENU(menu), item, 1, 2, 0, 1);
 
 	item = gtk_menu_item_new_with_label(_("Recently Visited"));
@@ -840,7 +838,7 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 
 	for (node = node->xmlChildrenNode; node; node = node->next)
 	{
-		gchar *mark, *title, *path;
+		gchar *mark, *title, *path, *dirname;
 		GtkWidget **links;
 		GtkWidget *label, *fix;
 		PangoLayout *layout;
@@ -889,14 +887,15 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		layout = gtk_label_get_layout(GTK_LABEL(label));
 		pango_layout_get_pixel_size(layout, &width, NULL);
 		if (width > maxwidth)
-			maxwidth = width + 16;
+			maxwidth = width + 12;
 
-		gtk_fixed_put(GTK_FIXED(fix), label, 6, 0);
+		gtk_fixed_put(GTK_FIXED(fix), label, 4, 0);
 
-		label = gtk_label_new(mark);
+		dirname = g_path_get_dirname(mark);
+		label = gtk_label_new(dirname);
 		links[1] = label;
 		gtk_widget_set_sensitive(label, FALSE);
-		gtk_label_set_max_width_chars(GTK_LABEL(label), 40);
+		gtk_label_set_max_width_chars(GTK_LABEL(label), 30);
 		gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_MIDDLE);
 
 		gtk_fixed_put(GTK_FIXED(fix), label, maxwidth, 0);
@@ -913,6 +912,7 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		if(title!=mark)
 			xmlFree(title);
 		xmlFree(mark);
+		g_free(dirname);
 	}
 
 	while (labels)
