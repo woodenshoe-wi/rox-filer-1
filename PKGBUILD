@@ -16,8 +16,8 @@ md5sums=('SKIP')
 
 prepare() {
   cd "$srcdir/rox-filer"
-  # checkout
-  git checkout $branch
+  # update local files
+  git pull --rebase origin $branch
 }
 
 build() {
