@@ -56,6 +56,7 @@
 #include "fscache.h"
 #include "view_iface.h"
 #include "xtypes.h"
+#include "usericons.h"
 
 #define HUGE_WRAP (1.5 * o_large_width.int_value)
 
@@ -877,6 +878,10 @@ void display_update_view(FilerWindow *filer_window,
 		view->image = g_fscache_lookup_full(pixmap_cache, path,
 				FSCACHE_LOOKUP_ONLY_NEW, NULL);
 	}
+
+	if (!view->image)
+		view->image = get_globicon(
+				make_path(filer_window->sym_path, item->leafname));
 
 	if (!view->image)
 	{

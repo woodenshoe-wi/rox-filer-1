@@ -156,6 +156,15 @@ void check_globicon(const guchar *path, DirItem *item)
 	if (gi)
 		item->_image = g_fscache_lookup(pixmap_cache, gi);
 }
+MaskedPixmap *get_globicon(const guchar *path)
+{
+	gchar *gi;
+
+	gi = g_hash_table_lookup(glob_icons, path);
+	if (gi)
+		return g_fscache_lookup(pixmap_cache, gi);
+	return NULL;
+}
 
 static gboolean create_diricon(const guchar *filepath, const guchar *iconpath)
 {
@@ -493,19 +502,28 @@ static const char *process_globicons_line(gchar *line)
  */
 void add_globicon(const gchar *path, const gchar *icon)
 {
+	gchar *dp;
 	g_hash_table_insert(glob_icons, g_strdup(path), g_strdup(icon));
 
 	/* Rewrite the globicons file */
 	write_globicons();
 
 	/* Make sure any visible icons for the file are updated */
-	examine(path);
+	dp = pathdup(path);
+	if (strcmp(dp, path) == 0)
+		examine(path);
+	else
+		/* only chenged an icon on sym path doesn't tell */
+		dir_force_update_path(dp);
+
+	g_free(dp);
 }
 
 /* Remove the globicon for a certain path */
 void delete_globicon(const gchar *path)
 {
 	gpointer key, value;
+	gchar *dp;
 
 	if (!g_hash_table_lookup_extended(glob_icons, path, &key, &value))
 		return;
@@ -516,7 +534,15 @@ void delete_globicon(const gchar *path)
 	g_free(value);
 
 	write_globicons();
-	examine(path);
+
+	dp = pathdup(path);
+	if (strcmp(dp, path) == 0)
+		examine(path);
+	else
+		/* only chenged an icon on sym path doesn't tell */
+		dir_force_update_path(dp);
+
+	g_free(dp);
 }
 
 /* Set the icon for this dialog's file to 'icon' */
