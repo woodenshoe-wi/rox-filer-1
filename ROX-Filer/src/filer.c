@@ -3598,7 +3598,7 @@ void filer_save_settings(FilerWindow *fwin)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(set_win->pos),
 				     set->flags & SET_POSITION);
 	
-	set_win->size=gtk_check_button_new_with_label(_("Size"));
+	set_win->size=gtk_check_button_new_with_label(_("Window size"));
 	gtk_box_pack_start(GTK_BOX(vbox), set_win->size, FALSE, FALSE, 2);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(set_win->size),
 				     set->flags & SET_SIZE);
