@@ -22,6 +22,8 @@ extern MaskedPixmap *im_dirs;
 extern GtkIconSize mount_icon_size;
 
 /* If making the huge size larger, be sure to update SMALL_IMAGE_THRESHOLD! */
+#define HUGE_LIMIT_F 512.0
+
 #define HUGE_WIDTH 128
 #define HUGE_HEIGHT 128
 

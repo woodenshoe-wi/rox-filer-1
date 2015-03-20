@@ -352,7 +352,7 @@ static void draw_item(GtkWidget *widget,
 	}
 	else
 	{
-		draw_huge_icon(widget->window, widget->style, &template.icon,
+		draw_huge_icon(filer_window, widget->window, widget->style, &template.icon,
 				item, view->image, selected, color);
 	}
 	
@@ -411,6 +411,7 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 static void huge_template(GdkRectangle *area, CollectionItem *colitem,
 			   ViewCollection *view_collection, Template *template)
 {
+	gfloat scale = view_collection->filer_window->icon_scale;
 	int	col_width = view_collection->collection->item_width;
 	int		text_x, text_y;
 	ViewData	*view = (ViewData *) colitem->view_data;
@@ -420,13 +421,18 @@ static void huge_template(GdkRectangle *area, CollectionItem *colitem,
 	{
 		if (!image->huge_pixbuf)
 			pixmap_make_huge(image);
-		template->icon.width = image->huge_width;
-		template->icon.height = image->huge_height;
+
+		if (image->huge_width <= ICON_WIDTH &&
+			image->huge_height <= ICON_HEIGHT)
+			scale = 1.0;
+
+		template->icon.width = image->huge_width * scale;
+		template->icon.height = image->huge_height * scale;
 	}
 	else
 	{
-		template->icon.width = HUGE_WIDTH * 3 / 2;
-		template->icon.height = HUGE_HEIGHT;
+		template->icon.width = HUGE_WIDTH * scale * 3 / 2;
+		template->icon.height = HUGE_HEIGHT * scale;
 	}
 
 	template->leafname.width = view->name_width;
@@ -457,7 +463,7 @@ static void large_template(GdkRectangle *area, CollectionItem *colitem,
 	if (image)
 	{
 		iwidth = MIN(image->width, ICON_WIDTH);
-		iheight = MIN(image->height + 6, ICON_HEIGHT);
+		iheight = MIN(image->height, ICON_HEIGHT);
 	}
 	else
 	{
@@ -508,27 +514,35 @@ static void small_template(GdkRectangle *area, CollectionItem *colitem,
 static void huge_full_template(GdkRectangle *area, CollectionItem *colitem,
 			   ViewCollection *view_collection, Template *template)
 {
-	int	max_text_width = area->width - HUGE_WIDTH - 4;
+	int	max_text_width;
 	ViewData *view = (ViewData *) colitem->view_data;
 	MaskedPixmap	*image = view->image;
+	gfloat scale = view_collection->filer_window->icon_scale;
 
 	if (image)
 	{
 		if (!image->huge_pixbuf)
 			pixmap_make_huge(image);
-		template->icon.width = image->huge_width;
-		template->icon.height = image->huge_height;
+
+		if (image->huge_width <= ICON_WIDTH &&
+			image->huge_height <= ICON_HEIGHT)
+			scale = 1.0;
+
+		template->icon.width = image->huge_width * scale;
+		template->icon.height = image->huge_height * scale;
 	}
 	else
 	{
-		template->icon.width = HUGE_WIDTH * 3 / 2;
-		template->icon.height = HUGE_HEIGHT;
+		template->icon.width = HUGE_WIDTH * scale * 3 / 2;
+		template->icon.height = HUGE_HEIGHT * scale;
 	}
 
-	template->icon.x = area->x + (HUGE_WIDTH - template->icon.width) / 2;
+	max_text_width = area->width - HUGE_WIDTH * scale - 4;
+
+	template->icon.x = area->x + (HUGE_WIDTH * scale - template->icon.width) / 2;
 	template->icon.y = area->y + (area->height - template->icon.height) / 2;
 
-	template->leafname.x = area->x + HUGE_WIDTH + 4;
+	template->leafname.x = area->x + HUGE_WIDTH * scale + 4;
 	template->leafname.y = area->y + area->height / 2
 			- (view->name_height + 2 + view->details_height) / 2;
 	template->leafname.width = MIN(max_text_width, view->name_width);
@@ -873,26 +887,32 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 	int		w;
 	DisplayStyle	style = filer_window->display_style;
 	ViewData	*view = (ViewData *) colitem->view_data;
+	gfloat scale = filer_window->icon_scale;
 
 	if (filer_window->details_type == DETAILS_NONE)
 	{
-                if (style == HUGE_ICONS)
+		if (style == HUGE_ICONS)
 		{
 			if (view->image)
 			{
 				if (!view->image->huge_pixbuf)
 					pixmap_make_huge(view->image);
-				pix_width = view->image->huge_width;
-				pix_height = view->image->huge_height;
+				
+				if (view->image->huge_width <= ICON_WIDTH &&
+					view->image->huge_height <= ICON_HEIGHT)
+					scale = 1.0;
+
+				pix_width = view->image->huge_width * scale;
+				pix_height = view->image->huge_height * scale;
 			}
 			else
 			{
-				pix_width = HUGE_WIDTH * 3 / 2;
-				pix_height = HUGE_HEIGHT * 3 / 2;
+				pix_width = HUGE_WIDTH * scale * 3 / 2;
+				pix_height = HUGE_HEIGHT * scale * 3 / 2;
 			}
 			*width = MAX(pix_width, view->name_width) + 4;
 			*height = MAX(view->name_height + pix_height + 4,
-					HUGE_HEIGHT * 3 / 4);
+					HUGE_HEIGHT * scale * 3 / 4);
 		}
 		else if (style == SMALL_ICONS)
 		{
@@ -915,8 +935,8 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		w = view->details_width;
 		if (style == HUGE_ICONS)
 		{
-			*width = HUGE_WIDTH + 12 + MAX(w, view->name_width);
-			*height = HUGE_HEIGHT - 4;
+			*width = HUGE_WIDTH * scale + 12 + MAX(w, view->name_width);
+			*height = HUGE_HEIGHT * scale - 4;
 		}
 		else if (style == SMALL_ICONS)
 		{
@@ -929,7 +949,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		}
 		else
 		{
-                        *width = ICON_WIDTH + 12 + MAX(w, view->name_width);
+			*width = ICON_WIDTH + 12 + MAX(w, view->name_width);
 			*height = ICON_HEIGHT;
 		}
         }

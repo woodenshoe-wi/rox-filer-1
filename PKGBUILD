@@ -14,6 +14,12 @@ source=("git://github.com/jun7/rox-filer.git#branch=$branch")
 #md5sums=('0eebf05a67f7932367750ebf9faf215d'
 md5sums=('SKIP')
 
+prepare() {
+  cd "$srcdir/rox-filer"
+  # update local files
+  git pull --rebase origin $branch
+}
+
 build() {
   cd "$srcdir/rox-filer"
   ./ROX-Filer/AppRun --compile LIBS="-ldl -lm"
