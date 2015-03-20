@@ -347,7 +347,7 @@ void dir_drop_all_notifies(void)
 }
 
 /* Tell watchers that this item has changed, but don't rescan.
- * (used when thumbnail has been created for an item. also an icon on a sym_path)
+ * (used when thumbnail has been created for an item. also an user icon on a sym_path)
  */
 void dir_force_update_path(const gchar *path)
 {
