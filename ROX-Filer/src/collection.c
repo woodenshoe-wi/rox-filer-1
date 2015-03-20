@@ -1752,17 +1752,32 @@ void collection_move_cursor(Collection *collection, int drow, int dcol)
 		else if (row > last)
 			row = last;
 		else {
-			row += drow;
 			if (collection->vertical_order) 
 			{
-				if (row >= total_rows)
+				if (drow > 0 && row == total_rows - 1)
 				{
-					row = 0;
-					col += 1;
+					if (col != total_cols - 1)
+					{
+						row = 0;
+						col += 1;
+					}
 				}
+				else if (drow < 0 && row == 0)
+				{
+					if (col != 0)
+					{
+						row = total_rows - 1;
+						col -= 1;
+					}
+				}
+				else
+					row += drow;
+				
+				row = CLAMP(row, 0, total_rows - 1);
 			}
 			else 
 			{
+				row += drow;
 				row = MAX(row, 0); 
 				row = MIN(row, total_rows - 1);
 			}
