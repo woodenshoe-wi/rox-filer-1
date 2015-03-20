@@ -75,10 +75,14 @@ void display_update_views(FilerWindow *filer_window);
 void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 		     DirItem  *item, MaskedPixmap *image, gboolean selected,
 		     GdkColor *color);
-void draw_huge_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
-		    DirItem *item,
-			   MaskedPixmap *image, gboolean selected,
-			   GdkColor *color);
+void draw_huge_icon(FilerWindow *filer_window,
+					GdkWindow *window,
+					GtkStyle *style,
+					GdkRectangle *area,
+					DirItem *item,
+					MaskedPixmap *image,
+					gboolean selected,
+					GdkColor *color);
 void display_set_actual_size(FilerWindow *filer_window, gboolean force_resize);
 void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 				const char *stock_id,

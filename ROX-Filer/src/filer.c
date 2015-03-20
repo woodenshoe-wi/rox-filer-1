@@ -1523,6 +1523,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->scrollbar = NULL;
 	filer_window->auto_scroll = -1;
 	filer_window->window_id = NULL;
+	filer_window->icon_scale = 1.0;
 
 	tidy_sympath(filer_window->sym_path);
 

@@ -246,6 +246,8 @@ static void cell_icon_get_size(GtkCellRenderer *cell,
 	MaskedPixmap *image;
 	DisplayStyle size;
 	int w, h;
+	gfloat scale = ((CellIcon *) cell)->
+		view_details->filer_window->icon_scale;
 
 	size = get_style(cell);
 	image = ((CellIcon *) cell)->item->image;
@@ -276,13 +278,17 @@ static void cell_icon_get_size(GtkCellRenderer *cell,
 		case HUGE_ICONS:
 			if (image)
 			{
-				w = image->huge_width;
-				h = image->huge_height;
+				if (image->huge_width <= ICON_WIDTH &&
+					image->huge_height <= ICON_HEIGHT)
+						scale = 1.0;
+
+				w = image->huge_width * scale;
+				h = image->huge_height * scale;
 			}
 			else
 			{
-				w = HUGE_WIDTH;
-				h = HUGE_HEIGHT;
+				w = HUGE_WIDTH * scale;
+				h = HUGE_HEIGHT * scale;
 			}
 			break;
 		default:
@@ -342,7 +348,8 @@ static void cell_icon_render(GtkCellRenderer    *cell,
 		case HUGE_ICONS:
 			if (!di_image(item)->huge_pixbuf)
 				pixmap_make_huge(di_image(item));
-			draw_huge_icon(window, widget->style, cell_area, item,
+			draw_huge_icon(icon->view_details->filer_window,
+					window, widget->style, cell_area, item,
 					view_item->image, selected, color);
 			break;
 		default:

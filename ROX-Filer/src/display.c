@@ -150,20 +150,28 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 /* Draw this icon (including any symlink or mount symbol) inside the
  * given rectangle.
  */
-void draw_huge_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
-		   DirItem  *item, MaskedPixmap *image, gboolean selected,
-		   GdkColor *color)
+void draw_huge_icon(FilerWindow *filer_window,
+			GdkWindow *window, GtkStyle *style, GdkRectangle *area,
+			DirItem  *item, MaskedPixmap *image, gboolean selected,
+			GdkColor *color)
 {
 	int		width, height;
 	int		image_x;
 	int		image_y;
-	GdkPixbuf	*pixbuf, *tmp;
+	GdkPixbuf	*pixbuf, *tmp, *scaled;
+	gfloat	scale;
 
 	if (!image)
 		return;
 
-	width = image->huge_width;
-	height = image->huge_height;
+	if (image->huge_width <= ICON_WIDTH &&
+		image->huge_height <= ICON_HEIGHT)
+		scale = 1.0;
+	else
+		scale = filer_window->icon_scale;
+
+	width = image->huge_width * scale;
+	height = image->huge_height * scale;
 	image_x = area->x + ((area->width - width) >> 1);
 	image_y = MAX(0, area->height - height - 6);
 
@@ -180,8 +188,15 @@ void draw_huge_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 				: image->huge_pixbuf;
 	}
 
+	if (scale != 1.0)
+		scaled = gdk_pixbuf_scale_simple(pixbuf,
+					width, height, GDK_INTERP_BILINEAR);
+	else
+		scaled = pixbuf;
+	
+
 	gdk_pixbuf_render_to_drawable_alpha(
-			pixbuf,
+			scaled,
 			window,
 			0, 0, 				/* src */
 			image_x, area->y + image_y,	/* dest */
@@ -189,25 +204,29 @@ void draw_huge_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 			GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
 			GDK_RGB_DITHER_NORMAL, 0, 0);
 
+	if (scale != 1.0)
+		g_object_unref(scaled);
+
 	if (selected || item->label != NULL)
 		g_object_unref(pixbuf);
 
+	image_x += width / 19;
 	if (item->flags & ITEM_FLAG_MOUNT_POINT)
 	{
 		const char *mp = item->flags & ITEM_FLAG_MOUNTED
 					? ROX_STOCK_MOUNTED
 					: ROX_STOCK_MOUNT;
-		draw_emblem_on_icon(window, style, mp, &image_x, area->y + 2);
+		draw_emblem_on_icon(window, style, mp, &image_x, area->y + height / 19);
 	}
 	if (item->flags & ITEM_FLAG_SYMLINK)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
-				    &image_x, area->y + 2);
+				    &image_x, area->y + height / 19);
 	}
 	if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_XATTR,
-				    &image_x, area->y + 2);
+				    &image_x, area->y + height / 19);
 	}
 }
 
@@ -328,12 +347,14 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 		const char *mp = item->flags & ITEM_FLAG_MOUNTED
 					? ROX_STOCK_MOUNTED
 					: ROX_STOCK_MOUNT;
-		draw_emblem_on_icon(window, style, mp, &image_x, area->y + 2);
+		draw_emblem_on_icon(window, style, mp, &image_x, area->y + 8);
+		image_x -= 6;
 	}
 	if (item->flags & ITEM_FLAG_SYMLINK)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
 				    &image_x, area->y + 8);
+		image_x -= 6;
 	}
 	if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 	{
@@ -487,6 +508,9 @@ void display_set_layout(FilerWindow  *filer_window,
 
 	g_return_if_fail(filer_window != NULL);
 
+	if (style == AUTO_SIZE_ICONS)
+		filer_window->icon_scale = 1.0;
+
 	if (filer_window->display_style_wanted != style 
 	    || filer_window->details_type != details)
 	{
@@ -614,9 +638,12 @@ void display_change_size(FilerWindow *filer_window, gboolean bigger)
 			new = bigger ? HUGE_ICONS : SMALL_ICONS;
 			break;
 		case HUGE_ICONS:
-			if (bigger)
+			if (!bigger)
+				new = LARGE_ICONS;
+			else if (filer_window->icon_scale != 1.0)
+				new = HUGE_ICONS;
+			else
 				return;
-			new = LARGE_ICONS;
 			break;
 		default:
 			if (!bigger)
@@ -624,6 +651,9 @@ void display_change_size(FilerWindow *filer_window, gboolean bigger)
 			new = LARGE_ICONS;
 			break;
 	}
+
+	/* scale is just temporary */
+	filer_window->icon_scale = 1.0;
 
 	display_set_layout(filer_window, new, filer_window->details_type,
 			   FALSE);
@@ -907,7 +937,7 @@ void display_update_view(FilerWindow *filer_window,
 	if (filer_window->details_type == DETAILS_NONE)
 	{
 		if (style == HUGE_ICONS)
-			wrap_width = HUGE_WRAP * PANGO_SCALE;
+			wrap_width = HUGE_WRAP * filer_window->icon_scale * PANGO_SCALE;
 		else if (style == LARGE_ICONS)
 			wrap_width = o_large_width.int_value * PANGO_SCALE;
 	}
