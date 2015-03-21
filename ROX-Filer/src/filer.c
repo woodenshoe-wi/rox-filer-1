@@ -379,8 +379,6 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
  */
 static gint open_filer_window(FilerWindow *filer_window)
 {
-	view_style_changed(filer_window->view, 0);
-
 	if (filer_window->open_timeout)
 	{
 		g_source_remove(filer_window->open_timeout);
@@ -418,7 +416,6 @@ static void update_display(Directory *dir,
 			FilerWindow *filer_window)
 {
 	ViewIface *view = (ViewIface *) filer_window->view;
-
 	switch (action)
 	{
 		case DIR_ADD:
@@ -1479,7 +1476,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 {
 	FilerWindow	*filer_window;
 	char		*real_path;
-	DisplayStyle    dstyle;
+	DisplayStyle    dstyle, dstylew;
 	DetailsType     dtype;
 	SortType	s_type;
 	GtkSortType	s_order;
@@ -1543,7 +1540,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	filer_window->temp_item_selected = FALSE;
 	filer_window->flags = (FilerFlags) 0;
-	filer_window->details_type = DETAILS_TIMES;
 	filer_window->display_style = UNKNOWN_STYLE;
 	filer_window->display_style_wanted = UNKNOWN_STYLE;
 	filer_window->thumb_queue = NULL;
@@ -1559,7 +1555,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	{
 		s_type = src_win->sort_type;
 		s_order = src_win->sort_order;
-		dstyle = src_win->display_style_wanted;
+		dstyle = src_win->display_style;
+		dstylew = src_win->display_style_wanted;
 		dtype = src_win->details_type;
 		filer_window->show_hidden = src_win->show_hidden;
 		filer_window->show_thumbs = src_win->show_thumbs;
@@ -1573,14 +1570,16 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	{
 		s_type = o_display_sort_by.int_value;
 		s_order = GTK_SORT_ASCENDING;
-		dstyle = o_display_size.int_value;
+		dstyle = LARGE_ICONS; /* if style hits real style, we can skip recalc */
+		dstylew = o_display_size.int_value;
 		dtype = o_display_details.int_value;
 		filer_window->show_hidden = o_display_show_hidden.int_value;
 		filer_window->show_thumbs = o_display_show_thumbs.int_value;
 		filer_window->view_type = o_filer_view_type.int_value;
 	}
 
-	filer_window->display_style_wanted = dstyle;
+	filer_window->display_style_wanted = dstylew;
+	filer_window->display_style = dstyle;
 	filer_window->details_type = dtype;
 	filer_window->sort_type = s_type;
 	filer_window->sort_order = s_order;
@@ -3406,7 +3405,13 @@ static gboolean check_settings(FilerWindow *filer_window)
 		filer_window->show_hidden = set->show_hidden;
 
 	if (set->flags & SET_STYLE)
+	{
 		filer_window->display_style_wanted = set->display_style;
+		/* if style hits real style, we can skip recalc */
+		filer_window->display_style =
+			set->display_style == AUTO_SIZE_ICONS ?
+				LARGE_ICONS : set->display_style;
+	}
 
 	if (set->flags & SET_DETAILS)
 	{
