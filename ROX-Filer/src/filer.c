@@ -1540,8 +1540,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	filer_window->temp_item_selected = FALSE;
 	filer_window->flags = (FilerFlags) 0;
-	filer_window->display_style = UNKNOWN_STYLE;
-	filer_window->display_style_wanted = UNKNOWN_STYLE;
 	filer_window->thumb_queue = NULL;
 	filer_window->max_thumbs = 0;
 	filer_window->sort_type = -1;
@@ -1570,7 +1568,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	{
 		s_type = o_display_sort_by.int_value;
 		s_order = GTK_SORT_ASCENDING;
-		dstyle = LARGE_ICONS; /* if style hits real style, we can skip recalc */
+		dstyle = SMALL_ICONS; /* if style hits real style, we can skip recalc */
 		dstylew = o_display_size.int_value;
 		dtype = o_display_details.int_value;
 		filer_window->show_hidden = o_display_show_hidden.int_value;
@@ -3410,7 +3408,7 @@ static gboolean check_settings(FilerWindow *filer_window)
 		/* if style hits real style, we can skip recalc */
 		filer_window->display_style =
 			set->display_style == AUTO_SIZE_ICONS ?
-				LARGE_ICONS : set->display_style;
+				SMALL_ICONS : set->display_style;
 	}
 
 	if (set->flags & SET_DETAILS)
