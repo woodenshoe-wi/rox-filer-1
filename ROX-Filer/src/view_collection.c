@@ -431,7 +431,7 @@ static void huge_template(GdkRectangle *area, CollectionItem *colitem,
 	}
 	else
 	{
-		template->icon.width = HUGE_WIDTH * scale * 3 / 2;
+		template->icon.width = HUGE_WIDTH * scale;
 		template->icon.height = HUGE_HEIGHT * scale;
 	}
 
@@ -533,7 +533,7 @@ static void huge_full_template(GdkRectangle *area, CollectionItem *colitem,
 	}
 	else
 	{
-		template->icon.width = HUGE_WIDTH * scale * 3 / 2;
+		template->icon.width = HUGE_WIDTH * scale;
 		template->icon.height = HUGE_HEIGHT * scale;
 	}
 
@@ -907,8 +907,8 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 			}
 			else
 			{
-				pix_width = HUGE_WIDTH * scale * 3 / 2;
-				pix_height = HUGE_HEIGHT * scale * 3 / 2;
+				pix_width = HUGE_WIDTH * scale;
+				pix_height = HUGE_HEIGHT * scale;
 			}
 			*width = MAX(pix_width, view->name_width) + 4;
 			*height = MAX(view->name_height + pix_height + 4,

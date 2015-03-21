@@ -1476,7 +1476,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 {
 	FilerWindow	*filer_window;
 	char		*real_path;
-	DisplayStyle    dstyle, dstylew;
+	DisplayStyle    dstylew;
 	DetailsType     dtype;
 	SortType	s_type;
 	GtkSortType	s_order;
@@ -1553,7 +1553,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	{
 		s_type = src_win->sort_type;
 		s_order = src_win->sort_order;
-		dstyle = src_win->display_style;
 		dstylew = src_win->display_style_wanted;
 		dtype = src_win->details_type;
 		filer_window->show_hidden = src_win->show_hidden;
@@ -1568,7 +1567,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	{
 		s_type = o_display_sort_by.int_value;
 		s_order = GTK_SORT_ASCENDING;
-		dstyle = SMALL_ICONS; /* if style hits real style, we can skip recalc */
 		dstylew = o_display_size.int_value;
 		dtype = o_display_details.int_value;
 		filer_window->show_hidden = o_display_show_hidden.int_value;
@@ -1577,21 +1575,20 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	}
 
 	filer_window->display_style_wanted = dstylew;
-	filer_window->display_style = dstyle;
 	filer_window->details_type = dtype;
 	filer_window->sort_type = s_type;
 	filer_window->sort_order = s_order;
+
+	/* Override the current defaults with the per-directory
+	 * user settings.
+	 */
+	check_settings(filer_window);
 
 	/* Add all the user-interface elements & realise */
 	filer_add_widgets(filer_window, wm_class);
 	if (src_win)
 		gtk_window_set_position(GTK_WINDOW(filer_window->window),
 					GTK_WIN_POS_MOUSE);
-
-	/* Override the current defaults with the per-directory
-	 * user settings.
-	 */
-	check_settings(filer_window);
 
 	/* Connect to all the signal handlers */
 	filer_add_signals(filer_window);
@@ -1795,7 +1792,6 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 
 	gtk_widget_show(vbox);
 	gtk_widget_show(filer_window->scrollbar);
-
 	gtk_widget_realize(filer_window->window);
 	
 	gdk_window_set_role(filer_window->window->window,
@@ -3397,19 +3393,14 @@ static gboolean check_settings(FilerWindow *filer_window)
 	set=(Settings *) g_hash_table_lookup(settings_table,
 					      filer_window->sym_path);
 
-	if (!set) return FALSE;
+	if (!set)
+		goto out;
 
 	if (set->flags & SET_HIDDEN)
 		filer_window->show_hidden = set->show_hidden;
 
 	if (set->flags & SET_STYLE)
-	{
 		filer_window->display_style_wanted = set->display_style;
-		/* if style hits real style, we can skip recalc */
-		filer_window->display_style =
-			set->display_style == AUTO_SIZE_ICONS ?
-				SMALL_ICONS : set->display_style;
-	}
 
 	if (set->flags & SET_DETAILS)
 	{
@@ -3467,6 +3458,11 @@ static gboolean check_settings(FilerWindow *filer_window)
 
 		force_resize = TRUE;
 	}
+
+out:
+	filer_window->display_style =
+		filer_window->display_style_wanted == AUTO_SIZE_ICONS ?
+			SMALL_ICONS : filer_window->display_style_wanted;
 
 	return force_resize;
 }
