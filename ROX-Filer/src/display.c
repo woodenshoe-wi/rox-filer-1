@@ -350,19 +350,19 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 		const char *mp = item->flags & ITEM_FLAG_MOUNTED
 					? ROX_STOCK_MOUNTED
 					: ROX_STOCK_MOUNT;
-		draw_emblem_on_icon(window, style, mp, &image_x, area->y + 8);
+		draw_emblem_on_icon(window, style, mp, &image_x, area->y + 7);
 		image_x -= 6;
 	}
 	if (item->flags & ITEM_FLAG_SYMLINK)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
-				    &image_x, area->y + 8);
+				    &image_x, area->y + 7);
 		image_x -= 6;
 	}
 	if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_XATTR,
-				    &image_x, area->y + 8);
+				    &image_x, area->y + 7);
 	}
 }
 
