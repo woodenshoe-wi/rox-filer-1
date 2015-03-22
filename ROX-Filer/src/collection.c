@@ -747,14 +747,14 @@ static gint collection_key_press(GtkWidget *widget, GdkEventKey *event)
 		  {
 		        int first, last;
 		       	get_visible_limits(collection, &first, &last);
-			collection_move_cursor(collection, first - last - 1, 0);
+			collection_move_cursor(collection, first - last + 1, 0);
 			break;
 		  }
 		case GDK_Page_Down:
 		  {
 		        int first, last;
 		       	get_visible_limits(collection, &first, &last);
-			collection_move_cursor(collection, last - first + 1, 0);
+			collection_move_cursor(collection, last - first - 1, 0);
 			break;
 		  }
 		default:
