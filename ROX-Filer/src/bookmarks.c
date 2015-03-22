@@ -785,11 +785,6 @@ static void activate_edit(GtkMenuShell *item, gpointer data)
 	bookmarks_edit();
 }
 
-static gint cmp_dirname(gconstpointer a, gconstpointer b)
-{
-	return g_utf8_collate(*(gchar **) a, *(gchar **) b);
-}
-
 static void free_path_for_item(GtkWidget *widget, gpointer udata)
 {
 	gchar *path=(gchar *) udata;
@@ -816,13 +811,14 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 	for (next = history; next; next = next->next)
 		g_ptr_array_add(items, next->data);
 
-	g_ptr_array_sort(items, cmp_dirname);
-
 	for (i = 0; i < items->len; i++)
 	{
 		GtkWidget *item;
 		const char *path = (char *) items->pdata[i];
 		gchar *copy, *disppath;
+
+		if (i == 0 && strcmp(path, filer_window->sym_path) == 0)
+			continue;
 
 		disppath = collapse_path(path);
 		item = gtk_menu_item_new_with_label(disppath);
