@@ -346,7 +346,14 @@ static void toolbar_home_clicked(GtkWidget *widget, FilerWindow *filer_window)
 	GdkEvent	*event;
 
 	event = get_current_event(GDK_BUTTON_RELEASE);
-	if (event->type == GDK_BUTTON_RELEASE && NEW_WIN_BUTTON(event))
+	if (event->type == GDK_BUTTON_RELEASE &&
+			((GdkEventButton *) event)->button == 2)
+	{
+		gchar *staticret = bookmarks_get_top();
+		if (staticret)
+			filer_change_to(filer_window, staticret, NULL);
+	}
+	else if (event->type == GDK_BUTTON_RELEASE && NEW_WIN_BUTTON(event))
 	{
 		filer_opendir(home_dir, filer_window, NULL);
 	}

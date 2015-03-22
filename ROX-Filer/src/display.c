@@ -954,7 +954,10 @@ void display_update_view(FilerWindow *filer_window,
 	if (filer_window->details_type == DETAILS_NONE)
 	{
 		if (style == HUGE_ICONS)
+			wrap_width = HUGE_WRAP * PANGO_SCALE;
+			/* Since this function is heavy, this is skepped.
 			wrap_width = HUGE_WRAP * filer_window->icon_scale * PANGO_SCALE;
+			*/
 		else if (style == LARGE_ICONS)
 			wrap_width = o_large_width.int_value * PANGO_SCALE;
 	}

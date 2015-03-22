@@ -316,6 +316,35 @@ gchar *bookmarks_get_recent(void)
 		return NULL;
 }
 
+gchar *bookmarks_get_top(void)
+{
+	static gchar *path;
+	gchar *mark;
+	xmlNode *node;
+
+	g_free(path);
+
+	update_bookmarks();
+	node = xmlDocGetRootElement(bookmarks->doc);
+	for (node = node->xmlChildrenNode; node; node = node->next)
+	{
+		if (node->type != XML_ELEMENT_NODE)
+			continue;
+		if (strcmp(node->name, "bookmark") != 0)
+			continue;
+
+		mark = xmlNodeListGetString(bookmarks->doc,
+							node->xmlChildrenNode, 1);
+		if (mark)
+		{
+			path = expand_path(mark);
+			xmlFree(mark);
+			return path;
+		}
+	}
+		return NULL;
+}
+
 void bookmarks_add_uri(const EscapedPath *uri)
 {
 	char *path;
@@ -881,7 +910,7 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		title=xmlGetProp(node, "title");
 		if(!title)
 			title=mark;
-		
+
 		item = gtk_menu_item_new();
 		
 		g_object_set_data(G_OBJECT(item), "bookmark-path", path);
