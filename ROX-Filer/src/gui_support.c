@@ -1750,7 +1750,7 @@ void add_stock_to_menu_item(GtkWidget *item, const char *stock)
 			gtk_image_new_from_stock(stock, GTK_ICON_SIZE_MENU));
 }
 
-/* assigned is needed filled NULL and length is 27 */
+/* assigned needs be filled NULL and length is 27 */
 gchar get_mnemonic(gchar *text, gchar *assigned)
 {
 	gchar * tmp, *t;
@@ -1784,7 +1784,7 @@ gchar get_mnemonic(gchar *text, gchar *assigned)
 	return ret;
 }
 /* return val is static.
- * assigned_str is needed filled NULL and length is 27 */
+ * assigned needs be filled NULL and length is 27 */
 gchar *add_mnemonic(gchar *text, gchar *assigned)
 {
 	static gchar *ret;
