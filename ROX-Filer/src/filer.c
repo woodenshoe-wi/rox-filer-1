@@ -1212,7 +1212,6 @@ gint filer_key_press_event(GtkWidget	*widget,
 			   FilerWindow	*filer_window)
 {
 	ViewIface *view = filer_window->view;
-	ViewIter cursor;
 	GtkWidget *focus = GTK_WINDOW(widget)->focus_widget;
 	guint key = event->keyval;
 	GdkModifierType modifiers = gtk_accelerator_get_default_mod_mask();
@@ -1234,23 +1233,12 @@ gint filer_key_press_event(GtkWidget	*widget,
 	if (!focus)
 		gtk_widget_grab_focus(GTK_WIDGET(view));
 
-	view_get_cursor(view, &cursor);
-	if (!cursor.peek(&cursor) && (key == GDK_Up || key == GDK_Down))
-	{
-		ViewIter iter;
-		view_get_iter(view, &iter, 0);
-		if (iter.next(&iter))
-			view_cursor_to_iter(view, &iter);
-		gtk_widget_grab_focus(GTK_WIDGET(view)); /* Needed? */
-		return TRUE;
-	}
-
 	switch (key)
 	{
 		case GDK_Escape:
 			filer_target_mode(filer_window, NULL, NULL, NULL);
-			view_cursor_to_iter(filer_window->view, NULL);
-			view_clear_selection(filer_window->view);
+			view_cursor_to_iter(view, NULL);
+			view_clear_selection(view);
 			return FALSE;
 		case GDK_Return:
 			return_pressed(filer_window, event);
@@ -1270,7 +1258,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 
 			tooltip_show(NULL);
 
-			view_get_cursor(filer_window->view, &iter);
+			view_get_cursor(view, &iter);
 			show_filer_menu(filer_window,
 					(GdkEvent *) event, &iter);
 			break;
