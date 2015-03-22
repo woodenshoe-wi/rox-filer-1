@@ -347,7 +347,7 @@ void dir_drop_all_notifies(void)
 }
 
 /* Tell watchers that this item has changed, but don't rescan.
- * (used when thumbnail has been created for an item)
+ * (used when thumbnail has been created for an item. also an user icon on a sym_path)
  */
 void dir_force_update_path(const gchar *path)
 {
@@ -703,7 +703,10 @@ static void delayed_notify(Directory *dir)
 	if (dir->notify_active)
 		return;
 	g_object_ref(dir);
-	g_timeout_add(1500, notify_timeout, dir);
+/*	1500 is too long, but  
+ *	I don't know what wills happen. So I can't delete this line.
+ *	g_timeout_add(1500, notify_timeout, dir); */
+	g_timeout_add(1000, notify_timeout, dir);
 	dir->notify_active = TRUE;
 }
 

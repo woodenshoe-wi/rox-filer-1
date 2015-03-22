@@ -1749,3 +1749,100 @@ void add_stock_to_menu_item(GtkWidget *item, const char *stock)
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item),
 			gtk_image_new_from_stock(stock, GTK_ICON_SIZE_MENU));
 }
+
+/* assigned needs be filled NULL and length is 27 */
+gchar get_mnemonic(gchar *text, gchar *assigned)
+{
+	gchar * tmp, *t;
+	gchar ret = '\0';
+
+	t = strdup(text);
+	tmp = t;
+	while ((tmp = g_strstr_len(tmp, -1, "__")) != NULL)
+		tmp[0] = tmp[1] = 'a';
+
+	tmp = g_strstr_len(t, -1, "_");
+	if (tmp && strlen(tmp) >= 2)
+		ret = g_ascii_tolower(tmp[1]);
+
+	g_free(t);
+
+	if (assigned &&
+		ret != '\0' &&
+		ret >= GDK_a &&
+		ret <= GDK_z)
+	{
+		for (; ; assigned+=1)
+		{
+			if (assigned[0] == '\0')
+				assigned[0] = ret;
+			if (assigned[0] == ret)
+				break;
+		}
+	}
+	
+	return ret;
+}
+/* return val is static.
+ * assigned needs be filled NULL and length is 27 */
+gchar *add_mnemonic(gchar *text, gchar *assigned)
+{
+	static gchar *ret;
+	const gchar *as = assigned;
+	gchar *tmp;
+	gchar lc;
+	int rlen, alen, i, j, k = 0;
+	gboolean found;
+
+	g_free(ret);
+	ret = strdup(text);
+
+	rlen = strlen(ret);
+	alen = strlen(as);
+	for (i = 0; i < rlen; i++)
+		if (ret[i] == '_')
+		{
+			ret[i] = '\0';
+			tmp = ret;
+			i ++;
+			ret = g_strconcat(ret, "__", ret + i, NULL);
+			rlen ++;
+			g_free(tmp);
+		}
+
+	/* If there is no unique then first [a-z] */
+	while (k < 2)
+	{
+		for (i = 0; i < rlen; i++)
+		{
+			lc = g_ascii_tolower(ret[i]);
+			found = FALSE;
+			if (k == 0)
+				for (j = 0; j < alen; j++)
+					if (as[j] == lc)
+					{
+						found = TRUE;
+						break;
+					}
+
+			if (!found &&
+				lc >= GDK_a &&
+				lc <= GDK_z)
+			{
+				if (k ==0)
+					assigned[alen] = lc;
+
+				tmp = g_strndup(ret, i);
+				ret = g_strconcat(tmp, "_", ret + i, NULL);
+				g_free(tmp);
+				
+				k++;
+				break;
+			}
+		}
+
+		k++;
+	}
+
+	return ret;
+}

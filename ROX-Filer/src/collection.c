@@ -747,14 +747,14 @@ static gint collection_key_press(GtkWidget *widget, GdkEventKey *event)
 		  {
 		        int first, last;
 		       	get_visible_limits(collection, &first, &last);
-			collection_move_cursor(collection, first - last - 1, 0);
+			collection_move_cursor(collection, first - last, 0);
 			break;
 		  }
 		case GDK_Page_Down:
 		  {
 		        int first, last;
 		       	get_visible_limits(collection, &first, &last);
-			collection_move_cursor(collection, last - first + 1, 0);
+			collection_move_cursor(collection, last - first, 0);
 			break;
 		  }
 		default:
@@ -1675,6 +1675,7 @@ void collection_delete_if(Collection *collection,
 	if (in != out)
 	{
 		collection->cursor_item = cursor;
+		collection->cursor_item_old = -1;
 
 		if (collection->wink_item != -1)
 		{
@@ -1723,18 +1724,24 @@ void collection_move_cursor(Collection *collection, int drow, int dcol)
 	get_visible_limits(collection, &first, &last);
 	total_rows = collection_get_rows(collection);
 	total_cols = collection_get_cols(collection);
-
 	item = collection->cursor_item;
+
 	if (item == -1)
-	{
 		item = MIN(collection->cursor_item_old,
-			   collection->number_of_items - 1);
-	}
+			collection->number_of_items - 1); 
 
 	if (item == -1)
 	{
-		col = 0;
-		row = first;
+		if (drow > 0 || dcol > 0)
+		{
+			row = first;
+			col = 0;	
+		}
+		else
+		{
+			row = last;
+			col = total_cols - 1;
+		}
 	}
 	else
 	{
@@ -1752,17 +1759,32 @@ void collection_move_cursor(Collection *collection, int drow, int dcol)
 		else if (row > last)
 			row = last;
 		else {
-			row += drow;
 			if (collection->vertical_order) 
 			{
-				if (row >= total_rows)
+				if (drow > 0 && row == total_rows - 1)
 				{
-					row = 0;
-					col += 1;
+					if (col != total_cols - 1)
+					{
+						row = 0;
+						col += 1;
+					}
 				}
+				else if (drow < 0 && row == 0)
+				{
+					if (col != 0)
+					{
+						row = total_rows - 1;
+						col -= 1;
+					}
+				}
+				else
+					row += drow;
+				
+				row = CLAMP(row, 0, total_rows - 1);
 			}
 			else 
 			{
+				row += drow;
 				row = MAX(row, 0); 
 				row = MIN(row, total_rows - 1);
 			}

@@ -56,6 +56,7 @@
 #include "fscache.h"
 #include "view_iface.h"
 #include "xtypes.h"
+#include "usericons.h"
 
 #define HUGE_WRAP (1.5 * o_large_width.int_value)
 
@@ -342,24 +343,26 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 	if (selected || item->label != NULL)
 		g_object_unref(pixbuf);
 
+	image_x -= 1;
+
 	if (item->flags & ITEM_FLAG_MOUNT_POINT)
 	{
 		const char *mp = item->flags & ITEM_FLAG_MOUNTED
 					? ROX_STOCK_MOUNTED
 					: ROX_STOCK_MOUNT;
-		draw_emblem_on_icon(window, style, mp, &image_x, area->y + 8);
+		draw_emblem_on_icon(window, style, mp, &image_x, area->y + 7);
 		image_x -= 6;
 	}
 	if (item->flags & ITEM_FLAG_SYMLINK)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
-				    &image_x, area->y + 8);
+				    &image_x, area->y + 7);
 		image_x -= 6;
 	}
 	if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_XATTR,
-				    &image_x, area->y + 8);
+				    &image_x, area->y + 7);
 	}
 }
 
@@ -504,24 +507,26 @@ void display_set_layout(FilerWindow  *filer_window,
 			DetailsType  details,
 			gboolean     force_resize)
 {
-	gboolean style_changed = FALSE;
+	gboolean style_changed = FALSE, details_changed;
+	DisplayStyle real_style = filer_window->display_style;
 
 	g_return_if_fail(filer_window != NULL);
 
 	if (style == AUTO_SIZE_ICONS)
 		filer_window->icon_scale = 1.0;
 
-	if (filer_window->display_style_wanted != style 
-	    || filer_window->details_type != details)
-	{
-		style_changed = TRUE;
-	}
+	details_changed = filer_window->details_type != details;
+	style_changed = details_changed ||
+				filer_window->display_style_wanted != style;
 	  
 	display_style_set(filer_window, style);
 	display_details_set(filer_window, details);
 
-	/* Recreate layouts because wrapping may have changed */
-	view_style_changed(filer_window->view, VIEW_UPDATE_NAME);
+	if (details_changed || real_style != filer_window->display_style)
+		view_style_changed(filer_window->view, VIEW_UPDATE_NAME);
+	else
+		/* Recreate layouts because wrapping may have changed */
+		view_style_changed(filer_window->view, 0);
 
 	if (force_resize || o_filer_auto_resize.int_value == RESIZE_ALWAYS
 	    || (o_filer_auto_resize.int_value == RESIZE_STYLE && style_changed))
@@ -628,7 +633,7 @@ void display_set_autoselect(FilerWindow *filer_window, const gchar *leaf)
 /* Change the icon size (wraps) */
 void display_change_size(FilerWindow *filer_window, gboolean bigger)
 {
-	DisplayStyle	new;
+	DisplayStyle	new = SMALL_ICONS;
 
 	g_return_if_fail(filer_window != NULL);
 
@@ -641,14 +646,22 @@ void display_change_size(FilerWindow *filer_window, gboolean bigger)
 			if (!bigger)
 				new = LARGE_ICONS;
 			else if (filer_window->icon_scale != 1.0)
+			{
+				/* icon scale skiped this */
+				filer_window->display_style_wanted = AUTO_SIZE_ICONS;
 				new = HUGE_ICONS;
+			}
 			else
 				return;
 			break;
 		default:
-			if (!bigger)
+			if (bigger)
+				new = LARGE_ICONS;
+			else if (filer_window->icon_scale != 1.0)
+				/* icon scale skiped this */
+				filer_window->display_style_wanted = AUTO_SIZE_ICONS;
+			else
 				return;
-			new = LARGE_ICONS;
 			break;
 	}
 
@@ -877,6 +890,10 @@ void display_update_view(FilerWindow *filer_window,
 		view->image = g_fscache_lookup_full(pixmap_cache, path,
 				FSCACHE_LOOKUP_ONLY_NEW, NULL);
 	}
+
+	if (!view->image)
+		view->image = get_globicon(
+				make_path(filer_window->sym_path, item->leafname));
 
 	if (!view->image)
 	{

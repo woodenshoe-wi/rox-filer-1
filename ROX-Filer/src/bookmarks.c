@@ -165,7 +165,11 @@ void bookmarks_edit(void)
 	g_object_set_data(G_OBJECT(cell), "column", GINT_TO_POINTER(0));
 	gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(list), -1,
 		_("Path"), cell, "text", 0, NULL);
-	
+
+	gtk_tree_view_column_set_resizable(
+			gtk_tree_view_get_column(GTK_TREE_VIEW(list), 0),
+			TRUE);
+
 	gtk_tree_view_set_reorderable(GTK_TREE_VIEW(list), TRUE);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), TRUE);
 
@@ -302,6 +306,14 @@ void bookmarks_add_history(const gchar *path)
 		g_return_if_fail(history_tail != NULL);
 		history_remove((char *) history_tail->data);
 	}
+}
+
+gchar *bookmarks_get_recent(void)
+{
+	if (history->next) 
+		return history->next->data;
+	else
+		return NULL;
 }
 
 void bookmarks_add_uri(const EscapedPath *uri)
@@ -448,8 +460,8 @@ static void bookmarks_add(GtkMenuItem *menuitem, gpointer user_data)
 
 static void bookmarks_add_dir(const guchar *dir)
 {
-	xmlNode	*bookmark;
-	gchar *basename, *path;
+	xmlNode	*bookmark, *node;
+	gchar *basename, *path, *title, *alist = g_new0(gchar, 27);
 
 	path = collapse_path(dir);
 	if (bookmark_find(path)){
@@ -458,9 +470,19 @@ static void bookmarks_add_dir(const guchar *dir)
 	}
 	
 	basename = g_path_get_basename(path);
-	bookmark = xmlNewTextChild(xmlDocGetRootElement(bookmarks->doc),
-				NULL, "bookmark", path);
-	xmlSetProp(bookmark, "title", basename);
+	node = xmlDocGetRootElement(bookmarks->doc);
+	bookmark = xmlNewTextChild(node, NULL, "bookmark", path);
+
+	for (node = node->xmlChildrenNode; node; node = node->next)
+	{
+		title = xmlGetProp(node, "title");
+		if (title){
+			get_mnemonic(title, alist);	
+			xmlFree(title);
+		}	
+	}
+
+	xmlSetProp(bookmark, "title", add_mnemonic(basename, alist));
 
 	bookmarks_save();
 
@@ -469,6 +491,7 @@ static void bookmarks_add_dir(const guchar *dir)
 	
 	g_free(basename);
 	g_free(path);
+	g_free(alist);
 }
 
 /* Called when a bookmark has been chosen */
@@ -882,7 +905,7 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		links = g_new(GtkWidget *, 2);
 		links[0] = fix;
 
-		label = gtk_label_new(title);
+		label =  gtk_label_new_with_mnemonic(title);
 		
 		layout = gtk_label_get_layout(GTK_LABEL(label));
 		pango_layout_get_pixel_size(layout, &width, NULL);

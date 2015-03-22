@@ -368,10 +368,15 @@ static void toolbar_bookmarks_clicked(GtkWidget *widget,
 	{
 		bookmarks_show_menu(filer_window, widget);
 	}
-	else if (event->type == GDK_BUTTON_RELEASE &&
-			((GdkEventButton *) event)->button != 1)
+	else if (event->type == GDK_BUTTON_RELEASE)
 	{
-		bookmarks_edit();
+		if (((GdkEventButton *) event)->button == 2)
+		{
+			if (bookmarks_get_recent())
+				filer_change_to(filer_window, bookmarks_get_recent(), NULL);
+		}
+		else if (((GdkEventButton *) event)->button != 1)
+			bookmarks_edit();
 	}
 	gdk_event_free(event);
 }

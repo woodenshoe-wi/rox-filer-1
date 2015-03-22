@@ -379,8 +379,6 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
  */
 static gint open_filer_window(FilerWindow *filer_window)
 {
-	view_style_changed(filer_window->view, 0);
-
 	if (filer_window->open_timeout)
 	{
 		g_source_remove(filer_window->open_timeout);
@@ -418,7 +416,6 @@ static void update_display(Directory *dir,
 			FilerWindow *filer_window)
 {
 	ViewIface *view = (ViewIface *) filer_window->view;
-
 	switch (action)
 	{
 		case DIR_ADD:
@@ -1215,7 +1212,6 @@ gint filer_key_press_event(GtkWidget	*widget,
 			   FilerWindow	*filer_window)
 {
 	ViewIface *view = filer_window->view;
-	ViewIter cursor;
 	GtkWidget *focus = GTK_WINDOW(widget)->focus_widget;
 	guint key = event->keyval;
 	GdkModifierType modifiers = gtk_accelerator_get_default_mod_mask();
@@ -1237,23 +1233,12 @@ gint filer_key_press_event(GtkWidget	*widget,
 	if (!focus)
 		gtk_widget_grab_focus(GTK_WIDGET(view));
 
-	view_get_cursor(view, &cursor);
-	if (!cursor.peek(&cursor) && (key == GDK_Up || key == GDK_Down))
-	{
-		ViewIter iter;
-		view_get_iter(view, &iter, 0);
-		if (iter.next(&iter))
-			view_cursor_to_iter(view, &iter);
-		gtk_widget_grab_focus(GTK_WIDGET(view)); /* Needed? */
-		return TRUE;
-	}
-
 	switch (key)
 	{
 		case GDK_Escape:
 			filer_target_mode(filer_window, NULL, NULL, NULL);
-			view_cursor_to_iter(filer_window->view, NULL);
-			view_clear_selection(filer_window->view);
+			view_cursor_to_iter(view, NULL);
+			view_clear_selection(view);
 			return FALSE;
 		case GDK_Return:
 			return_pressed(filer_window, event);
@@ -1273,7 +1258,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 
 			tooltip_show(NULL);
 
-			view_get_cursor(filer_window->view, &iter);
+			view_get_cursor(view, &iter);
 			show_filer_menu(filer_window,
 					(GdkEvent *) event, &iter);
 			break;
@@ -1479,7 +1464,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 {
 	FilerWindow	*filer_window;
 	char		*real_path;
-	DisplayStyle    dstyle;
+	DisplayStyle    dstylew;
 	DetailsType     dtype;
 	SortType	s_type;
 	GtkSortType	s_order;
@@ -1543,9 +1528,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	filer_window->temp_item_selected = FALSE;
 	filer_window->flags = (FilerFlags) 0;
-	filer_window->details_type = DETAILS_TIMES;
-	filer_window->display_style = UNKNOWN_STYLE;
-	filer_window->display_style_wanted = UNKNOWN_STYLE;
 	filer_window->thumb_queue = NULL;
 	filer_window->max_thumbs = 0;
 	filer_window->sort_type = -1;
@@ -1559,7 +1541,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	{
 		s_type = src_win->sort_type;
 		s_order = src_win->sort_order;
-		dstyle = src_win->display_style_wanted;
+		dstylew = src_win->display_style_wanted;
 		dtype = src_win->details_type;
 		filer_window->show_hidden = src_win->show_hidden;
 		filer_window->show_thumbs = src_win->show_thumbs;
@@ -1573,28 +1555,28 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	{
 		s_type = o_display_sort_by.int_value;
 		s_order = GTK_SORT_ASCENDING;
-		dstyle = o_display_size.int_value;
+		dstylew = o_display_size.int_value;
 		dtype = o_display_details.int_value;
 		filer_window->show_hidden = o_display_show_hidden.int_value;
 		filer_window->show_thumbs = o_display_show_thumbs.int_value;
 		filer_window->view_type = o_filer_view_type.int_value;
 	}
 
-	filer_window->display_style_wanted = dstyle;
+	filer_window->display_style_wanted = dstylew;
 	filer_window->details_type = dtype;
 	filer_window->sort_type = s_type;
 	filer_window->sort_order = s_order;
+
+	/* Override the current defaults with the per-directory
+	 * user settings.
+	 */
+	check_settings(filer_window);
 
 	/* Add all the user-interface elements & realise */
 	filer_add_widgets(filer_window, wm_class);
 	if (src_win)
 		gtk_window_set_position(GTK_WINDOW(filer_window->window),
 					GTK_WIN_POS_MOUSE);
-
-	/* Override the current defaults with the per-directory
-	 * user settings.
-	 */
-	check_settings(filer_window);
 
 	/* Connect to all the signal handlers */
 	filer_add_signals(filer_window);
@@ -1798,7 +1780,6 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 
 	gtk_widget_show(vbox);
 	gtk_widget_show(filer_window->scrollbar);
-
 	gtk_widget_realize(filer_window->window);
 	
 	gdk_window_set_role(filer_window->window->window,
@@ -3400,7 +3381,8 @@ static gboolean check_settings(FilerWindow *filer_window)
 	set=(Settings *) g_hash_table_lookup(settings_table,
 					      filer_window->sym_path);
 
-	if (!set) return FALSE;
+	if (!set)
+		goto out;
 
 	if (set->flags & SET_HIDDEN)
 		filer_window->show_hidden = set->show_hidden;
@@ -3464,6 +3446,11 @@ static gboolean check_settings(FilerWindow *filer_window)
 
 		force_resize = TRUE;
 	}
+
+out:
+	filer_window->display_style =
+		filer_window->display_style_wanted == AUTO_SIZE_ICONS ?
+			SMALL_ICONS : filer_window->display_style_wanted;
 
 	return force_resize;
 }
@@ -3598,7 +3585,7 @@ void filer_save_settings(FilerWindow *fwin)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(set_win->pos),
 				     set->flags & SET_POSITION);
 	
-	set_win->size=gtk_check_button_new_with_label(_("Size"));
+	set_win->size=gtk_check_button_new_with_label(_("Window size"));
 	gtk_box_pack_start(GTK_BOX(vbox), set_win->size, FALSE, FALSE, 2);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(set_win->size),
 				     set->flags & SET_SIZE);
