@@ -11,5 +11,6 @@ void bookmarks_edit(void);
 void bookmarks_add_history(const gchar *path);
 void bookmarks_add_uri(const EscapedPath *uri);
 gchar *bookmarks_get_recent(void);
+gchar *bookmarks_get_top(void);
 
 #endif /* _BOOKMARKS_H */
