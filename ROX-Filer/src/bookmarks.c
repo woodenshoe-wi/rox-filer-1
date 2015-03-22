@@ -308,6 +308,14 @@ void bookmarks_add_history(const gchar *path)
 	}
 }
 
+gchar *bookmarks_get_recent(void)
+{
+	if (history->next) 
+		return history->next->data;
+	else
+		return NULL;
+}
+
 void bookmarks_add_uri(const EscapedPath *uri)
 {
 	char *path;
