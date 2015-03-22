@@ -1727,7 +1727,8 @@ void collection_move_cursor(Collection *collection, int drow, int dcol)
 	item = collection->cursor_item;
 
 	if (item == -1)
-		item = collection->cursor_item_old;
+		item = MIN(collection->cursor_item_old,
+			collection->number_of_items - 1); 
 
 	if (item == -1)
 	{
