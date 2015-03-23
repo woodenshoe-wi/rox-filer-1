@@ -1500,7 +1500,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->toolbar_size_text = NULL;
 	filer_window->target_cb = NULL;
 	filer_window->mini_type = MINI_NONE;
-	filer_window->selection_state = GTK_STATE_INSENSITIVE;
+	filer_window->selection_state = GTK_STATE_ACTIVE;
 	filer_window->toolbar = NULL;
 	filer_window->toplevel_vbox = NULL;
 	filer_window->view_hbox = NULL;
@@ -2179,7 +2179,7 @@ static void set_selection_state(FilerWindow *filer_window, gboolean normal)
 	GtkStateType old_state = filer_window->selection_state;
 
 	filer_window->selection_state = normal
-			? GTK_STATE_SELECTED : GTK_STATE_INSENSITIVE;
+			? GTK_STATE_SELECTED : GTK_STATE_ACTIVE;
 
 	if (old_state != filer_window->selection_state
 	    && view_count_selected(filer_window->view))
@@ -2463,7 +2463,7 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 
 	if (item && event->button == 1 &&
 		view_get_selected(view, &iter) &&
-		filer_window->selection_state == GTK_STATE_INSENSITIVE)
+		filer_window->selection_state == GTK_STATE_ACTIVE)
 	{
 		/* Possibly a really slow DnD operation? */
 		filer_window->temp_item_selected = FALSE;

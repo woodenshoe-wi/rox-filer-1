@@ -641,25 +641,17 @@ static void draw_string(GtkWidget *widget,
 		GtkStateType selection_state,
 		gboolean box)
 {
-	GdkGC	*gc = selection_state == GTK_STATE_NORMAL
-			? type_gc
-			: widget->style->text_gc[selection_state];
-	
-	if (selection_state != GTK_STATE_NORMAL && box)
-		gtk_paint_flat_box(widget->style, widget->window, 
-				selection_state, GTK_SHADOW_NONE,
-				NULL, widget, "text",
-				area->x, area->y,
-				MIN(width, area->width),
-				area->height);
-
 	if (width > area->width)
 	{
-		gdk_gc_set_clip_origin(gc, 0, 0);
-		gdk_gc_set_clip_rectangle(gc, area);
+		gdk_gc_set_clip_origin(type_gc, 0, 0);
+		gdk_gc_set_clip_rectangle(type_gc, area);
 	}
 
-	gdk_draw_layout(widget->window, gc, area->x, area->y, layout);
+	if (selection_state != GTK_STATE_NORMAL && box)
+		gdk_draw_layout_with_colors(widget->window, type_gc, area->x, area->y, layout,
+			&widget->style->text[selection_state], &widget->style->base[selection_state]);
+	else
+		gdk_draw_layout(widget->window, type_gc, area->x, area->y, layout);
 
 	if (width > area->width)
 	{
@@ -679,7 +671,7 @@ static void draw_string(GtkWidget *widget,
 		gdk_draw_rectangle(widget->window, red_gc, TRUE,
 				area->x + area->width - 1, area->y,
 				1, area->height);
-		gdk_gc_set_clip_rectangle(gc, NULL);
+		gdk_gc_set_clip_rectangle(type_gc, NULL);
 	}
 }
 
