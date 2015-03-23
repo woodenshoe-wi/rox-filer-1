@@ -445,7 +445,7 @@ static void huge_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.y = text_y;
 
 	template->icon.x = area->x + ((col_width - template->icon.width) >> 1);
-	template->icon.y = template->leafname.y - template->icon.height - 2;
+	template->icon.y = template->leafname.y - template->icon.height;
 }
 
 static void large_template(GdkRectangle *area, CollectionItem *colitem,
@@ -505,7 +505,7 @@ static void small_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.width = MIN(max_text_width, view->name_width);
 	template->leafname.height = view->name_height;
 	
-	template->icon.x = area->x;
+	template->icon.x = area->x + 2;
 	template->icon.y = area->y + 1;
 	template->icon.width = SMALL_WIDTH;
 	template->icon.height = SMALL_HEIGHT;
@@ -539,8 +539,8 @@ static void huge_full_template(GdkRectangle *area, CollectionItem *colitem,
 
 	max_text_width = area->width - HUGE_WIDTH * scale - 4;
 
-	template->icon.x = area->x + (HUGE_WIDTH * scale - template->icon.width) / 2;
-	template->icon.y = area->y + (area->height - template->icon.height) / 2;
+	template->icon.x = area->x + (HUGE_WIDTH * scale - template->icon.width) / 2 + 2;
+	template->icon.y = area->y + (area->height - template->icon.height) / 2 + 1;
 
 	template->leafname.x = area->x + HUGE_WIDTH * scale + 4;
 	template->leafname.y = area->y + area->height / 2
@@ -573,8 +573,8 @@ static void large_full_template(GdkRectangle *area, CollectionItem *colitem,
 		template->icon.height = ICON_HEIGHT;
 	}
 
-	template->icon.x = area->x + (ICON_WIDTH - template->icon.width) / 2;
-	template->icon.y = area->y + (area->height - template->icon.height) / 2;
+	template->icon.x = area->x + (ICON_WIDTH - template->icon.width) / 2 + 2;
+	template->icon.y = area->y + (area->height - template->icon.height) / 2 + 1;
 
 
 	template->leafname.x = area->x + ICON_WIDTH + 4;
@@ -601,6 +601,8 @@ static void small_full_template(GdkRectangle *area, CollectionItem *colitem,
 	if (!view->image)
 		return;		/* Not scanned yet */
 
+	template->icon.x = area->x + 2;
+	template->icon.y = area->y + 1;
 	template->details.x = area->x + col_width - template->details.width;
 	template->details.y = area->y + area->height / 2 - \
 				view->details_height / 2;
@@ -902,14 +904,14 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 				pix_width = HUGE_WIDTH * scale;
 				pix_height = HUGE_HEIGHT * scale;
 			}
-			*width = MAX(pix_width, view->name_width) + 4;
-			*height = MAX(view->name_height + pix_height + 4,
+			*width = MAX(pix_width + 2, view->name_width);
+			*height = MAX(view->name_height + pix_height + 2,
 					HUGE_HEIGHT * scale * 3 / 4);
 		}
 		else if (style == SMALL_ICONS)
 		{
 			w = MIN(view->name_width, o_small_width.int_value);
-			*width = SMALL_WIDTH + 12 + w;
+			*width = SMALL_WIDTH + 12 + w + 4;
 			*height = MAX(view->name_height, SMALL_HEIGHT) + 4;
 		}
 		else
@@ -918,7 +920,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 				pix_width = view->image->width;
 			else
 				pix_width = ICON_WIDTH;
-			*width = MAX(pix_width, view->name_width) + 4;
+			*width = MAX(pix_width + 2, view->name_width);
 			*height = view->name_height + ICON_HEIGHT + 2;
 		}
 	}
@@ -928,7 +930,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		if (style == HUGE_ICONS)
 		{
 			*width = HUGE_WIDTH * scale + 12 + MAX(w, view->name_width);
-			*height = HUGE_HEIGHT * scale - 4;
+			*height = HUGE_HEIGHT * scale;
 		}
 		else if (style == SMALL_ICONS)
 		{
@@ -937,14 +939,18 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 			*width = SMALL_WIDTH + view->name_width + 12 + w;
 			text_height = MAX(view->name_height,
 					  view->details_height);
-			*height = MAX(text_height, SMALL_HEIGHT) + 4;
+			*height = MAX(text_height, SMALL_HEIGHT);
 		}
 		else
 		{
 			*width = ICON_WIDTH + 12 + MAX(w, view->name_width);
 			*height = ICON_HEIGHT;
 		}
-        }
+
+		/* margin */
+		*width += 4;
+		*height += 4;
+	}
 }
 
 static void update_item(ViewCollection *view_collection, int i)
