@@ -794,9 +794,7 @@ static void free_path_for_item(GtkWidget *widget, gpointer udata)
 static GtkWidget *build_history_menu(FilerWindow *filer_window)
 {
 	GtkWidget *menu;
-	GPtrArray *items;
 	GList	  *next;
-	int	  i;
 
 	menu = gtk_menu_new();
 
@@ -806,22 +804,50 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 	g_return_val_if_fail(history_hash != NULL, menu);
 	g_return_val_if_fail(history_tail != NULL, menu);
 	
-	items = g_ptr_array_new();
 
 	for (next = history; next; next = next->next)
-		g_ptr_array_add(items, next->data);
-
-	for (i = 0; i < items->len; i++)
 	{
 		GtkWidget *item;
-		const char *path = (char *) items->pdata[i];
-		gchar *copy, *disppath;
-
-		if (i == 0 && strcmp(path, filer_window->sym_path) == 0)
+		char *path = (char *) next->data;
+		gchar *copy;
+		
+		if (!(next->prev) && strcmp(path, filer_window->sym_path) == 0)
 			continue;
 
-		disppath = collapse_path(path);
-		item = gtk_menu_item_new_with_label(disppath);
+
+		if (next->next)
+		{
+			GtkWidget *label, *fix;
+			PangoLayout *layout;
+			int i = 0, width;
+			char *pathp, *bpath, *nn = (char *) next->next->data;
+
+			pathp = path;
+			while ((nn+=1) && (pathp+=1) && (++i))
+				if (*nn != *pathp)
+					break;
+
+			bpath = g_strndup(path, i);
+			
+			item = gtk_menu_item_new();
+
+			fix = gtk_fixed_new();
+			label =  gtk_label_new(bpath);
+			gtk_widget_set_sensitive(label, FALSE);
+
+			layout = gtk_label_get_layout(GTK_LABEL(label));
+			pango_layout_get_pixel_size(layout, &width, NULL);
+
+			gtk_fixed_put(GTK_FIXED(fix), label, 0, 0);
+			label =  gtk_label_new(pathp);
+			gtk_fixed_put(GTK_FIXED(fix), label, width, 0);
+
+			gtk_container_add(GTK_CONTAINER(item), fix);
+
+			g_free(bpath);
+		}
+		else
+			item = gtk_menu_item_new_with_label(path);
 
 		copy=g_strdup(path);
 		g_object_set_data(G_OBJECT(item), "bookmark-path", copy);
@@ -835,13 +861,11 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 					G_CALLBACK(bookmarks_activate),
 					filer_window);
 
-		gtk_widget_show(item);
+		gtk_widget_show_all(item);
 		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
 
-		g_free(disppath);
-	}
 
-	g_ptr_array_free(items, TRUE);
+	}
 
 	return menu;
 }
@@ -901,6 +925,7 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 					    node->xmlChildrenNode, 1);
 		if (!mark)
 			continue;
+
 		path=expand_path(mark);
 		
 		title=xmlGetProp(node, "title");
