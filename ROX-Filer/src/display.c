@@ -343,7 +343,7 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 	if (selected || item->label != NULL)
 		g_object_unref(pixbuf);
 
-	image_x -= 1;
+	image_x -= 3;
 
 	if (item->flags & ITEM_FLAG_MOUNT_POINT)
 	{
