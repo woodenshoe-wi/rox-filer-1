@@ -904,15 +904,15 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 				pix_width = HUGE_WIDTH * scale;
 				pix_height = HUGE_HEIGHT * scale;
 			}
-			*width = MAX(pix_width + 2, view->name_width);
-			*height = MAX(view->name_height + pix_height + 2,
+			*width = MAX(pix_width, view->name_width);
+			*height = MAX(view->name_height + pix_height,
 					HUGE_HEIGHT * scale * 3 / 4);
 		}
 		else if (style == SMALL_ICONS)
 		{
 			w = MIN(view->name_width, o_small_width.int_value);
-			*width = SMALL_WIDTH + 12 + w + 4;
-			*height = MAX(view->name_height, SMALL_HEIGHT) + 4;
+			*width = SMALL_WIDTH + 12 + w;
+			*height = MAX(view->name_height, SMALL_HEIGHT);
 		}
 		else
 		{
@@ -920,8 +920,8 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 				pix_width = view->image->width;
 			else
 				pix_width = ICON_WIDTH;
-			*width = MAX(pix_width + 2, view->name_width);
-			*height = view->name_height + ICON_HEIGHT + 2;
+			*width = MAX(pix_width, view->name_width);
+			*height = view->name_height + ICON_HEIGHT;
 		}
 	}
 	else
@@ -946,11 +946,11 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 			*width = ICON_WIDTH + 12 + MAX(w, view->name_width);
 			*height = ICON_HEIGHT;
 		}
-
-		/* margin */
-		*width += 4;
-		*height += 4;
 	}
+
+	/* margin */
+	*width += 4;
+	*height += 4;
 }
 
 static void update_item(ViewCollection *view_collection, int i)
