@@ -96,13 +96,13 @@ void bookmarks_show_menu(FilerWindow *filer_window, GtkWidget *widget)
 	}
 
 	menu = GTK_MENU(bookmarks_build_menu(filer_window));
+
 	if (widget)
 		gtk_menu_popup(menu, NULL, NULL, position_menu_widget, widget,
 			button, gtk_get_current_event_time());
 	else
 		gtk_menu_popup(menu, NULL, NULL, position_menu, filer_window,
 			button, gtk_get_current_event_time());
-
 }
 
 /* Show the Edit Bookmarks dialog */
@@ -791,6 +791,23 @@ static void free_path_for_item(GtkWidget *widget, gpointer udata)
 	g_free(path);
 }
 
+static gboolean selection_cb(GtkWidget *widget,
+               GdkEvent  *event,
+               gpointer   user_data)
+{
+	switch (event->type)
+	{ /* This is just as is. No logic. */
+		case GDK_LEAVE_NOTIFY:
+			gtk_menu_item_deselect(GTK_MENU_ITEM(widget));
+			return FALSE; /* Don't change this */
+		case GDK_ENTER_NOTIFY:
+			gtk_menu_item_select(GTK_MENU_ITEM(widget));
+			return TRUE;
+		default:
+			return FALSE;
+	}
+}
+
 static GtkWidget *build_history_menu(FilerWindow *filer_window)
 {
 	GtkWidget *menu;
@@ -803,7 +820,6 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 
 	g_return_val_if_fail(history_hash != NULL, menu);
 	g_return_val_if_fail(history_tail != NULL, menu);
-	
 
 	for (next = history; next; next = next->next)
 	{
@@ -813,7 +829,6 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 		
 		if (!(next->prev) && strcmp(path, filer_window->sym_path) == 0)
 			continue;
-
 
 		if (next->next)
 		{
@@ -872,7 +887,12 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 		gtk_widget_show_all(item);
 		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
 
-
+		/* I don't know why, but these items throw selection
+		 * to under menuitems. */
+		g_signal_connect(GTK_WIDGET(item), "enter-notify-event",
+				 G_CALLBACK(selection_cb), NULL);
+		g_signal_connect(GTK_WIDGET(item), "leave-notify-event",
+				 G_CALLBACK(selection_cb), NULL);
 	}
 
 	return menu;
