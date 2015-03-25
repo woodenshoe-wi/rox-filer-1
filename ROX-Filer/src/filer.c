@@ -348,12 +348,10 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 						gdk_x11_drawable_get_xid(gdk_window),
 						0, 0, 0, 0,
 						px + dx, py + dy);
-
-				gtk_window_move(GTK_WINDOW(window), x, y);
 			}
-			else	
-				/* In start up, there is no GDK_window. Have to use GTK. */
-				gtk_window_move(GTK_WINDOW(window), x, y);
+
+			/* In start up, there is no GDK_window. Have to use GTK. */
+			gtk_window_move(GTK_WINDOW(window), x, y);
 		}
 		if (w != currentw || h != currenth)
 			gtk_window_resize(GTK_WINDOW(window), w, h);
