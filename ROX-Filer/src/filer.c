@@ -283,14 +283,18 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	if (o_auto_move.int_value || filer_window->reqx >= 0)
 	{
 		GdkWindow *gdk_window = window->window;
-		gint x, y, m, currentw, currenth, lx, ly;
+		gint x, y, m, currentw, currenth, bcw, bch, lx, ly, px, py, dx, dy;
 		GdkRectangle frect = {0, 0, 0, 0};
 
 		gdk_window_get_pointer(NULL, &x, &y, NULL);
 		m = gdk_screen_get_monitor_at_point(gdk_screen_get_default(), x, y);
 
-		gtk_window_get_size(GTK_WINDOW(window), &currentw, &currenth);
+		gdk_window_get_geometry(gdk_window, NULL, NULL, &bcw, &bch, NULL);
 		gdk_window_get_frame_extents(gdk_window, &frect);
+		gdk_window_get_geometry(gdk_window, NULL, NULL, &currentw, &currenth, NULL);
+		/* If delay happens between bc and current then get after. */
+		if (bcw != currentw || bch != currenth)
+			gdk_window_get_frame_extents(gdk_window, &frect);
 
 		lx = monitor_geom[m].x + monitor_geom[m].width -
 				(frect.width - currentw + w + o_right_gap.int_value);
@@ -331,9 +335,24 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 //g_print("x:%i, y:%i, fx:%i, fy:%i, lx:%i, ly:%i\n", x, y, frect.x, frect.y, lx, ly);
 //g_print("cw:%i, ch:%i, w:%i, h:%i, fw:%i, fh:%i\n", currentw, currenth, w, h, frect.width, frect.height);
 
-		/* In start up, there is no GDK_window. Have to use GTK. */
-		if (x != frect.x || y != frect.y)
-			gtk_window_move(GTK_WINDOW(window), x, y); 
+		dx = x - frect.x;
+		dy = y - frect.y;
+
+		if (dx != 0 || dy != 0)
+		{
+			if (GTK_WIDGET_VISIBLE(window))
+			{
+				gdk_window_get_pointer(gdk_window, &px, &py, NULL);
+				XWarpPointer(gdk_x11_drawable_get_xdisplay(gdk_window),
+						None,
+						gdk_x11_drawable_get_xid(gdk_window),
+						0, 0, 0, 0,
+						px + dx, py + dy);
+			}
+
+			/* In start up, there is no GDK_window. Have to use GTK. */
+			gtk_window_move(GTK_WINDOW(window), x, y);
+		}
 		if (w != currentw || h != currenth)
 			gtk_window_resize(GTK_WINDOW(window), w, h);
 	}
@@ -369,6 +388,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 						nx, ny);
 			}
 		}
+
 		if (event)
 			gdk_event_free(event);
 	}
