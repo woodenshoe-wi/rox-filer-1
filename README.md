@@ -2,6 +2,8 @@ changes
 
 https://github.com/jun7/rox-filer/wiki/Changes
 
+https://github.com/jun7/rox-filer/wiki/Screenshots
+
 ROX-Filer
 =========
 A RISC OS-like filer for X

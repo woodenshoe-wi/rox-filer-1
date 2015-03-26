@@ -175,7 +175,7 @@ static Option o_short_flag_names;
 static Option o_filer_view_type;
 Option o_filer_auto_resize, o_unique_filer_windows;
 Option o_filer_size_limit;
-Option o_right_gap, o_bottom_gap, o_auto_move;
+static Option o_right_gap, o_bottom_gap, o_auto_move;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 

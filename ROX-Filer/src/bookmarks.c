@@ -836,7 +836,6 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 			PangoLayout *layout;
 			int i = 0, width;
 			char *pathp, *bpath, *nn = (char *) next->next->data;
-			gchar *markup, *colour;
 			pathp = path;
 			
 			while ((nn+=1) && (pathp+=1) && (++i))
@@ -848,13 +847,11 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 			item = gtk_menu_item_new();
 
 			fix = gtk_fixed_new();
-			label =  gtk_label_new(NULL);
+			label =  gtk_label_new(bpath);
 
-			colour = gdk_color_to_string(
-						&label->style->text[GTK_STATE_INSENSITIVE]);
-			markup = g_markup_printf_escaped (
-						"<span fgcolor=\"%s\">%s</span>", colour, bpath);
-			gtk_label_set_markup (GTK_LABEL (label), markup);
+			gtk_widget_modify_fg (label,
+					GTK_STATE_NORMAL,
+					&label->style->text[GTK_STATE_INSENSITIVE]);
 
 			layout = gtk_label_get_layout(GTK_LABEL(label));
 			pango_layout_get_pixel_size(layout, &width, NULL);
@@ -865,8 +862,6 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 
 			gtk_container_add(GTK_CONTAINER(item), fix);
 
-			g_free(colour);
-			g_free(markup);
 			g_free(bpath);
 		}
 		else
@@ -938,7 +933,7 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 
 	for (node = node->xmlChildrenNode; node; node = node->next)
 	{
-		gchar *mark, *title, *path, *dirname, *markup, *colour;
+		gchar *mark, *title, *path, *dirname;
 		GtkWidget **links;
 		GtkWidget *label, *fix;
 		PangoLayout *layout;
@@ -993,14 +988,12 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		gtk_fixed_put(GTK_FIXED(fix), label, 4, 0);
 
 		dirname = g_path_get_dirname(mark);
-		label = gtk_label_new(NULL);
+		label = gtk_label_new(dirname);
 		links[1] = label;
 
-		colour = gdk_color_to_string(
+		gtk_widget_modify_fg (label,
+				GTK_STATE_NORMAL,
 				&label->style->text[GTK_STATE_INSENSITIVE]);
-		markup = g_markup_printf_escaped (
-				"<span fgcolor=\"%s\">%s</span>", colour, dirname);
-		gtk_label_set_markup (GTK_LABEL (label), markup);
 
 		gtk_label_set_max_width_chars(GTK_LABEL(label), 30);
 		gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_MIDDLE);
@@ -1020,8 +1013,6 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 			xmlFree(title);
 		xmlFree(mark);
 
-		g_free(colour);
-		g_free(markup);
 		g_free(dirname);
 	}
 
