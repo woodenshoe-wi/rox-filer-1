@@ -1,6 +1,7 @@
 changes
 
 https://github.com/jun7/rox-filer/wiki/Changes
+https://github.com/jun7/rox-filer/wiki/Screenshots
 
 ROX-Filer
 =========
