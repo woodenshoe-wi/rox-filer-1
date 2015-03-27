@@ -42,7 +42,7 @@
 static GList *history = NULL;		/* Most recent first */
 static GList *history_tail = NULL;	/* Oldest item */
 static GHashTable *history_hash = NULL;	/* Path -> GList link */
-static gint history_free = 30;		/* Space left in history */
+static gint history_free = 40;		/* Space left in history */
 
 static XMLwrapper *bookmarks = NULL;
 static GtkWidget *bookmarks_window = NULL;
