@@ -277,13 +277,13 @@ static void view_collection_init(GTypeInstance *object, gpointer gclass)
 
 	if (o_view_alpha.int_value > 0)
 	{
-		GdkScreen *screen = gtk_widget_get_screen (collection);
-		GdkColormap *rgba = gdk_screen_get_rgba_colormap (screen);
+		GdkScreen *screen = gtk_widget_get_screen(collection);
+		GdkColormap *rgba = gdk_screen_get_rgba_colormap(screen);
 		if (rgba)
 		{
-			gtk_widget_set_colormap (collection, rgba);
-			g_signal_connect (collection, "expose-event",
-						G_CALLBACK (transparent_expose), NULL);
+			gtk_widget_set_colormap(collection, rgba);
+			g_signal_connect(collection, "expose-event",
+						G_CALLBACK(transparent_expose), NULL);
 		}
 	}
 

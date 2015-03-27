@@ -1736,10 +1736,10 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 
 	if (o_view_alpha.int_value > 0)
 	{
-		GdkScreen *screen = gtk_widget_get_screen (filer_window->window);
-		GdkColormap *rgba = gdk_screen_get_rgba_colormap (screen);
+		GdkScreen *screen = gtk_widget_get_screen(filer_window->window);
+		GdkColormap *rgba = gdk_screen_get_rgba_colormap(screen);
 		if (rgba)
-			gtk_widget_set_colormap (filer_window->window, rgba);
+			gtk_widget_set_colormap(filer_window->window, rgba);
 	}
 
 	/* This property is cleared when the window is destroyed.
