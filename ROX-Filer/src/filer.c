@@ -175,6 +175,7 @@ static Option o_short_flag_names;
 static Option o_filer_view_type;
 Option o_filer_auto_resize, o_unique_filer_windows;
 Option o_filer_size_limit;
+Option o_view_alpha;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
@@ -195,6 +196,7 @@ void filer_init(void)
 	option_add_int(&o_filer_view_type, "filer_view_type",
 			VIEW_TYPE_COLLECTION); 
 
+	option_add_int(&o_view_alpha, "view_alpha", 0);
 	option_add_int(&o_right_gap, "right_gap", 32);
 	option_add_int(&o_bottom_gap, "bottom_gap", 32);
 	option_add_int(&o_auto_move, "auto_move", FALSE);
@@ -1731,6 +1733,14 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 	if (wm_class)
 		gtk_window_set_wmclass(GTK_WINDOW(filer_window->window),
 				       wm_class, PROJECT);
+
+	if (o_view_alpha.int_value > 0)
+	{
+		GdkScreen *screen = gtk_widget_get_screen (filer_window->window);
+		GdkColormap *rgba = gdk_screen_get_rgba_colormap (screen);
+		if (rgba)
+			gtk_widget_set_colormap (filer_window->window, rgba);
+	}
 
 	/* This property is cleared when the window is destroyed.
 	 * You can thus ref filer_window->window and use this to see

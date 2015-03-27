@@ -132,6 +132,7 @@ extern GList		*all_filer_windows;
 extern GHashTable	*child_to_filer;
 extern Option		o_filer_auto_resize, o_unique_filer_windows;
 extern Option		o_filer_size_limit;
+extern Option		o_view_alpha;
 
 /* Prototypes */
 void filer_init(void);
