@@ -415,7 +415,7 @@ static void collection_realize(GtkWidget *widget)
 	widget->style = gtk_style_attach(widget->style, widget->window);
 
 	gdk_window_set_user_data(widget->window, widget);
-	gdk_window_set_background(widget->window,
+	gtk_widget_modify_bg(widget, GTK_STATE_NORMAL,
 			&widget->style->base[GTK_STATE_NORMAL]);
 
 	bg = &widget->style->base[GTK_STATE_NORMAL];
