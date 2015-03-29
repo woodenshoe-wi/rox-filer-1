@@ -1277,6 +1277,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 		case GDK_BackSpace:
 			change_to_parent(filer_window);
 			break;
+		case GDK_bar:
 		case GDK_backslash:
 		{
 			ViewIter iter;
