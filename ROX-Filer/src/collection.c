@@ -378,6 +378,13 @@ static void collection_map(GtkWidget *widget)
 	}
 }
 
+static void collection_style_set_cb(GtkWidget *widget,
+	GtkStyle *previous_style, gpointer user_data)
+{
+	gdk_window_set_background(widget->window,
+			&widget->style->base[GTK_STATE_NORMAL]);
+}
+
 static void collection_realize(GtkWidget *widget)
 {
 	Collection 	*collection;
@@ -415,8 +422,10 @@ static void collection_realize(GtkWidget *widget)
 	widget->style = gtk_style_attach(widget->style, widget->window);
 
 	gdk_window_set_user_data(widget->window, widget);
-	gtk_widget_modify_bg(widget, GTK_STATE_NORMAL,
-			&widget->style->base[GTK_STATE_NORMAL]);
+
+	collection_style_set_cb(widget, NULL, NULL);
+	g_signal_connect(widget, "style_set",
+			G_CALLBACK(collection_style_set_cb), NULL);
 
 	bg = &widget->style->base[GTK_STATE_NORMAL];
 	fg = &widget->style->text[GTK_STATE_NORMAL];
