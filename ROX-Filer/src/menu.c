@@ -121,6 +121,7 @@ static void select_nth_item(GtkMenuShell *shell, int n);
 static void new_file_type(gchar *templ);
 static void do_send_to(gchar *templ);
 static void show_send_to_menu(GList *paths, GdkEvent *event);
+static void show_dir_send_to_menu(GdkEvent *event);
 static GList *set_keys_button(Option *option, xmlNode *node, guchar *label);
 
 /* Note that for most of these callbacks none of the arguments are used. */
@@ -270,7 +271,7 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">" N_("Show Help Files"),	"F1", menu_rox_help, HELP_DIR, "<StockItem>", GTK_STOCK_HELP},
 {">" N_("Manual"),		NULL, menu_rox_help, HELP_MANUAL, NULL},
 {"",				NULL, NULL, 0, "<Separator>"},
-{N_("Customise Menu..."),	NULL, customise_directory_menu, 0, NULL},
+{N_("Customise Dir Menu..."),	NULL, customise_directory_menu, 0, NULL},
 };
 
 
@@ -483,7 +484,7 @@ static GtkWidget *make_send_to_item(DirItem *ditem, const char *label,
 				break;
 		}
 
-		item = gtk_image_menu_item_new_with_label(label);
+		item = gtk_image_menu_item_new_with_mnemonic(label);
 		/* TODO: Find a way to allow short-cuts */
 		menuitem_no_shortcuts(item);
 
@@ -625,7 +626,8 @@ static void update_directory_menu()
 	for (; widgets; widgets = g_list_delete_link(widgets, widgets))
 		gtk_widget_destroy((GtkWidget *) widgets->data);
 
-	widgets = add_sendto_shared(filer_menu, "inode", NULL, (CallbackFn) directory_cb);
+	widgets = add_sendto_shared(filer_menu,
+			inode_directory->media_type, NULL, (CallbackFn) directory_cb);
 }
 
 /* 'item' is the number of the item to appear under the pointer. */
@@ -759,9 +761,7 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 
 		if (n_selected == 0)
 		{
-			report_error(
-				_("You should Shift+Menu click over a file to "
-				"send it somewhere"));
+			show_dir_send_to_menu(event);
 			return;
 		}
 
@@ -1525,8 +1525,10 @@ static void new_file_type(gchar *templ)
 static void customise_directory_menu(gpointer data)
 {
 	char *path;
+	char *leaf = g_strconcat(".", inode_directory->media_type, NULL);
 
-	path = choices_find_xdg_path_save(".inode", "SendTo", SITE, TRUE);
+	path = choices_find_xdg_path_save(leaf, "SendTo", SITE, TRUE);
+	g_free(leaf);
 
 	mkdir(path, 0755);
 	filer_opendir(path, NULL, NULL);
@@ -1736,7 +1738,7 @@ static void show_send_to_menu(GList *paths, GdkEvent *event)
 	add_sendto(menu, NULL, NULL);
 	add_sendto(menu, "all", NULL);
 
-	item = gtk_menu_item_new_with_label(_("Customise"));
+	item = gtk_menu_item_new_with_label(_("Customise..."));
 	g_signal_connect_swapped(item, "activate",
 				G_CALLBACK(customise_send_to), NULL);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
@@ -1745,6 +1747,32 @@ static void show_send_to_menu(GList *paths, GdkEvent *event)
 		destroy_glist(&send_to_paths);
 
 	send_to_paths = paths;
+
+	g_signal_connect(menu, "selection-done", G_CALLBACK(menu_closed), NULL);
+
+	popup_menu = menu;
+	show_popup_menu(menu, event, 0);
+}
+
+static void show_dir_send_to_menu(GdkEvent *event)
+{
+	GtkWidget	*menu, *item;
+
+	menu = gtk_menu_new();
+
+	GList *widgets = add_sendto_shared(menu,
+			inode_directory->media_type, NULL, (CallbackFn) directory_cb);
+	if (widgets)
+	{
+		gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_menu_item_new());
+		g_list_free(widgets);
+	}
+
+	item = gtk_menu_item_new_with_label(_("Customise Dir menu..."));
+	g_signal_connect_swapped(item, "activate",
+				G_CALLBACK(customise_directory_menu), NULL);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+
 
 	g_signal_connect(menu, "selection-done", G_CALLBACK(menu_closed), NULL);
 
