@@ -378,7 +378,7 @@ static void collection_map(GtkWidget *widget)
 	}
 }
 
-static void collection_style_set_cb(GtkWidget *widget,
+static void style_set_cb(GtkWidget *widget,
 	GtkStyle *previous_style, gpointer user_data)
 {
 	gdk_window_set_background(widget->window,
@@ -423,9 +423,9 @@ static void collection_realize(GtkWidget *widget)
 
 	gdk_window_set_user_data(widget->window, widget);
 
-	collection_style_set_cb(widget, NULL, NULL);
+	style_set_cb(widget, NULL, NULL);
 	g_signal_connect(widget, "style_set",
-			G_CALLBACK(collection_style_set_cb), NULL);
+			G_CALLBACK(style_set_cb), NULL);
 
 	bg = &widget->style->base[GTK_STATE_NORMAL];
 	fg = &widget->style->text[GTK_STATE_NORMAL];
