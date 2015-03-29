@@ -1537,7 +1537,7 @@ static void customise_send_to(gpointer data)
 		"`.text_html', `.text', etc which will only be "
 		"shown for files of that type and shared with the file menu. "
 		"In addition, `.group' is shown only when multiple files are selected. "
-		"`.all' is only for the menu."),
+		"`.all' is all."),
 		dirs->str,
 		save ? _("I'll show you your SendTo directory now; you should "
 			"symlink (Ctrl+Shift drag) any applications you want "
@@ -1702,6 +1702,7 @@ static void show_send_to_menu(GList *paths, GdkEvent *event)
 	}
 	
 	add_sendto(menu, NULL, NULL);
+	add_sendto(menu, "all", NULL);
 
 	item = gtk_menu_item_new_with_label(_("Customise"));
 	g_signal_connect_swapped(item, "activate",
