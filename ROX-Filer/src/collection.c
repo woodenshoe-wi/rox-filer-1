@@ -378,6 +378,13 @@ static void collection_map(GtkWidget *widget)
 	}
 }
 
+static void style_set_cb(GtkWidget *widget,
+	GtkStyle *previous_style, gpointer user_data)
+{
+	gdk_window_set_background(widget->window,
+			&widget->style->base[GTK_STATE_NORMAL]);
+}
+
 static void collection_realize(GtkWidget *widget)
 {
 	Collection 	*collection;
@@ -415,8 +422,10 @@ static void collection_realize(GtkWidget *widget)
 	widget->style = gtk_style_attach(widget->style, widget->window);
 
 	gdk_window_set_user_data(widget->window, widget);
-	gtk_widget_modify_bg(widget, GTK_STATE_NORMAL,
-			&widget->style->base[GTK_STATE_NORMAL]);
+
+	style_set_cb(widget, NULL, NULL);
+	g_signal_connect(widget, "style_set",
+			G_CALLBACK(style_set_cb), NULL);
 
 	bg = &widget->style->base[GTK_STATE_NORMAL];
 	fg = &widget->style->text[GTK_STATE_NORMAL];
@@ -717,23 +726,24 @@ static gint collection_key_press(GtkWidget *widget, GdkEventKey *event)
 	{
 		if (key == GDK_Left || key == GDK_Right || \
 				key == GDK_Up || key == GDK_Down)
-			return TRUE;
-		return FALSE;
+		{ /* nothing */ }
+		else
+			return FALSE;
 	}
 	
 	switch (key)
 	{
 		case GDK_Left:
-			collection_move_cursor(collection, 0, -1);
+			collection_move_cursor(collection, 0, -1, event->state);
 			break;
 		case GDK_Right:
-			collection_move_cursor(collection, 0, 1);
+			collection_move_cursor(collection, 0, 1, event->state);
 			break;
 		case GDK_Up:
-			collection_move_cursor(collection, -1, 0);
+			collection_move_cursor(collection, -1, 0, event->state);
 			break;
 		case GDK_Down:
-			collection_move_cursor(collection, 1, 0);
+			collection_move_cursor(collection, 1, 0, event->state);
 			break;
 		case GDK_Home:
 			collection_set_cursor_item(collection, 0, TRUE);
@@ -747,14 +757,14 @@ static gint collection_key_press(GtkWidget *widget, GdkEventKey *event)
 		  {
 		        int first, last;
 		       	get_visible_limits(collection, &first, &last);
-			collection_move_cursor(collection, first - last, 0);
+			collection_move_cursor(collection, first - last, 0, 0);
 			break;
 		  }
 		case GDK_Page_Down:
 		  {
 		        int first, last;
 		       	get_visible_limits(collection, &first, &last);
-			collection_move_cursor(collection, last - first, 0);
+			collection_move_cursor(collection, last - first, 0, 0);
 			break;
 		  }
 		default:
@@ -1706,7 +1716,7 @@ void collection_delete_if(Collection *collection,
 /* Move the cursor by the given row and column offsets.
  * Moving by (0,0) can be used to simply make the cursor appear.
  */
-void collection_move_cursor(Collection *collection, int drow, int dcol)
+void collection_move_cursor(Collection *collection, int drow, int dcol, int event_state)
 {
 	int	row, col, item;
 	int	first, last, total_rows, total_cols;
@@ -1746,7 +1756,15 @@ void collection_move_cursor(Collection *collection, int drow, int dcol)
 	else
 	{
 		collection_item_to_rowcol(collection, item, &row, &col);
-		
+
+		if (event_state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK))
+		{
+			collection_item_set_selected(collection, item, 
+					!(collection->items[item].selected &&
+						(event_state & GDK_CONTROL_MASK)),
+					TRUE);
+		}
+
 		col += dcol;
 		if (collection->vertical_order) 
 		{
@@ -1795,6 +1813,11 @@ void collection_move_cursor(Collection *collection, int drow, int dcol)
 
 	item = MAX(item, 0);
 	item = MIN(item, collection->number_of_items-1);
+
+	if (event_state & GDK_SHIFT_MASK)
+		collection_item_set_selected(collection, item, 
+				TRUE,
+				TRUE);
 
 	collection_set_cursor_item(collection, item, TRUE);
 }

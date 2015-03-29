@@ -725,6 +725,9 @@ gboolean filer_window_delete(GtkWidget *window,
 	if (mount)
 		may_offer_unmount(filer_window, mount);
 
+	/* Without this, the window will flash more */
+	gdk_window_resize(window->window, 4, 4);
+
 	return FALSE;
 }
 
@@ -1274,6 +1277,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 		case GDK_BackSpace:
 			change_to_parent(filer_window);
 			break;
+		case GDK_bar:
 		case GDK_backslash:
 		{
 			ViewIter iter;
