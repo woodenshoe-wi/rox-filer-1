@@ -149,6 +149,7 @@ static void invert_selection(gpointer data, guint action, GtkWidget *widget);
 static void new_directory(gpointer data, guint action, GtkWidget *widget);
 static void new_file(gpointer data, guint action, GtkWidget *widget);
 static void customise_new(gpointer data);
+static void customise_directory_menu(gpointer data);
 static void xterm_here(gpointer data, guint action, GtkWidget *widget);
 
 static void open_parent_same(gpointer data, guint action, GtkWidget *widget);
@@ -268,6 +269,8 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">" N_("About ROX-Filer..."),	NULL, menu_rox_help, HELP_ABOUT, NULL},
 {">" N_("Show Help Files"),	"F1", menu_rox_help, HELP_DIR, "<StockItem>", GTK_STOCK_HELP},
 {">" N_("Manual"),		NULL, menu_rox_help, HELP_MANUAL, NULL},
+{"",				NULL, NULL, 0, "<Separator>"},
+{N_("Customise Menu..."),	NULL, customise_directory_menu, 0, NULL},
 };
 
 
@@ -609,6 +612,22 @@ static void update_new_files_menu(MenuIconStyle style)
 	gtk_widget_show_all(filer_new_menu);
 }
 
+static void directory_cb(const gchar *app)
+{
+	GList *file_list = g_list_prepend(NULL, window_with_focus->sym_path);
+	run_with_files(app, file_list);
+	g_list_free(file_list);
+}
+static void update_directory_menu()
+{
+	static GList *widgets = NULL;
+
+	for (; widgets; widgets = g_list_delete_link(widgets, widgets))
+		gtk_widget_destroy((GtkWidget *) widgets->data);
+
+	widgets = add_sendto_shared(filer_menu, "inode", NULL, (CallbackFn) directory_cb);
+}
+
 /* 'item' is the number of the item to appear under the pointer. */
 void show_popup_menu(GtkWidget *menu, GdkEvent *event, int item)
 {
@@ -731,7 +750,6 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 	{
 		filer_window->temp_item_selected = FALSE;
 	}
-
 	/* Short-cut to the Send To menu */
 	if (state & GDK_SHIFT_MASK)
 	{
@@ -818,6 +836,7 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 	}
 
 	update_new_files_menu(get_menu_icon_style());
+	update_directory_menu();
 
 	gtk_widget_set_sensitive(filer_new_window,
 			!o_unique_filer_windows.int_value);
@@ -1501,6 +1520,19 @@ static void new_file_type(gchar *templ)
 		type_to_icon(type),
 		new_file_type_cb, GDK_ACTION_COPY);
 	g_free(base);
+}
+
+static void customise_directory_menu(gpointer data)
+{
+	char *path;
+
+	path = choices_find_xdg_path_save(".inode", "SendTo", SITE, TRUE);
+
+	mkdir(path, 0755);
+	filer_opendir(path, NULL, NULL);
+	g_free(path);
+
+	info_message(_("Symlink any programs you want into this directory. "));
 }
 
 static void customise_send_to(gpointer data)
