@@ -125,6 +125,8 @@ struct _FilerWindow
 	gint		req_height;
 	
 	gfloat		icon_scale; /* temporary scale */
+	
+	gboolean	under_init;
 };
 
 extern FilerWindow 	*window_with_focus;
