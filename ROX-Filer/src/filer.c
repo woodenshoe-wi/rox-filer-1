@@ -411,6 +411,7 @@ static gint open_filer_window(FilerWindow *filer_window)
 	{
 		display_set_actual_size(filer_window, TRUE);
 		gtk_widget_show(filer_window->window);
+		filer_window->under_init = FALSE;
 	}
 
 	return FALSE;
@@ -432,28 +433,20 @@ static void queue_interesting(FilerWindow *filer_window)
 	}
 }
 
-static gint delay_resize(FilerWindow *filer_window)
-{
-	filer_window->open_timeout = 0;
-	view_style_changed(filer_window->view, 0);
-	view_autosize(filer_window->view);
-	return FALSE;
-}
-
 static void update_display(Directory *dir,
 			DirAction	action,
 			GPtrArray	*items,
 			FilerWindow *filer_window)
 {
 	ViewIface *view = (ViewIface *) filer_window->view;
+	gboolean init = filer_window->under_init;
 
 	switch (action)
 	{
 		case DIR_ADD:
 			view_add_items(view, items);
 			/* Open and resize if currently hidden */
-			if (!GTK_WIDGET_VISIBLE(filer_window->window))
-				open_filer_window(filer_window);
+			open_filer_window(filer_window);
 			break;
 		case DIR_REMOVE:
 			view_delete_if(view, if_deleted, items);
@@ -470,8 +463,7 @@ static void update_display(Directory *dir,
 						NULL);
 			set_scanning_display(filer_window, FALSE);
 			toolbar_update_info(filer_window);
-			if (!GTK_WIDGET_VISIBLE(filer_window->window))
-				open_filer_window(filer_window);
+			open_filer_window(filer_window);
 
 			if (filer_window->had_cursor &&
 					!view_cursor_visible(view))
@@ -505,17 +497,11 @@ static void update_display(Directory *dir,
 	}
 
 	if (o_filer_auto_resize.int_value == RESIZE_ALWAYS &&
-		!filer_window->under_init &&
-		!filer_window->open_timeout &&
-		(action == DIR_ADD ||
-		action == DIR_UPDATE ||
-		action == DIR_REMOVE))
+		!init &&
+		action == DIR_END_SCAN)
 	{
 		view_style_changed(filer_window->view, 0);
 		view_autosize(filer_window->view);
-		/* reuse */
-		filer_window->open_timeout = g_timeout_add(300,
-				(GSourceFunc) delay_resize, filer_window);
 	}
 }
 
@@ -1465,12 +1451,12 @@ void filer_change_to(FilerWindow *filer_window,
 	view_cursor_to_iter(filer_window->view, NULL);
 
 	attach(filer_window);
-	
+
 	display_set_actual_size(filer_window, force_resize);
 
 	if (filer_window->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, filer_window);
-
+	
 	filer_window->under_init = FALSE;
 }
 
@@ -1663,7 +1649,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	number_of_windows++;
 	all_filer_windows = g_list_prepend(all_filer_windows, filer_window);
 
-	filer_window->under_init = FALSE;
 	return filer_window;
 }
 
