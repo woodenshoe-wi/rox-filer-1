@@ -1456,7 +1456,7 @@ void filer_change_to(FilerWindow *filer_window,
 
 	if (filer_window->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, filer_window);
-	
+
 	filer_window->under_init = FALSE;
 }
 
