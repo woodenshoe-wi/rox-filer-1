@@ -507,10 +507,14 @@ static void update_display(Directory *dir,
 	if (o_filer_auto_resize.int_value == RESIZE_ALWAYS &&
 		!filer_window->under_init &&
 		!filer_window->open_timeout &&
-		(action == DIR_ADD || action == DIR_REMOVE))
+		(action == DIR_ADD ||
+		action == DIR_UPDATE ||
+		action == DIR_REMOVE))
 	{
+		view_style_changed(filer_window->view, 0);
+		view_autosize(filer_window->view);
 		/* reuse */
-		filer_window->open_timeout = g_timeout_add(100,
+		filer_window->open_timeout = g_timeout_add(300,
 				(GSourceFunc) delay_resize, filer_window);
 	}
 }
