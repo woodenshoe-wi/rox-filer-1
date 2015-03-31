@@ -1487,7 +1487,7 @@ static void view_collection_autosize(ViewIface *view)
 	int		h = collection->item_height;
 	int 		x;
 	int		rows, cols;
-	int 		max_x, max_rows;
+	int		max_x, max_rows, min_x;
 	const float	r = 2.5;
 	int		t = 0;
 	int		space = 0;
@@ -1516,6 +1516,8 @@ static void view_collection_autosize(ViewIface *view)
 	max_x = (o_filer_size_limit.int_value * monitor_width) / 100;
 	max_rows = (o_filer_size_limit.int_value * monitor_height) / (h * 100);
 
+	gtk_widget_get_size_request(filer_window->toolbar, &min_x, NULL);
+
 	/* Aim for a size where
 	 * 	   x = r(y + t + h),		(1)
 	 * unless that's too wide.
@@ -1542,7 +1544,16 @@ static void view_collection_autosize(ViewIface *view)
 	 */
 	x = (r * t + sqrt(r*r*t*t + 4*h*r * (n*w - 1))) / 2 + w - 1;
 
+
 	/* Limit x */
+	if (x < min_x)
+	{
+		if (n * w > min_x)
+			x = ((min_x / w) * w) + (min_x % w ? w: 0);
+		else
+			x = min_x;
+	}
+
 	if (x > max_x)
 		x = max_x;
 
