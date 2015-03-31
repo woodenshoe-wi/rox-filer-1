@@ -260,8 +260,8 @@ static void cell_icon_get_size(GtkCellRenderer *cell,
 	switch (size)
 	{
 		case SMALL_ICONS:
-			w = SMALL_WIDTH;
-			h = SMALL_HEIGHT;
+			w = small_width;
+			h = font_height;
 			break;
 		case LARGE_ICONS:
 			if (image)

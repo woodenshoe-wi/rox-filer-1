@@ -362,8 +362,8 @@ static void draw_item(GtkWidget *widget,
 	gdk_gc_set_foreground(type_gc, type_get_colour(item,
 					&widget->style->text[GTK_STATE_NORMAL]));
 
-	if (template.icon.width <= SMALL_WIDTH &&
-			template.icon.height <= SMALL_HEIGHT)
+	if (template.icon.width <= small_width &&
+			template.icon.height <= font_height)
 	{
 		draw_small_icon(widget->window, widget->style, &template.icon,
 				item, view->image, selected, color);
@@ -517,9 +517,9 @@ static void large_template(GdkRectangle *area, CollectionItem *colitem,
 static void small_template(GdkRectangle *area, CollectionItem *colitem,
 			   ViewCollection *view_collection, Template *template)
 {
-	int	text_x = area->x + SMALL_WIDTH + 4;
+	int	text_x = area->x + small_width + 4;
 	int	low_text_y;
-	int	max_text_width = area->width - SMALL_WIDTH - 4;
+	int	max_text_width = area->width - small_width - 4;
 	ViewData *view = (ViewData *) colitem->view_data;
 
 	low_text_y = area->y + area->height / 2 - view->name_height / 2;
@@ -531,8 +531,8 @@ static void small_template(GdkRectangle *area, CollectionItem *colitem,
 	
 	template->icon.x = area->x + 2;
 	template->icon.y = area->y + 1;
-	template->icon.width = SMALL_WIDTH;
-	template->icon.height = SMALL_HEIGHT;
+	template->icon.width = small_width;
+	template->icon.height = font_height;
 }
 
 static void huge_full_template(GdkRectangle *area, CollectionItem *colitem,
@@ -935,8 +935,8 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		else if (style == SMALL_ICONS)
 		{
 			w = MIN(view->name_width, o_small_width.int_value);
-			*width = SMALL_WIDTH + 12 + w;
-			*height = MAX(view->name_height, SMALL_HEIGHT);
+			*width = small_width + 12 + w;
+			*height = MAX(view->name_height, font_height);
 		}
 		else
 		{
@@ -960,10 +960,10 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		{
 			int	text_height;
 
-			*width = SMALL_WIDTH + view->name_width + 12 + w;
+			*width = small_width + view->name_width + 12 + w;
 			text_height = MAX(view->name_height,
 					  view->details_height);
-			*height = MAX(text_height, SMALL_HEIGHT);
+			*height = MAX(text_height, font_height);
 		}
 		else
 		{
@@ -1013,7 +1013,7 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 	int		i;
 	Collection	*col = view_collection->collection;
 	int		width = MIN_ITEM_WIDTH;
-	int		height = SMALL_HEIGHT;
+	int		height = font_height;
 	int		n = col->number_of_items;
 
 	if (n == 0 && filer_window->display_style != SMALL_ICONS)
@@ -1510,7 +1510,8 @@ static void view_collection_autosize(ViewIface *view)
 
 	n = collection->number_of_items;
 	if (n == 0)
-		h = ICON_HEIGHT * 1.5;
+		h = (filer_window->display_style != SMALL_ICONS ? ICON_HEIGHT : 0) +
+			font_height + 4;
 	n = MAX(n, 2);
 
 	max_x = (o_filer_size_limit.int_value * monitor_width) / 100;

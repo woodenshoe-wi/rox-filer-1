@@ -1738,6 +1738,18 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 	}
 }
 
+static int get_font_height(GtkWidget *widget)
+{
+	PangoContext *context = gtk_widget_get_pango_context(widget);
+	PangoFontMetrics *metrics = pango_context_get_metrics (context, NULL, NULL);
+	int font_height = (pango_font_metrics_get_ascent(metrics) +
+			pango_font_metrics_get_descent(metrics)) / PANGO_SCALE;
+
+	pango_font_metrics_unref(metrics);
+
+	return font_height;
+}
+
 /* This adds all the widgets to a new filer window. It is in a separate
  * function because filer_opendir() was getting too long...
  */
@@ -1753,6 +1765,12 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 	if (wm_class)
 		gtk_window_set_wmclass(GTK_WINDOW(filer_window->window),
 				       wm_class, PROJECT);
+
+	if (font_height == 0)
+	{
+		font_height = get_font_height(filer_window->window);
+		small_width = (SMALL_WIDTH * font_height) / SMALL_HEIGHT;
+	}
 
 	if (o_view_alpha.int_value > 0)
 	{
