@@ -266,7 +266,6 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	{
 		w = filer_window->req_width;
 		h = filer_window->req_height;
-		filer_window->req_width = filer_window->req_height = -1;
 	}
 	else
 	{
