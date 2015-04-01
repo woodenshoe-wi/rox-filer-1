@@ -14,6 +14,7 @@ typedef enum {
 	TOOLBAR_NORMAL 		= 1,
 	TOOLBAR_LARGE 		= 2,
 	TOOLBAR_HORIZONTAL 	= 3,
+	TOOLBAR_TEXT		= 4,
 } ToolbarType;
 
 extern Option o_toolbar, o_toolbar_info;

@@ -1641,7 +1641,7 @@ static void view_details_autosize(ViewIface *view)
 	gtk_widget_queue_resize(GTK_WIDGET(view));
 	gtk_widget_size_request(GTK_WIDGET(view), &req);
 
-	h = MAX(view_details->desired_size.height, SMALL_HEIGHT);
+	h = MAX(view_details->desired_size.height, font_height);
 
 	filer_window_set_size(filer_window,
 			MIN(view_details->desired_size.width, max_width),

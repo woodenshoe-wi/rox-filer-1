@@ -148,6 +148,69 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 	g_object_unref(pixbuf);
 }
 
+static void draw_mini_emblem_on_icon(GdkWindow *window,
+		GtkStyle *style, const char *stock_id, int *x, int y)
+{
+	GtkIconSet *icon_set;
+	static GdkPixbuf  *pixbuf = NULL, *scaled = NULL;
+	static char *bs_id = NULL;
+	static int w, h, tsize, dy, dx;
+
+	/* there are full of sym emblem */
+	if (!bs_id || strcmp(bs_id, stock_id) != 0){
+		g_free(bs_id);
+		bs_id = g_strdup(stock_id);
+		if (scaled)
+			g_object_unref(scaled);
+
+		icon_set = gtk_style_lookup_icon_set(style,
+							 stock_id);
+		if (icon_set)
+		{
+			pixbuf = gtk_icon_set_render_icon(icon_set,
+							  style,
+							  GTK_TEXT_DIR_LTR,
+							  GTK_STATE_NORMAL,
+							  mount_icon_size,
+							  NULL,
+							  NULL);
+		}
+		else
+		{
+			pixbuf=im_unknown->pixbuf;
+			g_object_ref(pixbuf);
+		}
+
+		dy = font_height * 1 / 5;
+		tsize = font_height * 4 / 5;
+		dy += font_height - (dy + tsize);
+		gtk_icon_size_lookup(mount_icon_size, &w, &h);
+		if (h < tsize)
+		{
+			dy += tsize - h;
+			scaled = pixbuf;
+		}
+		else
+		{
+			scaled = gdk_pixbuf_scale_simple(pixbuf,
+						tsize, tsize, GDK_INTERP_TILES);
+
+			g_object_unref(pixbuf);
+		}
+		dx = gdk_pixbuf_get_width(scaled);
+	}
+
+	gdk_draw_pixbuf(window,
+				NULL,
+				scaled,
+				0, 0, /* src */
+				*x - 1, y + dy + 3, /* dest */
+				-1, -1,
+				GDK_RGB_DITHER_NORMAL, 0, 0);
+
+	*x += dx * 2 / 3;
+}
+
 /* Draw this icon (including any symlink or mount symbol) inside the
  * given rectangle.
  */
@@ -313,10 +376,10 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 	if (!image->sm_pixbuf)
 		pixmap_make_small(image);
 
-	width = MIN(image->sm_width, SMALL_WIDTH);
-	height = MIN(image->sm_height, SMALL_HEIGHT);
+	width = MIN(image->sm_width, small_width);
+	height = MIN(image->sm_height, font_height);
 	image_x = area->x + ((area->width - width) >> 1);
-	image_y = MAX(0, SMALL_HEIGHT - image->sm_height);
+	image_y = MAX(0, font_height - image->sm_height);
 
 	if(item->label != NULL) {
 		tmp = create_spotlight_pixbuf(image->sm_pixbuf, item->label);
@@ -343,26 +406,24 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 	if (selected || item->label != NULL)
 		g_object_unref(pixbuf);
 
-	image_x -= 3;
+	image_x -= (small_width - width) / 2;
 
 	if (item->flags & ITEM_FLAG_MOUNT_POINT)
 	{
 		const char *mp = item->flags & ITEM_FLAG_MOUNTED
 					? ROX_STOCK_MOUNTED
 					: ROX_STOCK_MOUNT;
-		draw_emblem_on_icon(window, style, mp, &image_x, area->y + 7);
-		image_x -= 6;
+		draw_mini_emblem_on_icon(window, style, mp, &image_x, area->y);
 	}
 	if (item->flags & ITEM_FLAG_SYMLINK)
 	{
-		draw_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
-				    &image_x, area->y + 7);
-		image_x -= 6;
+		draw_mini_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
+				    &image_x, area->y);
 	}
 	if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 	{
-		draw_emblem_on_icon(window, style, ROX_STOCK_XATTR,
-				    &image_x, area->y + 7);
+		draw_mini_emblem_on_icon(window, style, ROX_STOCK_XATTR,
+				    &image_x, area->y);
 	}
 }
 
@@ -536,12 +597,13 @@ void display_set_layout(FilerWindow  *filer_window,
 
 	if (filer_window->toolbar_size_text)
 	{
-		gchar *size_label = g_strdup_printf("%s:%s", N_("Size"),
-			filer_window->display_style_wanted == LARGE_ICONS ? "L" :
-			filer_window->display_style_wanted == SMALL_ICONS ? "S" :
-			filer_window->display_style_wanted == HUGE_ICONS  ? "X" :
-			filer_window->display_style_wanted == AUTO_SIZE_ICONS ? "A" :
-			"?" );
+		gchar *size_label = g_strdup_printf("%s%s", N_("Size"),
+			filer_window->display_style_wanted == LARGE_ICONS ? "┤" :
+			filer_window->display_style_wanted == SMALL_ICONS ? "┐" :
+			filer_window->display_style_wanted == HUGE_ICONS  ? "┘" :
+			filer_window->display_style_wanted == AUTO_SIZE_ICONS ?
+				filer_window->display_style == LARGE_ICONS ? "├" : "┌" :
+			"┼" );
 		gtk_label_set_text(filer_window->toolbar_size_text, size_label);
 
 		g_free(size_label);

@@ -266,7 +266,6 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	{
 		w = filer_window->req_width;
 		h = filer_window->req_height;
-		filer_window->req_width = filer_window->req_height = -1;
 	}
 	else
 	{
@@ -411,6 +410,7 @@ static gint open_filer_window(FilerWindow *filer_window)
 	{
 		display_set_actual_size(filer_window, TRUE);
 		gtk_widget_show(filer_window->window);
+		filer_window->under_init = FALSE;
 	}
 
 	return FALSE;
@@ -438,6 +438,8 @@ static void update_display(Directory *dir,
 			FilerWindow *filer_window)
 {
 	ViewIface *view = (ViewIface *) filer_window->view;
+	gboolean init = filer_window->under_init;
+
 	switch (action)
 	{
 		case DIR_ADD:
@@ -491,6 +493,14 @@ static void update_display(Directory *dir,
 		case DIR_QUEUE_INTERESTING:
 			queue_interesting(filer_window);
 			break;
+	}
+
+	if (o_filer_auto_resize.int_value == RESIZE_ALWAYS &&
+		!init &&
+		action == DIR_END_SCAN)
+	{
+		view_style_changed(filer_window->view, 0);
+		view_autosize(filer_window->view);
 	}
 }
 
@@ -1387,6 +1397,8 @@ void filer_change_to(FilerWindow *filer_window,
 
 	g_return_if_fail(filer_window != NULL);
 
+	filer_window->under_init = TRUE;
+
 	filer_cancel_thumbnails(filer_window);
 
 	tooltip_show(NULL);
@@ -1438,11 +1450,13 @@ void filer_change_to(FilerWindow *filer_window,
 	view_cursor_to_iter(filer_window->view, NULL);
 
 	attach(filer_window);
-	
+
 	display_set_actual_size(filer_window, force_resize);
 
 	if (filer_window->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, filer_window);
+
+	filer_window->under_init = FALSE;
 }
 
 /* Returns a list containing the full (sym) pathname of every selected item.
@@ -1535,6 +1549,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->auto_scroll = -1;
 	filer_window->window_id = NULL;
 	filer_window->icon_scale = 1.0;
+	filer_window->under_init = TRUE;
 
 	tidy_sympath(filer_window->sym_path);
 
@@ -1722,6 +1737,18 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 	}
 }
 
+static int get_font_height(GtkWidget *widget)
+{
+	PangoContext *context = gtk_widget_get_pango_context(widget);
+	PangoFontMetrics *metrics = pango_context_get_metrics (context, NULL, NULL);
+	int font_height = (pango_font_metrics_get_ascent(metrics) +
+			pango_font_metrics_get_descent(metrics)) / PANGO_SCALE;
+
+	pango_font_metrics_unref(metrics);
+
+	return font_height;
+}
+
 /* This adds all the widgets to a new filer window. It is in a separate
  * function because filer_opendir() was getting too long...
  */
@@ -1737,6 +1764,12 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 	if (wm_class)
 		gtk_window_set_wmclass(GTK_WINDOW(filer_window->window),
 				       wm_class, PROJECT);
+
+	if (font_height == 0)
+	{
+		font_height = get_font_height(filer_window->window);
+		small_width = (SMALL_WIDTH * font_height) / SMALL_HEIGHT;
+	}
 
 	if (o_view_alpha.int_value > 0)
 	{

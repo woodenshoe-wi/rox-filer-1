@@ -122,7 +122,7 @@ static Tool all_tools[] = {
 	 toolbar_home_clicked, DROP_TO_HOME, TRUE,
 	 FALSE},
 	
-	{N_("Bookmarks"), ROX_STOCK_BOOKMARKS, N_("Bookmarks menu"),
+	{N_("Jump"), ROX_STOCK_BOOKMARKS, N_("Bookmarks menu"),
 	 toolbar_bookmarks_clicked, DROP_BOOKMARK, FALSE,
 	 TRUE},
 
@@ -130,15 +130,15 @@ static Tool all_tools[] = {
 	 toolbar_refresh_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
-	{N_("Size"), GTK_STOCK_ZOOM_IN, N_("Change icon size"),
+	{N_("Size┼"), GTK_STOCK_ZOOM_IN, N_("Change icon size"),
 	 toolbar_size_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
-	{N_("Size"), GTK_STOCK_ZOOM_FIT, N_("Automatic size mode"),
+	{N_("Auto"), GTK_STOCK_ZOOM_FIT, N_("Automatic size mode"),
 	 toolbar_autosize_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
-	{N_("Details"), ROX_STOCK_SHOW_DETAILS, N_("Show extra details"),
+	{N_("List"), ROX_STOCK_SHOW_DETAILS, N_("Show extra details"),
 	 toolbar_details_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
@@ -620,30 +620,26 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 	GtkWidget	*bar;
 	GtkWidget	*b;
 	int		i;
-	int		width;
 
 	bar = gtk_toolbar_new();
 
 	if (o_toolbar.int_value == TOOLBAR_NORMAL || !filer_window)
 		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_ICONS);
+	else if (o_toolbar.int_value == TOOLBAR_TEXT)
+		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_TEXT);
 	else if (o_toolbar.int_value == TOOLBAR_HORIZONTAL)
 		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_BOTH_HORIZ);
 	else
 		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_BOTH);
 
-	width=0;
 	for (i = 0; i < sizeof(all_tools) / sizeof(*all_tools); i++)
 	{
 		Tool	*tool = &all_tools[i];
-		GtkRequisition req;
 
 		if (filer_window && !tool->enabled)
 			continue;
 
 		b = add_button(bar, tool, filer_window);
-		
-		gtk_widget_size_request(b, &req);
-		width+=req.width;
 		
 		if (filer_window && tool->drop_action != DROP_NONE)
 			handle_drops(filer_window, b, tool->drop_action);
@@ -655,8 +651,12 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 		{
 			/* Make the toolbar wide enough for all icons to be
 			   seen, plus a little for the (start of the) text
-			   label */
-			gtk_widget_set_size_request(bar, width+32, -1);
+			   label. Though the return of size_request is incorrect.
+			   Probably it can't get current icon size.
+			   */
+			GtkRequisition req;
+			gtk_widget_size_request(bar, &req);
+			gtk_widget_set_size_request(bar, req.width, -1);
 		} else {
 			gtk_widget_set_size_request(bar, 100, -1);
 		}
@@ -770,7 +770,7 @@ static gint toolbar_button_released(GtkButton *button,
 static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 				FilerWindow *filer_window)
 {
-	GtkWidget 	*button, *icon_widget, *label = NULL;
+	GtkWidget *button, *icon_widget, *label = NULL, *hbox;
 
 	icon_widget = gtk_image_new_from_stock(tool->name,
 						GTK_ICON_SIZE_LARGE_TOOLBAR);
@@ -786,24 +786,6 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 			   GTK_TOOLBAR(bar)->num_children);
 	GTK_WIDGET_UNSET_FLAGS(button, GTK_CAN_FOCUS);
 	
-	if (o_toolbar.int_value == TOOLBAR_HORIZONTAL)
-	{
-		GtkWidget *hbox;
-		GList	  *kids;
-		hbox = GTK_BIN(button)->child;
-		kids = gtk_container_get_children(GTK_CONTAINER(hbox));
-		label = g_list_nth_data(kids, 1);
-		g_list_free(kids);
-		
-		if (label)
-		{
-			gtk_box_set_child_packing(GTK_BOX(hbox), label,
-						TRUE, TRUE, 0, GTK_PACK_END);
-			gtk_misc_set_alignment(GTK_MISC(label), 0, 0.5);
-
-		}
-	}
-
 	g_object_set_data(G_OBJECT(button), "rox-tool", tool);
 
 	if (filer_window)
@@ -815,10 +797,23 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 		g_signal_connect(button, "button_release_event",
 			G_CALLBACK(toolbar_button_released), filer_window);
 
+		if (o_toolbar.int_value != TOOLBAR_NORMAL)
+		{
+			GList	  *kids;
+			hbox = GTK_BIN(button)->child;
+			kids = gtk_container_get_children(GTK_CONTAINER(hbox));
+			label = g_list_nth_data(kids, 1);
+
+			g_list_free(kids);
+		}
+
+		if (o_toolbar.int_value == TOOLBAR_HORIZONTAL ||
+			o_toolbar.int_value == TOOLBAR_TEXT)
+			gtk_misc_set_alignment(GTK_MISC(label), 0.2, 0.5);
+
 		if (tool->clicked == toolbar_size_clicked)
 		{
-			if (label)
-				filer_window->toolbar_size_text = GTK_LABEL(label);
+			filer_window->toolbar_size_text = GTK_LABEL(label);
 			
 			g_signal_connect(button, "scroll_event",
 				G_CALLBACK(toolbar_button_scroll), filer_window);
