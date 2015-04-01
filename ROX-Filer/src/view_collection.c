@@ -1552,6 +1552,14 @@ static void view_collection_autosize(ViewIface *view)
 
 
 	x = (x / w) * w;
+
+	/* Leave some room for extra icons, but only in Small Icons mode
+	 * otherwise it takes up too much space.
+	 * Also, don't add space if the minibuffer is open.
+	 */
+	if (space == 0)
+		space = filer_window->display_style == SMALL_ICONS ? h : 2;
+
 	/* Limit x */
 	if (x < min_x)
 	{
@@ -1559,9 +1567,14 @@ static void view_collection_autosize(ViewIface *view)
 		{
 			cols = min_x / w;
 			x = cols * w;
-			if (min_x % w > 0 ? w : 0)
-				if (n % cols && n % cols <= n / cols)
-					x += w;
+			if (min_x != x &&
+				n % cols &&
+				n % cols <= n / cols &&
+				/* put window decration away because
+				 * this is intended for wider window */
+				(t + space + h * (n / cols)) * (x + w - min_x)
+					< (min_x * h))
+				x += w;
 		}
 		else
 			x = min_x;
@@ -1573,18 +1586,21 @@ static void view_collection_autosize(ViewIface *view)
 	cols = x / w;
 	cols = MAX(cols, 1);
 
-	rows = (n + cols - 1) / cols;
+	rows = MAX((n + cols - 1) / cols, 1);
 
-	/* Leave some room for extra icons, but only in Small Icons mode
-	 * otherwise it takes up too much space.
-	 * Also, don't add space if the minibuffer is open.
-	 */
-	if (space == 0)
-		space = filer_window->display_style == SMALL_ICONS ? h : 2;
+	/* only ones try to reduce space */
+	if (cols > 2 &&
+		rows > 1 &&
+		rows * h + space < max_y &&
+		n % cols &&
+		(cols - n % cols) > rows - 1)
+	{
+		cols -= 1;
+	}
 
 	filer_window_set_size(filer_window,
 			w * MAX(cols, 1),
-			MIN(max_y, h * MAX(rows, 1) + space));
+			MIN(max_y, h * rows + space));
 }
 
 static gboolean view_collection_cursor_visible(ViewIface *view)
