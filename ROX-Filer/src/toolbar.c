@@ -625,8 +625,9 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 
 	if (o_toolbar.int_value == TOOLBAR_NORMAL || !filer_window)
 		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_ICONS);
-	else if (o_toolbar.int_value == TOOLBAR_HORIZONTAL ||
-			o_toolbar.int_value == TOOLBAR_TEXT)
+	else if (o_toolbar.int_value == TOOLBAR_TEXT)
+		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_TEXT);
+	else if (o_toolbar.int_value == TOOLBAR_HORIZONTAL)
 		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_BOTH_HORIZ);
 	else
 		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_BOTH);
@@ -771,8 +772,7 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 {
 	GtkWidget 	*button, *icon_widget = NULL, *label = NULL;
 
-	if (!filer_window || o_toolbar.int_value != TOOLBAR_TEXT)
-		icon_widget = gtk_image_new_from_stock(tool->name,
+	icon_widget = gtk_image_new_from_stock(tool->name,
 						GTK_ICON_SIZE_LARGE_TOOLBAR);
 
 	button = gtk_toolbar_insert_element(GTK_TOOLBAR(bar),
@@ -804,10 +804,7 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 			GList	  *kids;
 			hbox = GTK_BIN(button)->child;
 			kids = gtk_container_get_children(GTK_CONTAINER(hbox));
-			if (o_toolbar.int_value == TOOLBAR_TEXT)
-				label = g_list_nth_data(kids, 0);
-			else
-				label = g_list_nth_data(kids, 1);
+			label = g_list_nth_data(kids, 1);
 
 			g_list_free(kids);
 
