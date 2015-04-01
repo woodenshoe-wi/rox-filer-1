@@ -1518,7 +1518,11 @@ static void view_collection_autosize(ViewIface *view)
 	max_rows = (o_filer_size_limit.int_value * monitor_height) / (h * 100);
 
 	if (filer_window->toolbar)
+	{
 		gtk_widget_get_size_request(filer_window->toolbar, &min_x, NULL);
+		if (filer_window->scrollbar)
+			min_x -= filer_window->scrollbar->allocation.width;
+	}
 
 	/* Aim for a size where
 	 * 	   x = r(y + t + h),		(1)
@@ -1547,11 +1551,18 @@ static void view_collection_autosize(ViewIface *view)
 	x = (r * t + sqrt(r*r*t*t + 4*h*r * (n*w - 1))) / 2 + w - 1;
 
 
+	x = (x / w) * w;
 	/* Limit x */
 	if (x < min_x)
 	{
 		if (n * w > min_x)
-			x = ((min_x / w) * w) + (min_x % w ? w: 0);
+		{
+			cols = min_x / w;
+			x = cols * w;
+			if (min_x % w > 0 ? w : 0)
+				if (n % cols && n % cols <= n / cols)
+					x += w;
+		}
 		else
 			x = min_x;
 	}
