@@ -1487,7 +1487,7 @@ static void view_collection_autosize(ViewIface *view)
 	int		h = collection->item_height;
 	int 		x;
 	int		rows, cols;
-	int		max_x, max_rows, min_x = 0;
+	int		max_x, max_y, min_x = 0;
 	const float	r = 2.5;
 	int		t = 0;
 	int		space = 0;
@@ -1515,7 +1515,7 @@ static void view_collection_autosize(ViewIface *view)
 	n = MAX(n, 2);
 
 	max_x = (o_filer_size_limit.int_value * monitor_width) / 100;
-	max_rows = (o_filer_size_limit.int_value * monitor_height) / (h * 100);
+	max_y = (o_filer_size_limit.int_value * monitor_height) / 100;
 
 	if (filer_window->toolbar)
 	{
@@ -1573,12 +1573,7 @@ static void view_collection_autosize(ViewIface *view)
 	cols = x / w;
 	cols = MAX(cols, 1);
 
-	/* Choose rows to display all items given our chosen x.
-	 * Don't make the window *too* big!
-	 */
 	rows = (n + cols - 1) / cols;
-	if (rows > max_rows)
-		rows = max_rows;
 
 	/* Leave some room for extra icons, but only in Small Icons mode
 	 * otherwise it takes up too much space.
@@ -1589,7 +1584,7 @@ static void view_collection_autosize(ViewIface *view)
 
 	filer_window_set_size(filer_window,
 			w * MAX(cols, 1),
-			h * MAX(rows, 1) + space);
+			MIN(max_y, h * MAX(rows, 1) + space));
 }
 
 static gboolean view_collection_cursor_visible(ViewIface *view)
