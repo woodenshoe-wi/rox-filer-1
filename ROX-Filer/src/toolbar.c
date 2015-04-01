@@ -625,7 +625,8 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 
 	if (o_toolbar.int_value == TOOLBAR_NORMAL || !filer_window)
 		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_ICONS);
-	else if (o_toolbar.int_value == TOOLBAR_HORIZONTAL)
+	else if (o_toolbar.int_value == TOOLBAR_HORIZONTAL ||
+			o_toolbar.int_value == TOOLBAR_TEXT)
 		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_BOTH_HORIZ);
 	else
 		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_BOTH);
@@ -796,8 +797,8 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 		g_signal_connect(button, "button_release_event",
 			G_CALLBACK(toolbar_button_released), filer_window);
 
-		if (tool->clicked == toolbar_size_clicked &&
-			o_toolbar.int_value != TOOLBAR_NORMAL)
+		if (o_toolbar.int_value == TOOLBAR_HORIZONTAL ||
+			o_toolbar.int_value == TOOLBAR_TEXT)
 		{
 			GtkWidget *hbox;
 			GList	  *kids;
@@ -810,6 +811,14 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 
 			g_list_free(kids);
 
+			gtk_box_set_child_packing(GTK_BOX(hbox), label,
+					TRUE, TRUE, 0, GTK_PACK_END);
+			gtk_misc_set_alignment(GTK_MISC(label), 0.2, 0.5);
+		}
+
+		if (tool->clicked == toolbar_size_clicked &&
+			o_toolbar.int_value != TOOLBAR_NORMAL)
+		{
 			filer_window->toolbar_size_text = GTK_LABEL(label);
 			
 			g_signal_connect(button, "scroll_event",
