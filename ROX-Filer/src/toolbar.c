@@ -770,7 +770,7 @@ static gint toolbar_button_released(GtkButton *button,
 static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 				FilerWindow *filer_window)
 {
-	GtkWidget 	*button, *icon_widget = NULL, *label = NULL;
+	GtkWidget *button, *icon_widget, *label = NULL, *hbox;
 
 	icon_widget = gtk_image_new_from_stock(tool->name,
 						GTK_ICON_SIZE_LARGE_TOOLBAR);
@@ -797,24 +797,21 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 		g_signal_connect(button, "button_release_event",
 			G_CALLBACK(toolbar_button_released), filer_window);
 
-		if (o_toolbar.int_value == TOOLBAR_HORIZONTAL ||
-			o_toolbar.int_value == TOOLBAR_TEXT)
+		if (o_toolbar.int_value != TOOLBAR_NORMAL)
 		{
-			GtkWidget *hbox;
 			GList	  *kids;
 			hbox = GTK_BIN(button)->child;
 			kids = gtk_container_get_children(GTK_CONTAINER(hbox));
 			label = g_list_nth_data(kids, 1);
 
 			g_list_free(kids);
-
-			gtk_box_set_child_packing(GTK_BOX(hbox), label,
-					TRUE, TRUE, 0, GTK_PACK_END);
-			gtk_misc_set_alignment(GTK_MISC(label), 0.2, 0.5);
 		}
 
-		if (tool->clicked == toolbar_size_clicked &&
-			o_toolbar.int_value != TOOLBAR_NORMAL)
+		if (o_toolbar.int_value == TOOLBAR_HORIZONTAL ||
+			o_toolbar.int_value == TOOLBAR_TEXT)
+			gtk_misc_set_alignment(GTK_MISC(label), 0.2, 0.5);
+
+		if (tool->clicked == toolbar_size_clicked)
 		{
 			filer_window->toolbar_size_text = GTK_LABEL(label);
 			
