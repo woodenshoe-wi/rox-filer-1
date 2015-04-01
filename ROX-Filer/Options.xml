@@ -96,6 +96,7 @@ indicator'>If this is on then files which have one or more extended attributes s
 	  <item label='Icons only' value='1'/>
 	  <item label='Text under icons' value='2'/>
 	  <item label='Text beside icons' value='3'/>
+	  <item label='Text only' value='4'/>
 	  </menu>
 	  <spacer/>
 	  <toggle name='toolbar_show_info' label='Show totals of items'>Show the number of items displayed in a filer window, as well as the number of hidden items (if any). When there's a selection, show the number of selected items and their combined size.</toggle>
