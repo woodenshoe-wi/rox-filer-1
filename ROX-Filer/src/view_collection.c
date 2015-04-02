@@ -1488,8 +1488,9 @@ static void view_collection_autosize(ViewIface *view)
 	int 		x;
 	int		rows, cols;
 	int		max_x, max_y, min_x = 0;
-	const float	r = 2.5;
-	int		t = 0;
+	const float	r = 1.414; /* Silver ratio ! */
+	float	cell_r;
+	int		t = 0, tc;
 	int		space = 0;
 
 	/* Get the extra height required for the toolbar and minibuffer,
@@ -1524,6 +1525,13 @@ static void view_collection_autosize(ViewIface *view)
 			min_x -= filer_window->scrollbar->allocation.width;
 	}
 
+	/* Leave some room for extra icons, but only in Small Icons mode
+	 * otherwise it takes up too much space.
+	 * Also, don't add space if the minibuffer is open.
+	 */
+	if (space == 0)
+		space = filer_window->display_style == SMALL_ICONS ? h : 2;
+
 	/* Aim for a size where
 	 * 	   x = r(y + t + h),		(1)
 	 * unless that's too wide.
@@ -1548,10 +1556,32 @@ static void view_collection_autosize(ViewIface *view)
 	 *
 	 * ( + w - 1 to round up)
 	 */
+/*
 	x = (r * t + sqrt(r*r*t*t + 4*h*r * (n*w - 1))) / 2 + w - 1;
-
-
 	x = (x / w) * w;
+*/
+
+	t += space;
+	tc = t + 141 /* window decoration and mounded charm. when small then wide */;
+
+	cell_r = 1 + tc / sqrt(n * w * h / r);
+	cell_r *= r * h / w;
+	rows = sqrt(n * cell_r) / cell_r + 0.5;
+	rows = MAX(rows, 1);
+
+	cols = (n + rows - 1) / rows;
+
+	/* Check round up of cols */
+	if (cols > 1 && rows > n / cols )
+		if (ABS((cols / ceil((float) n / cols)) - cell_r)
+				>
+			ABS(((cols - 1) / ceil((float) n / (cols - 1))) - cell_r))
+		{
+			cols -= 1;
+		}
+
+	x = cols * w;
+
 	/* Limit x */
 	if (x < min_x)
 	{
@@ -1559,9 +1589,14 @@ static void view_collection_autosize(ViewIface *view)
 		{
 			cols = min_x / w;
 			x = cols * w;
-			if (min_x % w > 0 ? w : 0)
-				if (n % cols && n % cols <= n / cols)
-					x += w;
+			if (min_x != x &&
+				n % cols &&
+				n % cols <= n / cols &&
+				/* Put window decoration away
+				 * because in this case, wide is good */
+				(t + h * (n / cols)) * (x + w - min_x)
+					< (min_x * h))
+				x += w;
 		}
 		else
 			x = min_x;
@@ -1573,18 +1608,11 @@ static void view_collection_autosize(ViewIface *view)
 	cols = x / w;
 	cols = MAX(cols, 1);
 
-	rows = (n + cols - 1) / cols;
-
-	/* Leave some room for extra icons, but only in Small Icons mode
-	 * otherwise it takes up too much space.
-	 * Also, don't add space if the minibuffer is open.
-	 */
-	if (space == 0)
-		space = filer_window->display_style == SMALL_ICONS ? h : 2;
+	rows = MAX((n + cols - 1) / cols, 1);
 
 	filer_window_set_size(filer_window,
 			w * MAX(cols, 1),
-			MIN(max_y, h * MAX(rows, 1) + space));
+			MIN(max_y, h * rows + space));
 }
 
 static gboolean view_collection_cursor_visible(ViewIface *view)
