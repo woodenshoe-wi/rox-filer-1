@@ -1488,8 +1488,9 @@ static void view_collection_autosize(ViewIface *view)
 	int 		x;
 	int		rows, cols;
 	int		max_x, max_y, min_x = 0;
-	const float	r = 2.5;
-	int		t = 0;
+	const float	r = 1.414; /* Silver ratio ! */
+	float	cell_r;
+	int		t = 0, tc;
 	int		space = 0;
 
 	/* Get the extra height required for the toolbar and minibuffer,
@@ -1524,6 +1525,13 @@ static void view_collection_autosize(ViewIface *view)
 			min_x -= filer_window->scrollbar->allocation.width;
 	}
 
+	/* Leave some room for extra icons, but only in Small Icons mode
+	 * otherwise it takes up too much space.
+	 * Also, don't add space if the minibuffer is open.
+	 */
+	if (space == 0)
+		space = filer_window->display_style == SMALL_ICONS ? h : 2;
+
 	/* Aim for a size where
 	 * 	   x = r(y + t + h),		(1)
 	 * unless that's too wide.
@@ -1548,17 +1556,19 @@ static void view_collection_autosize(ViewIface *view)
 	 *
 	 * ( + w - 1 to round up)
 	 */
+/* calc x needs more space.
 	x = (r * t + sqrt(r*r*t*t + 4*h*r * (n*w - 1))) / 2 + w - 1;
-
-
 	x = (x / w) * w;
+*/
 
-	/* Leave some room for extra icons, but only in Small Icons mode
-	 * otherwise it takes up too much space.
-	 * Also, don't add space if the minibuffer is open.
-	 */
-	if (space == 0)
-		space = filer_window->display_style == SMALL_ICONS ? h : 2;
+	t += space;
+	tc = t + 141 /* window decoration and mounded charm. when small then wide */;
+
+	cell_r = 1 + tc / sqrt(n * w * h / r);
+	cell_r *= r * h / w;
+	
+	rows = sqrt(n * cell_r) / cell_r + 0.5;
+	x = (n + rows - 1) / rows * w;
 
 	/* Limit x */
 	if (x < min_x)
@@ -1570,9 +1580,9 @@ static void view_collection_autosize(ViewIface *view)
 			if (min_x != x &&
 				n % cols &&
 				n % cols <= n / cols &&
-				/* put window decration away because
-				 * this is intended for wider window */
-				(t + space + h * (n / cols)) * (x + w - min_x)
+				/* put window decoration away
+				 * because this case wide is good */
+				(t + h * (n / cols)) * (x + w - min_x)
 					< (min_x * h))
 				x += w;
 		}
@@ -1587,16 +1597,6 @@ static void view_collection_autosize(ViewIface *view)
 	cols = MAX(cols, 1);
 
 	rows = MAX((n + cols - 1) / cols, 1);
-
-	/* only ones try to reduce space */
-	if (cols > 2 &&
-		rows > 1 &&
-		rows * h + space < max_y &&
-		n % cols &&
-		(cols - n % cols) > rows - 1)
-	{
-		cols -= 1;
-	}
 
 	filer_window_set_size(filer_window,
 			w * MAX(cols, 1),
