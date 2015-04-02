@@ -1556,7 +1556,7 @@ static void view_collection_autosize(ViewIface *view)
 	 *
 	 * ( + w - 1 to round up)
 	 */
-/* calc x needs more space.
+/*
 	x = (r * t + sqrt(r*r*t*t + 4*h*r * (n*w - 1))) / 2 + w - 1;
 	x = (x / w) * w;
 */
@@ -1566,9 +1566,21 @@ static void view_collection_autosize(ViewIface *view)
 
 	cell_r = 1 + tc / sqrt(n * w * h / r);
 	cell_r *= r * h / w;
-	
 	rows = sqrt(n * cell_r) / cell_r + 0.5;
-	x = (n + rows - 1) / rows * w;
+	rows = MAX(rows, 1);
+
+	cols = (n + rows - 1) / rows;
+
+	/* Check round up of cols */
+	if (cols > 1 && rows > n / cols )
+		if (ABS((cols / ceil((float) n / cols)) - cell_r)
+				>
+			ABS(((cols - 1) / ceil((float) n / (cols - 1))) - cell_r))
+		{
+			cols -= 1;
+		}
+
+	x = cols * w;
 
 	/* Limit x */
 	if (x < min_x)
@@ -1580,8 +1592,8 @@ static void view_collection_autosize(ViewIface *view)
 			if (min_x != x &&
 				n % cols &&
 				n % cols <= n / cols &&
-				/* put window decoration away
-				 * because this case wide is good */
+				/* Put window decoration away
+				 * because in this case, wide is good */
 				(t + h * (n / cols)) * (x + w - min_x)
 					< (min_x * h))
 				x += w;
