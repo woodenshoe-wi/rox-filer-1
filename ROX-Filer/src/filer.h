@@ -121,10 +121,12 @@ struct _FilerWindow
 	/* dir settings */
 	gint		reqx;
 	gint		reqy;
+	/* used by set positon */
 	gint		req_width;
 	gint		req_height;
 	
 	gfloat		icon_scale; /* temporary scale */
+	GdkColor	*dir_color;
 	
 	gboolean	under_init;
 };

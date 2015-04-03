@@ -1156,8 +1156,18 @@ static void view_collection_clear(ViewIface *view)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	collection_clear(collection);
+
+	/* since fg is not used then use it */
+	if (view_collection->filer_window->dir_color)
+		gtk_widget_modify_fg(GTK_WIDGET(collection),
+				GTK_STATE_NORMAL,
+				view_collection->filer_window->dir_color);
+	else
+		gtk_widget_modify_fg(GTK_WIDGET(collection),
+				GTK_STATE_NORMAL,
+				&GTK_WIDGET(collection)->style->base[GTK_STATE_NORMAL]);
 }
 
 static void view_collection_select_all(ViewIface *view)
@@ -1532,7 +1542,7 @@ static void view_collection_autosize(ViewIface *view)
 		space = filer_window->display_style == SMALL_ICONS ? h : 2;
 
 	tn = t + space;
-	t = tn + 141 /* window decoration and mounded charm. when small then wide */;
+	t = tn + 44 /* window decoration and charm. when small then wide */;
 
 	/* Aim for a size where
 	 * 	   x = r(y + t + h),		(1)
