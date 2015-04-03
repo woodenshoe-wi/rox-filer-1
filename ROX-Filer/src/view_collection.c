@@ -1532,7 +1532,7 @@ static void view_collection_autosize(ViewIface *view)
 		space = filer_window->display_style == SMALL_ICONS ? h : 2;
 
 	tn = t + space;
-	t = tn + 141 /* window decoration and mounded charm. when small then wide */;
+	t = tn + 44 /* window decoration and charm. when small then wide */;
 
 	/* Aim for a size where
 	 * 	   x = r(y + t + h),		(1)
