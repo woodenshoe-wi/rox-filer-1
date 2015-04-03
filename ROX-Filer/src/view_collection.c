@@ -1488,9 +1488,8 @@ static void view_collection_autosize(ViewIface *view)
 	int 		x;
 	int		rows, cols;
 	int		max_x, max_y, min_x = 0;
-	const float	r = 1.414; /* Silver ratio ! */
-	float	cell_r;
-	int		t = 0, tc;
+	const float	r = 1.6;
+	int		t = 0, tn;
 	int		space = 0;
 
 	/* Get the extra height required for the toolbar and minibuffer,
@@ -1532,6 +1531,9 @@ static void view_collection_autosize(ViewIface *view)
 	if (space == 0)
 		space = filer_window->display_style == SMALL_ICONS ? h : 2;
 
+	tn = t + space;
+	t = tn + 141 /* window decoration and mounded charm. when small then wide */;
+
 	/* Aim for a size where
 	 * 	   x = r(y + t + h),		(1)
 	 * unless that's too wide.
@@ -1553,34 +1555,10 @@ static void view_collection_autosize(ViewIface *view)
 	 * So, the +/- must be +:
 	 * 	
 	 *	=> x = (rt + sqrt(rt.rt + 4hr(nw - 1))) / 2
-	 *
-	 * ( + w - 1 to round up)
 	 */
-/*
-	x = (r * t + sqrt(r*r*t*t + 4*h*r * (n*w - 1))) / 2 + w - 1;
-	x = (x / w) * w;
-*/
 
-	t += space;
-	tc = t + 141 /* window decoration and mounded charm. when small then wide */;
-
-	cell_r = 1 + tc / sqrt(n * w * h / r);
-	cell_r *= r * h / w;
-	rows = sqrt(n * cell_r) / cell_r + 0.5;
-	rows = MAX(rows, 1);
-
-	cols = (n + rows - 1) / rows;
-
-	/* Check round up of cols */
-	if (cols > 1 && rows > n / cols )
-		if (ABS((cols / ceil((float) n / cols)) - cell_r)
-				>
-			ABS(((cols - 1) / ceil((float) n / (cols - 1))) - cell_r))
-		{
-			cols -= 1;
-		}
-
-	x = cols * w;
+	x = (r * t + sqrt(r*r*t*t + 4*h*r * (n*w - 1))) / 2 ;
+	x = ((x + w / 2) / w) * w;
 
 	/* Limit x */
 	if (x < min_x)
@@ -1594,7 +1572,7 @@ static void view_collection_autosize(ViewIface *view)
 				n % cols <= n / cols &&
 				/* Put window decoration away
 				 * because in this case, wide is good */
-				(t + h * (n / cols)) * (x + w - min_x)
+				(tn + h * (n / cols)) * (x + w - min_x)
 					< (min_x * h))
 				x += w;
 		}
