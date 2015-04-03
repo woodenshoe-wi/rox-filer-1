@@ -381,14 +381,15 @@ static void collection_map(GtkWidget *widget)
 static void style_set_cb(GtkWidget *widget,
 	GtkStyle *previous_style, gpointer user_data)
 {
+	int inf = 14;
 	GdkColor mix, base;
 	mix = widget->style->fg[GTK_STATE_NORMAL];
 	base = widget->style->base[GTK_STATE_NORMAL];
 
 	mix.pixel = 0;
-	mix.red   = base.red   + (mix.red   - base.red  ) / 9;
-	mix.green = base.green + (mix.green - base.green) / 9;
-	mix.blue  = base.blue  + (mix.blue  - base.blue ) / 9;
+	mix.red   = base.red   + (mix.red   - base.red  ) / inf;
+	mix.green = base.green + (mix.green - base.green) / inf;
+	mix.blue  = base.blue  + (mix.blue  - base.blue ) / inf;
 
 	if (gdk_colormap_alloc_color(
 				gtk_widget_get_colormap(widget),
