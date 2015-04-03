@@ -1549,6 +1549,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->auto_scroll = -1;
 	filer_window->window_id = NULL;
 	filer_window->icon_scale = 1.0;
+	filer_window->dir_color = NULL;
 	filer_window->under_init = TRUE;
 
 	tidy_sympath(filer_window->sym_path);
@@ -3447,6 +3448,9 @@ static gboolean check_settings(FilerWindow *filer_window)
 
 	set=(Settings *) g_hash_table_lookup(settings_table,
 					      filer_window->sym_path);
+
+	g_free(filer_window->dir_color);
+	filer_window->dir_color = xlabel_get(filer_window->real_path);
 
 	if (!set)
 		goto out;

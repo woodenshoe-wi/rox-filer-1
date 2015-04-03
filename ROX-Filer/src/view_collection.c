@@ -1156,8 +1156,18 @@ static void view_collection_clear(ViewIface *view)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	collection_clear(collection);
+
+	/* since fg is not used then use it */
+	if (view_collection->filer_window->dir_color)
+		gtk_widget_modify_fg(GTK_WIDGET(collection),
+				GTK_STATE_NORMAL,
+				view_collection->filer_window->dir_color);
+	else
+		gtk_widget_modify_fg(GTK_WIDGET(collection),
+				GTK_STATE_NORMAL,
+				&GTK_WIDGET(collection)->style->base[GTK_STATE_NORMAL]);
 }
 
 static void view_collection_select_all(ViewIface *view)
