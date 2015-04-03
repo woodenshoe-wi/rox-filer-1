@@ -121,6 +121,7 @@ struct _FilerWindow
 	/* dir settings */
 	gint		reqx;
 	gint		reqy;
+	/* used by set positon */
 	gint		req_width;
 	gint		req_height;
 	

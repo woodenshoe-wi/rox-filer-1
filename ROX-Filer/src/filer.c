@@ -259,6 +259,8 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 {
 	g_return_if_fail(filer_window != NULL);
 
+	Settings *set = (Settings *) g_hash_table_lookup(
+			settings_table, filer_window->sym_path);
 	GtkWidget *window = filer_window->window;
 	GtkRequisition *req = &window->requisition;
 
@@ -266,6 +268,12 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	{
 		w = filer_window->req_width;
 		h = filer_window->req_height;
+		filer_window->req_width = filer_window->req_height = -1;
+	}
+	else if (set->flags & SET_SIZE)
+	{
+		w = set->width;
+		h = set->height;
 	}
 	else
 	{
@@ -3512,9 +3520,6 @@ static gboolean check_settings(FilerWindow *filer_window)
 	
 	if (set->flags & SET_SIZE)
 	{
-		filer_window->req_width = set->width;
-		filer_window->req_height = set->height;
-
 		force_resize = TRUE;
 	}
 
