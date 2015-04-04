@@ -368,6 +368,9 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	else
 		gtk_window_resize(GTK_WINDOW(window), w, h);
 
+	filer_window->last_width = w;
+	filer_window->last_height = h;
+
 	if (GTK_WIDGET_VISIBLE(window))
 	{
 		/* If the resize was triggered by a key press, keep
@@ -507,8 +510,14 @@ static void update_display(Directory *dir,
 		!init &&
 		action == DIR_END_SCAN)
 	{
-		view_style_changed(filer_window->view, 0);
-		view_autosize(filer_window->view);
+		gint w,h;
+		gtk_window_get_size(GTK_WINDOW(filer_window->window), &w, &h);
+		if (w == filer_window->last_width &&
+			h == filer_window->last_height)
+		{
+			view_style_changed(filer_window->view, 0);
+			view_autosize(filer_window->view);
+		}
 	}
 }
 
@@ -1559,6 +1568,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->icon_scale = 1.0;
 	filer_window->dir_color = NULL;
 	filer_window->under_init = TRUE;
+	filer_window->last_width = -1;
+	filer_window->last_height = -1;
 
 	tidy_sympath(filer_window->sym_path);
 

@@ -129,6 +129,10 @@ struct _FilerWindow
 	GdkColor	*dir_color;
 	
 	gboolean	under_init;
+
+	/* for checking user resize */
+	gint	last_width;
+	gint	last_height;
 };
 
 extern FilerWindow 	*window_with_focus;
