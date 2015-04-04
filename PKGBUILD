@@ -1,11 +1,17 @@
 # Maintainer: jun7 <jun7@hush.com>
 
-pkgname=rox
-pkgver=2.11.j
-pkgrel=3
+# from Arch linux official repository
+## Maintainer: tobias <tobias@archlinux.org>
+## Contributor: Jochem Kossen <j.kossen@home.nl>
+
+pkgname=rox-git-hugeicons
+pkgver=2.11.h
+pkgrel=1
 branch=stable
 pkgdesc="A small and fast file manager which can optionally manage the desktop background and panels"
 arch=('i686' 'x86_64')
+conflicts=('rox')
+provides=('rox')
 license=('GPL')
 url="http://rox.sourceforge.net/desktop/"
 depends=('sh' 'libsm' 'gtk2')
@@ -13,6 +19,12 @@ makedepends=('librsvg' 'python2' 'libxslt' 'git')
 source=("git://github.com/jun7/rox-filer.git#branch=$branch")
 #md5sums=('0eebf05a67f7932367750ebf9faf215d'
 md5sums=('SKIP')
+
+pkgver(){
+  cd "$srcdir/rox-filer"
+  printf "2.11.h"
+#  printf "2.11.h.%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
 
 prepare() {
   cd "$srcdir/rox-filer"

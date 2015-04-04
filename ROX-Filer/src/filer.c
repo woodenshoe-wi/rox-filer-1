@@ -292,7 +292,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	if (o_auto_move.int_value || filer_window->reqx >= 0)
 	{
 		GdkWindow *gdk_window = window->window;
-		gint x, y, m, currentw, currenth, bcw, bch, lx, ly, px, py, dx, dy;
+		gint x, y, m, currentw, currenth, bcw, bch, lx, ly, px, py, dx, dy, mxend, myend;
 		GdkRectangle frect = {0, 0, 0, 0};
 
 		gdk_window_get_pointer(NULL, &x, &y, NULL);
@@ -305,11 +305,20 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 		if (bcw != currentw || bch != currenth)
 			gdk_window_get_frame_extents(gdk_window, &frect);
 
-		lx = monitor_geom[m].x + monitor_geom[m].width -
-				(frect.width - currentw + w + o_right_gap.int_value);
-		
-		ly = monitor_geom[m].y + monitor_geom[m].height -
-				(frect.height - currenth + h + o_bottom_gap.int_value);
+		mxend = monitor_geom[m].x + monitor_geom[m].width;
+		myend = monitor_geom[m].y + monitor_geom[m].height;
+
+		if (frect.x + frect.width > mxend ||
+			frect.y + frect.height > myend)
+		{
+			lx = mxend;
+			ly = myend;
+		}
+		else
+		{
+			lx = mxend - (frect.width - currentw + w + o_right_gap.int_value);
+			ly = myend - (frect.height - currenth + h + o_bottom_gap.int_value);
+		}
 
 /* There are todo, so these g_print are still there */
 //g_print("reqx:%i, reqy:%i\n", filer_window->reqx, filer_window->reqy);
@@ -318,7 +327,6 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 		{
 			if (GTK_WIDGET_VISIBLE(window))
 			{ /* If visible there are window decorations */
-				/* todo: In xfwm4 4.12, x is not point of decorations. */
 				gtk_window_get_position(GTK_WINDOW(window),&x, &y);
 				x = filer_window->reqx + x - frect.x;
 				y = filer_window->reqy + y - frect.y;
@@ -337,7 +345,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 			x = frect.x;
 			y = frect.y;
 		}
-		
+
 		x = MAX(MIN(x, lx), 0);
 		y = MAX(MIN(y, ly), 0);
 
@@ -367,6 +375,9 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	}
 	else
 		gtk_window_resize(GTK_WINDOW(window), w, h);
+
+	filer_window->last_width = w;
+	filer_window->last_height = h;
 
 	if (GTK_WIDGET_VISIBLE(window))
 	{
@@ -507,8 +518,14 @@ static void update_display(Directory *dir,
 		!init &&
 		action == DIR_END_SCAN)
 	{
-		view_style_changed(filer_window->view, 0);
-		view_autosize(filer_window->view);
+		gint w,h;
+		gtk_window_get_size(GTK_WINDOW(filer_window->window), &w, &h);
+		if (w == filer_window->last_width &&
+			h == filer_window->last_height)
+		{
+			view_style_changed(filer_window->view, 0);
+			view_autosize(filer_window->view);
+		}
 	}
 }
 
@@ -1559,6 +1576,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->icon_scale = 1.0;
 	filer_window->dir_color = NULL;
 	filer_window->under_init = TRUE;
+	filer_window->last_width = -1;
+	filer_window->last_height = -1;
 
 	tidy_sympath(filer_window->sym_path);
 
