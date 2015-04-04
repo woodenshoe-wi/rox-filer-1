@@ -308,15 +308,17 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 		mxend = monitor_geom[m].x + monitor_geom[m].width;
 		myend = monitor_geom[m].y + monitor_geom[m].height;
 
-		if (frect.x + frect.width > mxend)
+		if (frect.x + frect.width > mxend ||
+			frect.y + frect.height > myend)
+		{
 			lx = mxend;
-		else
-			lx = mxend - (frect.width - currentw + w + o_right_gap.int_value);
-
-		if (frect.y + frect.height > myend)
 			ly = myend;
+		}
 		else
+		{
+			lx = mxend - (frect.width - currentw + w + o_right_gap.int_value);
 			ly = myend - (frect.height - currenth + h + o_bottom_gap.int_value);
+		}
 
 /* There are todo, so these g_print are still there */
 //g_print("reqx:%i, reqy:%i\n", filer_window->reqx, filer_window->reqy);
