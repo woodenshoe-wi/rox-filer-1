@@ -527,8 +527,8 @@ static void collection_get_item_area(Collection *collection,
 					GdkRectangle *area)
 
 {
-	area->x = col * collection->item_width + 1;
-	area->y = row * collection->item_height + 1;
+	area->x = col * collection->item_width;
+	area->y = row * collection->item_height;
 
 	area->width = collection->item_width;
 	area->height = collection->item_height;

@@ -493,7 +493,7 @@ static void huge_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.width = view->name_width;
 	template->leafname.height = view->name_height;
 
-	text_x = area->x + ((col_width - template->leafname.width) >> 1);
+	text_x = area->x + ((col_width - template->leafname.width) >> 1) + 1;
 	text_y = area->y + area->height - template->leafname.height;
 
 	template->leafname.x = text_x;
@@ -530,7 +530,7 @@ static void large_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.width = view->name_width;
 	template->leafname.height = view->name_height;
 
-	text_x = area->x + ((col_width - template->leafname.width) >> 1);
+	text_x = area->x + ((col_width - template->leafname.width) >> 1) + 1;
 	text_y = area->y + ICON_HEIGHT + 2;
 
 	template->leafname.x = text_x;
@@ -1630,7 +1630,7 @@ static void view_collection_autosize(ViewIface *view)
 	rows = MAX((n + cols - 1) / cols, 1);
 
 	filer_window_set_size(filer_window,
-			w * MAX(cols, 1) + 2,
+			w * MAX(cols, 1),
 			MIN(max_y, h * rows + space));
 }
 
