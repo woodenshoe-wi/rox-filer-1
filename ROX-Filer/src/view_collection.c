@@ -292,9 +292,9 @@ static gboolean transparent_expose(GtkWidget *widget, GdkEventExpose *event)
 		cairo_line_to(cr, 1, rects[i].y + rects[i].height);
 	}
 	cairo_stroke(cr);
-	g_free (rects);
+	g_free(rects);
 
-	cairo_destroy (cr);
+	cairo_destroy(cr);
 	return FALSE;
 }
 static void view_collection_init(GTypeInstance *object, gpointer gclass)
