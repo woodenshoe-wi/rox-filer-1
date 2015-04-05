@@ -281,7 +281,7 @@ static gboolean transparent_expose(GtkWidget *widget, GdkEventExpose *event)
 	gdk_region_get_rectangles(event->region, &rects, &n_rects);
 	for (i = 0; i < n_rects; i++)
 	{
-		if (rects[i].x != 0)
+		if (rects[i].x > 4)
 			continue;
 
 		cairo_move_to(cr, 4, rects[i].y);
@@ -493,7 +493,7 @@ static void huge_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.width = view->name_width;
 	template->leafname.height = view->name_height;
 
-	text_x = area->x + ((col_width - template->leafname.width) >> 1);
+	text_x = area->x + ((col_width - template->leafname.width) >> 1) + 1;
 	text_y = area->y + area->height - template->leafname.height;
 
 	template->leafname.x = text_x;
@@ -530,7 +530,7 @@ static void large_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.width = view->name_width;
 	template->leafname.height = view->name_height;
 
-	text_x = area->x + ((col_width - template->leafname.width) >> 1);
+	text_x = area->x + ((col_width - template->leafname.width) >> 1) + 1;
 	text_y = area->y + ICON_HEIGHT + 2;
 
 	template->leafname.x = text_x;

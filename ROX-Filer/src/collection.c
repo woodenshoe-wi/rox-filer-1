@@ -798,7 +798,7 @@ static gint collection_scroll_event(GtkWidget *widget, GdkEventScroll *event)
 		int	old_value = collection->vadj->value;
 		int	new_value = 0;
 		gboolean box = collection->lasso_box;
-		int	step = collection->vadj->page_increment / 2;
+		int	step = collection->vadj->page_increment / 6;
 
 		new_value = CLAMP(old_value + diff * step, 0.0, 
 				collection->vadj->upper
