@@ -290,7 +290,8 @@ void draw_huge_icon(FilerWindow *filer_window,
 	image_x = area->x + ((area->width - width) >> 1);
 	image_y = MAX(0, area->height - height - 6);
 
-	draw_label_bg(window, area, item->label);
+	draw_label_bg(window, area,
+			selected && item->label ? color : item->label);
 
 	pixbuf = selected
 			? create_spotlight_pixbuf(image->huge_pixbuf, color)
@@ -364,7 +365,8 @@ void draw_large_icon(GdkWindow *window,
 	image_x = area->x + ((area->width - width) >> 1);
 	image_y = MAX(0, area->height - height - 6);
 
-	draw_label_bg(window, area, item->label);
+	draw_label_bg(window, area,
+			selected && item->label ? color : item->label);
 
 	pixbuf = selected
 			? create_spotlight_pixbuf(image->pixbuf, color)
@@ -420,7 +422,8 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 	image_x = area->x + ((area->width - width) >> 1);
 	image_y = MAX(0, font_height - image->sm_height);
 
-	draw_label_bg(window, area, item->label);
+	draw_label_bg(window, area,
+			selected && item->label ? color : item->label);
 
 	pixbuf = selected
 			? create_spotlight_pixbuf(image->sm_pixbuf, color)
