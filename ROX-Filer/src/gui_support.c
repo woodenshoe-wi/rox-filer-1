@@ -1661,7 +1661,7 @@ gint current_event_button(void)
  */
 GdkPixbuf *create_spotlight_pixbuf(GdkPixbuf *src, GdkColor *color)
 {
-	guchar opacity = 127;//192;
+	guchar opacity = 88;//127;//192;
 	guchar alpha = 255 - opacity;
 	GdkPixbuf *dst;
 	GdkColorspace colorspace;

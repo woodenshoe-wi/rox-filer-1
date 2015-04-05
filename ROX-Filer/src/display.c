@@ -113,10 +113,11 @@ void display_init()
 
 void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 				const char *stock_id,
-				int *x, int y)
+				int *x, int y,
+				GdkColor *color)
 {
 	GtkIconSet *icon_set;
-	GdkPixbuf  *pixbuf;
+	GdkPixbuf  *pixbuf, *ctemp;
 
 	icon_set = gtk_style_lookup_icon_set(style,
 					     stock_id);
@@ -135,7 +136,13 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 		pixbuf=im_unknown->pixbuf;
 		g_object_ref(pixbuf);
 	}
-	
+
+	if (color)
+	{
+		pixbuf = create_spotlight_pixbuf(ctemp = pixbuf, color);
+		g_object_unref(ctemp);
+	}
+
 	gdk_pixbuf_render_to_drawable_alpha(pixbuf,
 				window,
 				0, 0, 				/* src */
@@ -149,15 +156,19 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 }
 
 static void draw_mini_emblem_on_icon(GdkWindow *window,
-		GtkStyle *style, const char *stock_id, int *x, int y)
+		GtkStyle *style, const char *stock_id, int *x, int y, GdkColor *color)
 {
 	GtkIconSet *icon_set;
-	static GdkPixbuf  *pixbuf = NULL, *scaled = NULL;
+	static GdkPixbuf  *pixbuf, *ctemp, *scaled = NULL;
 	static char *bs_id = NULL;
 	static int w, h, tsize, dy, dx;
+	static gboolean colored = FALSE;
 
 	/* there are full of sym emblem */
-	if (!bs_id || strcmp(bs_id, stock_id) != 0){
+	if (!bs_id || strcmp(bs_id, stock_id) != 0 || colored)
+	{
+		colored = color != NULL;
+
 		g_free(bs_id);
 		bs_id = g_strdup(stock_id);
 		if (scaled)
@@ -179,6 +190,12 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 		{
 			pixbuf=im_unknown->pixbuf;
 			g_object_ref(pixbuf);
+		}
+
+		if (color)
+		{
+			pixbuf = create_spotlight_pixbuf(ctemp = pixbuf, color);
+			g_object_unref(ctemp);
 		}
 
 		dy = font_height * 1 / 5;
@@ -211,6 +228,40 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 	*x += dx * 2 / 3;
 }
 
+static void draw_label_bg(GdkWindow *window,
+			GdkRectangle *rect,
+			GdkColor *colour)
+{
+	cairo_t *cr;
+	GdkRectangle drect;
+	int b, h;
+
+	if (!colour) return;
+
+	cr = gdk_cairo_create(window);
+	gdk_cairo_set_source_color(cr, colour);
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+	drect.x      = rect->x;
+	drect.width  = rect->width;
+
+	b = rect->y + rect->height + 1;
+	h = 2;
+	drect.y      = b - h;
+	drect.height = h;
+	gdk_cairo_rectangle(cr, &drect);
+
+	b = b - h - 1;
+	h = 1;
+	drect.y      = b - h;
+	drect.height = h;
+	gdk_cairo_rectangle(cr, &drect);
+
+	cairo_fill(cr);
+
+	cairo_destroy(cr);
+}
+
 /* Draw this icon (including any symlink or mount symbol) inside the
  * given rectangle.
  */
@@ -222,7 +273,7 @@ void draw_huge_icon(FilerWindow *filer_window,
 	int		width, height;
 	int		image_x;
 	int		image_y;
-	GdkPixbuf	*pixbuf, *tmp, *scaled;
+	GdkPixbuf	*pixbuf, *scaled;
 	gfloat	scale;
 
 	if (!image)
@@ -239,18 +290,12 @@ void draw_huge_icon(FilerWindow *filer_window,
 	image_x = area->x + ((area->width - width) >> 1);
 	image_y = MAX(0, area->height - height - 6);
 
-	if(item->label != NULL) {
-		tmp = create_spotlight_pixbuf(image->huge_pixbuf, item->label);
-		if(selected) {
-			pixbuf = create_spotlight_pixbuf(tmp, color);
-			g_object_unref(tmp);
-		} else
-			pixbuf = tmp;
-	} else {
-		pixbuf = selected
-				? create_spotlight_pixbuf(image->huge_pixbuf, color)
-				: image->huge_pixbuf;
-	}
+	draw_label_bg(window, area,
+			selected && item->label ? color : item->label);
+
+	pixbuf = selected
+			? create_spotlight_pixbuf(image->huge_pixbuf, color)
+			: image->huge_pixbuf;
 
 	if (scale != 1.0)
 		scaled = gdk_pixbuf_scale_simple(pixbuf,
@@ -271,7 +316,7 @@ void draw_huge_icon(FilerWindow *filer_window,
 	if (scale != 1.0)
 		g_object_unref(scaled);
 
-	if (selected || item->label != NULL)
+	if (selected)
 		g_object_unref(pixbuf);
 
 	image_x += width / 19;
@@ -280,17 +325,18 @@ void draw_huge_icon(FilerWindow *filer_window,
 		const char *mp = item->flags & ITEM_FLAG_MOUNTED
 					? ROX_STOCK_MOUNTED
 					: ROX_STOCK_MOUNT;
-		draw_emblem_on_icon(window, style, mp, &image_x, area->y + height / 19);
+		draw_emblem_on_icon(window, style, mp,
+					&image_x, area->y + height / 19, NULL);
 	}
 	if (item->flags & ITEM_FLAG_SYMLINK)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
-				    &image_x, area->y + height / 19);
+					&image_x, area->y + height / 19, NULL);
 	}
 	if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_XATTR,
-				    &image_x, area->y + height / 19);
+					&image_x, area->y + height / 19, item->label);
 	}
 }
 
@@ -309,7 +355,7 @@ void draw_large_icon(GdkWindow *window,
 	int	height;
 	int	image_x;
 	int	image_y;
-	GdkPixbuf *pixbuf, *tmp;
+	GdkPixbuf *pixbuf;
 
 	if (!image)
 		return;
@@ -319,18 +365,12 @@ void draw_large_icon(GdkWindow *window,
 	image_x = area->x + ((area->width - width) >> 1);
 	image_y = MAX(0, area->height - height - 6);
 
-	if(item->label != NULL) {
-		tmp = create_spotlight_pixbuf(image->pixbuf, item->label);
-		if(selected) {
-			pixbuf = create_spotlight_pixbuf(tmp, color);
-			g_object_unref(tmp);
-		} else
-			pixbuf = tmp;
-	} else {
-		pixbuf = selected
-				? create_spotlight_pixbuf(image->pixbuf, color)
-				: image->pixbuf;
-	}
+	draw_label_bg(window, area,
+			selected && item->label ? color : item->label);
+
+	pixbuf = selected
+			? create_spotlight_pixbuf(image->pixbuf, color)
+			: image->pixbuf;
 
 	gdk_pixbuf_render_to_drawable_alpha(
 			pixbuf,
@@ -341,7 +381,7 @@ void draw_large_icon(GdkWindow *window,
 			GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
 			GDK_RGB_DITHER_NORMAL, 0, 0);
 
-	if (selected || item->label != NULL)
+	if (selected)
 		g_object_unref(pixbuf);
 
 	if (item->flags & ITEM_FLAG_MOUNT_POINT)
@@ -349,17 +389,18 @@ void draw_large_icon(GdkWindow *window,
 		const char *mp = item->flags & ITEM_FLAG_MOUNTED
 					? ROX_STOCK_MOUNTED
 					: ROX_STOCK_MOUNT;
-		draw_emblem_on_icon(window, style, mp, &image_x, area->y + 2);
+		draw_emblem_on_icon(window, style, mp,
+					&image_x, area->y + 2, NULL);
 	}
 	if (item->flags & ITEM_FLAG_SYMLINK)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
-				    &image_x, area->y + 2);
+					&image_x, area->y + 2, NULL);
 	}
 	if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 	{
 		draw_emblem_on_icon(window, style, ROX_STOCK_XATTR,
-				    &image_x, area->y + 2);
+					&image_x, area->y + 2, item->label);
 	}
 }
 
@@ -368,7 +409,7 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 		     GdkColor *color)
 {
 	int		width, height, image_x, image_y;
-	GdkPixbuf	*pixbuf, *tmp;
+	GdkPixbuf	*pixbuf;
 	
 	if (!image)
 		return;
@@ -381,18 +422,12 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 	image_x = area->x + ((area->width - width) >> 1);
 	image_y = MAX(0, font_height - image->sm_height);
 
-	if(item->label != NULL) {
-		tmp = create_spotlight_pixbuf(image->sm_pixbuf, item->label);
-		if(selected) {
-			pixbuf = create_spotlight_pixbuf(tmp, color);
-			g_object_unref(tmp);
-		} else
-			pixbuf = tmp;
-	} else {
-		pixbuf = selected
-				? create_spotlight_pixbuf(image->sm_pixbuf, color)
-				: image->sm_pixbuf;
-	}
+	draw_label_bg(window, area,
+			selected && item->label ? color : item->label);
+
+	pixbuf = selected
+			? create_spotlight_pixbuf(image->sm_pixbuf, color)
+			: image->sm_pixbuf;
 
 	gdk_pixbuf_render_to_drawable_alpha(
 			pixbuf,
@@ -403,7 +438,7 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 			GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
 			GDK_RGB_DITHER_NORMAL, 0, 0);
 
-	if (selected || item->label != NULL)
+	if (selected)
 		g_object_unref(pixbuf);
 
 	image_x -= (small_width - width) / 2;
@@ -413,17 +448,18 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 		const char *mp = item->flags & ITEM_FLAG_MOUNTED
 					? ROX_STOCK_MOUNTED
 					: ROX_STOCK_MOUNT;
-		draw_mini_emblem_on_icon(window, style, mp, &image_x, area->y);
+		draw_mini_emblem_on_icon(window, style, mp,
+					&image_x, area->y, NULL);
 	}
 	if (item->flags & ITEM_FLAG_SYMLINK)
 	{
 		draw_mini_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
-				    &image_x, area->y);
+					&image_x, area->y, NULL);
 	}
 	if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 	{
 		draw_mini_emblem_on_icon(window, style, ROX_STOCK_XATTR,
-				    &image_x, area->y);
+					&image_x, area->y, item->label);
 	}
 }
 

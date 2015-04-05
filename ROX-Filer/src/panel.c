@@ -1084,7 +1084,7 @@ static gint draw_icon(GtkWidget *widget, GdkRectangle *badarea, PanelIcon *pi)
 	if (icon->item->flags & ITEM_FLAG_SYMLINK)
 	{
 		draw_emblem_on_icon(widget->window, widget->style,
-				    ROX_STOCK_SYMLINK, &image_x, image_y+2);
+					ROX_STOCK_SYMLINK, &image_x, image_y+2, NULL);
 	}
 	if (icon->item->flags & ITEM_FLAG_MOUNT_POINT)
 	{
@@ -1092,7 +1092,12 @@ static gint draw_icon(GtkWidget *widget, GdkRectangle *badarea, PanelIcon *pi)
 				    icon->item->flags & ITEM_FLAG_MOUNTED
 				    ? ROX_STOCK_MOUNTED
 				    : ROX_STOCK_MOUNT,
-				    &image_x, image_y+2);
+				    &image_x, image_y+2, NULL);
+	}
+	if ((icon->item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
+	{
+		draw_emblem_on_icon(widget->window, widget->style,
+					ROX_STOCK_XATTR, &image_x, image_y + 2, icon->item->label);
 	}
 	return FALSE;
 }
