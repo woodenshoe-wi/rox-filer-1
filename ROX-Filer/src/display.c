@@ -245,7 +245,7 @@ static void draw_label_bg(GdkWindow *window,
 	drect.x      = rect->x;
 	drect.width  = rect->width;
 
-	b = rect->y + rect->height + 2;
+	b = rect->y + rect->height + 1;
 	h = 2;
 	drect.y      = b - h;
 	drect.height = h;
