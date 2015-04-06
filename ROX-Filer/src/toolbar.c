@@ -151,7 +151,7 @@ static Tool all_tools[] = {
 	 toolbar_hidden_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
-	{N_("Select"), ROX_STOCK_SELECT, N_("Select all/invert selection"),
+	{N_("Select"), GTK_STOCK_SELECT_ALL, N_("Select all/invert selection"),
 	 toolbar_select_clicked, DROP_NONE, FALSE,
 	 FALSE},
  	
