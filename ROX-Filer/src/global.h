@@ -180,7 +180,6 @@ enum
 /* Stock icons */
 #define ROX_STOCK_SHOW_DETAILS "rox-show-details"
 #define ROX_STOCK_SHOW_HIDDEN  "rox-show-hidden"
-#define ROX_STOCK_SELECT       "rox-select"
 #define ROX_STOCK_MOUNT        "rox-mount"
 #define ROX_STOCK_MOUNTED      "rox-mounted"
 #define ROX_STOCK_XATTR        "rox-xattr"

@@ -514,7 +514,7 @@ void add_globicon(const gchar *path, const gchar *icon)
 		examine(path);
 	else
 		/* only chenged an icon on sym path doesn't tell */
-		dir_force_update_path(dp);
+		dir_force_update_path(path);
 
 	g_free(dp);
 }
@@ -540,7 +540,7 @@ void delete_globicon(const gchar *path)
 		examine(path);
 	else
 		/* only chenged an icon on sym path doesn't tell */
-		dir_force_update_path(dp);
+		dir_force_update_path(path);
 
 	g_free(dp);
 }

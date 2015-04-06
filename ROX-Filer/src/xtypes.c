@@ -43,6 +43,7 @@
 #include "pixmaps.h"
 #include "support.h"
 #include "gui_support.h"
+#include "run.h"
 
 Option o_xattr_ignore;
 
@@ -597,7 +598,7 @@ static void dialog_response(GtkWidget *dialog, gint response, gpointer data)
 			GArray *arr = (GArray *)((gpointer *)data)[1];
 			GArray *arr_old = (GArray *)((gpointer *)data)[3];
 			GArray *changes;
-			gchar *path = (gchar *)((gpointer *)data)[4];
+			gchar *rp, *path = (gchar *)((gpointer *)data)[4];
 			GtkTreeView *tree = (GtkTreeView *)((gpointer *)data)[2];
 			gint i, mod;
 			/*g_print("OLD\n");*/
@@ -629,6 +630,15 @@ static void dialog_response(GtkWidget *dialog, gint response, gpointer data)
 						break;
 				}
 			}
+
+			rp = pathdup(path);
+			if (changes->len > 0 && strcmp(rp, path))
+				/* When a symlink file is changed,
+				 * in actuality, changed file is lenked file, not the symlink file.
+				 * So without this, no update runs. */
+				examine(path);
+
+			g_free(rp);
 			g_array_free(arr,TRUE);
 			g_array_free(arr_old,TRUE);
 			g_array_free(changes,TRUE);

@@ -255,10 +255,12 @@ static void view_collection_class_init(gpointer gclass, gpointer data)
 	GTK_OBJECT_CLASS(object)->destroy = view_collection_destroy;
 }
 
-static gboolean transparent_expose(GtkWidget *widget, GdkEventExpose *event)
+static gboolean transparent_expose(GtkWidget *widget,
+			GdkEventExpose *event,
+			ViewCollection *view)
 {
 	cairo_t *cr = gdk_cairo_create(widget->window);
-	GdkColor fg = widget->style->fg[GTK_STATE_NORMAL];
+	GdkColor *fg = view->filer_window->dir_color;
 	GdkRectangle *rects;
 	int i, n_rects;
 	static const float p = 65535.0;
@@ -267,13 +269,16 @@ static gboolean transparent_expose(GtkWidget *widget, GdkEventExpose *event)
 	gdk_cairo_region(cr, event->region);
 	cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
 
+	if (!fg)
+		goto end;
+
 	cairo_new_path(cr);
 	cairo_set_line_width(cr, 1.0);
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
 	cairo_set_source_rgba(cr,
-			fg.red / p,
-			fg.green / p,
-			fg.blue / p,
+			fg->red / p,
+			fg->green / p,
+			fg->blue / p,
 			(100 - o_view_alpha.int_value) / 100.0);
 	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 	cairo_set_tolerance(cr, 0.1);
@@ -294,6 +299,7 @@ static gboolean transparent_expose(GtkWidget *widget, GdkEventExpose *event)
 	cairo_stroke(cr);
 	g_free(rects);
 
+end:
 	cairo_destroy(cr);
 	return FALSE;
 }
@@ -314,7 +320,7 @@ static void view_collection_init(GTypeInstance *object, gpointer gclass)
 		{
 			gtk_widget_set_colormap(collection, rgba);
 			g_signal_connect(collection, "expose-event",
-						G_CALLBACK(transparent_expose), NULL);
+						G_CALLBACK(transparent_expose), object);
 		}
 	}
 
@@ -1189,16 +1195,6 @@ static void view_collection_clear(ViewIface *view)
 	Collection	*collection = view_collection->collection;
 
 	collection_clear(collection);
-
-	/* since fg is not used then use it */
-	if (view_collection->filer_window->dir_color)
-		gtk_widget_modify_fg(GTK_WIDGET(collection),
-				GTK_STATE_NORMAL,
-				view_collection->filer_window->dir_color);
-	else
-		gtk_widget_modify_fg(GTK_WIDGET(collection),
-				GTK_STATE_NORMAL,
-				&GTK_WIDGET(collection)->style->base[GTK_STATE_NORMAL]);
 }
 
 static void view_collection_select_all(ViewIface *view)

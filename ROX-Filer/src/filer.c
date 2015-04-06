@@ -475,6 +475,9 @@ static void update_display(Directory *dir,
 			toolbar_update_info(filer_window);
 			break;
 		case DIR_END_SCAN:
+			g_free(filer_window->dir_color);
+			filer_window->dir_color = xlabel_get(filer_window->sym_path);
+
 			if (filer_window->window->window)
 				gdk_window_set_cursor(
 						filer_window->window->window,
@@ -3475,9 +3478,6 @@ static gboolean check_settings(FilerWindow *filer_window)
 
 	set=(Settings *) g_hash_table_lookup(settings_table,
 					      filer_window->sym_path);
-
-	g_free(filer_window->dir_color);
-	filer_window->dir_color = xlabel_get(filer_window->real_path);
 
 	if (!set)
 		goto out;

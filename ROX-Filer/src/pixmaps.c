@@ -100,7 +100,6 @@ struct _ChildThumbnail {
 static const char *stocks[] = {
 	ROX_STOCK_SHOW_DETAILS,
 	ROX_STOCK_SHOW_HIDDEN,
-	ROX_STOCK_SELECT,
 	ROX_STOCK_MOUNT,
 	ROX_STOCK_MOUNTED,
 	ROX_STOCK_SYMLINK,
