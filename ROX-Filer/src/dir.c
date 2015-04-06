@@ -791,7 +791,11 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname)
 		 && item->uid == old.uid
 		 && item->gid == old.gid
 		 && item->mime_type == old.mime_type
-		 && (old._image == NULL || di_image(item) == old._image))
+		 && (old._image == NULL || di_image(item) == old._image)
+		 && (item->label == NULL || (
+				   item->label->red   == old.label->red
+				&& item->label->green == old.label->green
+				&& item->label->blue  == old.label->blue)))
 		{
 			if (old._image)
 				g_object_unref(old._image);
