@@ -1729,7 +1729,7 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 
 	motion_window = NULL;
 
-	if (filer_window->view)
+	if (!filer_window->under_init)
 	{
 		/* Save the current selection */
 		ViewIter iter;
@@ -1740,13 +1740,16 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 		while ((item = iter.next(&iter)))
 			g_hash_table_insert(selected, item->leafname, "yes");
 
-		/* Destroy the old view */
-		gtk_widget_destroy(GTK_WIDGET(filer_window->view));
-		filer_window->view = NULL;
-
 		dir = filer_window->directory;
 		g_object_ref(dir);
 		detach(filer_window);
+	}
+
+	if (filer_window->view)
+	{
+		/* Destroy the old view */
+		gtk_widget_destroy(GTK_WIDGET(filer_window->view));
+		filer_window->view = NULL;
 	}
 
 	switch (type)
@@ -3508,6 +3511,7 @@ static gboolean check_settings(FilerWindow *filer_window)
 	Settings *set;
 	gboolean force_resize = FALSE;
 	DisplayStyle dstyle = filer_window->display_style_wanted;
+	ViewType    vtype = filer_window->view_type;
 	DetailsType dtype = filer_window->details_type;
 
 	filer_window->reqx = filer_window->reqy = -1;
@@ -3528,7 +3532,9 @@ static gboolean check_settings(FilerWindow *filer_window)
 	if (set->flags & SET_DETAILS)
 	{
 		filer_window->details_type = set->details_type;
-		filer_window->view_type = set->view_type;
+
+		if (vtype != set->view_type)
+			filer_set_view_type(filer_window, set->view_type);
 	}
 
 	if (set->flags & SET_SORT)
@@ -3552,6 +3558,7 @@ static gboolean check_settings(FilerWindow *filer_window)
 
 	if (o_filer_auto_resize.int_value == RESIZE_STYLE &&
 		(filer_window->display_style_wanted != dstyle ||
+		 filer_window->view_type    != vtype ||
 		 filer_window->details_type != dtype))
 		force_resize = TRUE;
 	
