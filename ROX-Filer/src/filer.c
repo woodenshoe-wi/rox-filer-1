@@ -486,8 +486,6 @@ static void update_display(Directory *dir,
 				*fi = get_globicon(filer_window->sym_path);
 			if (!fi)
 				fi = get_globicon(filer_window->real_path);
-			if (fi)
-				g_object_ref(fi);
 			if (!fi)
 				fi = g_fscache_lookup_full(pixmap_cache,
 							make_path(filer_window->real_path, ".DirIcon"),
