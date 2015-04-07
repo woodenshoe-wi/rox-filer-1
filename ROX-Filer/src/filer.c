@@ -65,6 +65,7 @@
 #include "action.h"
 #include "bookmarks.h"
 #include "xtypes.h"
+#include "usericons.h"
 
 static XMLwrapper *groups = NULL;
 
@@ -478,6 +479,25 @@ static void update_display(Directory *dir,
 			g_free(filer_window->dir_color);
 			filer_window->dir_color = xlabel_get(filer_window->sym_path);
 
+			if (filer_window->dir_icon)
+				g_object_unref(filer_window->dir_icon);
+
+			MaskedPixmap
+				*fi = get_globicon(filer_window->sym_path);
+			if (!fi)
+				fi = get_globicon(filer_window->real_path);
+			if (fi)
+				g_object_ref(fi);
+			if (!fi)
+				fi = g_fscache_lookup_full(pixmap_cache,
+							make_path(filer_window->real_path, ".DirIcon"),
+							FSCACHE_LOOKUP_ONLY_NEW, NULL);
+
+			gtk_window_set_icon(GTK_WINDOW(filer_window->window),
+							fi ? fi->src_pixbuf : NULL);
+
+			filer_window->dir_icon = fi;
+
 			if (filer_window->window->window)
 				gdk_window_set_cursor(
 						filer_window->window->window,
@@ -508,6 +528,18 @@ static void update_display(Directory *dir,
 			break;
 		case DIR_UPDATE:
 			view_update_items(view, items);
+
+			if (!init && !filer_window->dir_icon)
+			{
+				filer_window->dir_icon = g_fscache_lookup_full(
+							pixmap_cache,
+							make_path(filer_window->real_path, ".DirIcon"),
+							FSCACHE_LOOKUP_ONLY_NEW, NULL);
+
+				if (filer_window->dir_icon)
+					gtk_window_set_icon(GTK_WINDOW(filer_window->window),
+								filer_window->dir_icon->src_pixbuf);
+			}
 			break;
 		case DIR_ERROR_CHANGED:
 			filer_set_title(filer_window);
@@ -811,6 +843,10 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 	if(filer_window->regexp)
 		g_free(filer_window->regexp);
 
+	if (filer_window->dir_icon)
+		g_object_unref(filer_window->dir_icon);
+
+	g_free(filer_window->dir_color);
 	g_free(filer_window->auto_select);
 	g_free(filer_window->real_path);
 	g_free(filer_window->sym_path);
@@ -1581,6 +1617,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->under_init = TRUE;
 	filer_window->last_width = -1;
 	filer_window->last_height = -1;
+	filer_window->dir_icon = NULL;
 
 	tidy_sympath(filer_window->sym_path);
 
