@@ -400,7 +400,7 @@ static void draw_item(GtkWidget *widget,
 					&widget->style->text[GTK_STATE_NORMAL]));
 
 	if (template.icon.width <= small_width &&
-			template.icon.height <= font_height)
+			template.icon.height <= small_height)
 	{
 		draw_small_icon(widget->window, widget->style, &template.icon,
 				item, view->image, selected, color);
@@ -569,7 +569,7 @@ static void small_template(GdkRectangle *area, CollectionItem *colitem,
 	template->icon.x = area->x + 2;
 	template->icon.y = area->y + 1;
 	template->icon.width = small_width;
-	template->icon.height = font_height;
+	template->icon.height = small_height;
 }
 
 static void huge_full_template(GdkRectangle *area, CollectionItem *colitem,
@@ -973,7 +973,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		{
 			w = MIN(view->name_width, o_small_width.int_value);
 			*width = small_width + 12 + w;
-			*height = MAX(view->name_height, font_height);
+			*height = MAX(view->name_height, small_height);
 		}
 		else
 		{
@@ -1000,7 +1000,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 			*width = small_width + view->name_width + 12 + w;
 			text_height = MAX(view->name_height,
 					  view->details_height);
-			*height = MAX(text_height, font_height);
+			*height = MAX(text_height, small_height);
 		}
 		else
 		{
@@ -1050,7 +1050,7 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 	int		i;
 	Collection	*col = view_collection->collection;
 	int		width = MIN_ITEM_WIDTH;
-	int		height = font_height;
+	int		height = small_height;
 	int		n = col->number_of_items;
 
 	if (n == 0 && filer_window->display_style != SMALL_ICONS)
@@ -1063,9 +1063,6 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 	if (filer_window->display_style != SMALL_ICONS && 
 	    o_vertical_order_large.int_value)
 	  view_collection->collection->vertical_order = TRUE;
-
-
-	
 
 	/* Recalculate all the ViewData structs for this window
 	 * (needed if the text or image has changed in any way) and
@@ -1548,7 +1545,7 @@ static void view_collection_autosize(ViewIface *view)
 	n = collection->number_of_items;
 	if (n == 0)
 		h = (filer_window->display_style != SMALL_ICONS ? ICON_HEIGHT : 0) +
-			font_height + 4;
+			small_height + 4;
 	n = MAX(n, 2);
 
 	max_x = (o_filer_size_limit.int_value * monitor_width) / 100;

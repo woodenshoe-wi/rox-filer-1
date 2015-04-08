@@ -85,7 +85,7 @@ MaskedPixmap *im_dirs;
 
 GtkIconSize mount_icon_size = -1;
 
-int font_height = 0;
+int small_height = 0;
 int small_width = 0;
 
 typedef struct _ChildThumbnail ChildThumbnail;
@@ -228,7 +228,7 @@ void pixmap_make_huge(MaskedPixmap *mp)
 	 * Also looked ugly.
 	 */
 	mp->huge_pixbuf = scale_pixbuf_up(mp->src_pixbuf,
-					  small_width, font_height);
+					  small_width, small_height);
 
 	if (!mp->huge_pixbuf)
 	{
@@ -248,7 +248,7 @@ void pixmap_make_small(MaskedPixmap *mp)
 	g_return_if_fail(mp->src_pixbuf != NULL);
 
 	mp->sm_pixbuf = scale_pixbuf(mp->src_pixbuf,
-					small_width, font_height);
+					small_width, small_height);
 
 	if (!mp->sm_pixbuf)
 	{

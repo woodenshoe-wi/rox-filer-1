@@ -76,9 +76,15 @@ indicator'>If this is on then files which have one or more extended attributes s
 	  <spacer/>
           <numentry name='display_small_width' label='(Small Icons):' unit='pixels' min='0' max='2000' width='4'>Maximum width for the text beside a Small Icon.</numentry>
         </hbox>
-		<numentry name='view_alpha' label='Alpha:' unit='%' min='0' max='100' width='3'>
+		<hbox>
+			<numentry name='view_alpha' label='Transparency:' unit='%' min='0' max='100' width='3'>
 			When the value is 0, the window will open without alpha support. So it needs re-open. Also this depends on your environment. Basically if your windows have shadows, then you'll get transparent view.
-		</numentry>
+			</numentry>
+		<spacer/>
+			<toggle name='fast_font_calc' label='Fast width calculating'>
+			If this option is on, in Small Icons mode, calculation of width of strings will be fast and irresponsible.
+			</toggle>
+		</hbox>
 	<spacer/>
 	<toggle name='vertical_order_small' label='Order small icons vertically'>If this option is on, then small icons are arranged in columns, not rows.</toggle>
 	<toggle name='vertical_order_large' label='Order large icons vertically'>If this option is on, then large icons are arranged in columns, not rows.</toggle>

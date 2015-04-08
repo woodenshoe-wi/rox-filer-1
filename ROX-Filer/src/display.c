@@ -198,9 +198,9 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 			g_object_unref(ctemp);
 		}
 
-		dy = font_height * 1 / 5;
-		tsize = font_height * 4 / 5;
-		dy += font_height - (dy + tsize);
+		dy = small_height * 1 / 5;
+		tsize = small_height * 4 / 5;
+		dy += small_height - (dy + tsize);
 		gtk_icon_size_lookup(mount_icon_size, &w, &h);
 		if (h < tsize)
 		{
@@ -418,9 +418,9 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 		pixmap_make_small(image);
 
 	width = MIN(image->sm_width, small_width);
-	height = MIN(image->sm_height, font_height);
+	height = MIN(image->sm_height, small_height);
 	image_x = area->x + ((area->width - width) >> 1);
-	image_y = MAX(0, font_height - image->sm_height);
+	image_y = MAX(0, small_height - image->sm_height);
 
 	draw_label_bg(window, area,
 			selected && item->label ? color : item->label);
@@ -928,6 +928,7 @@ void display_update_view(FilerWindow *filer_window,
 	char	*str;
 	static PangoFontDescription *monospace = NULL;
 	PangoAttrList *list = NULL;
+	gboolean basic = o_fast_font_calc.int_value;
 
 	if (!monospace)
 		monospace = pango_font_description_from_string("monospace");
@@ -970,6 +971,8 @@ void display_update_view(FilerWindow *filer_window,
 			pango_layout_set_attributes(view->details,
 							details_list);
 		}
+
+		basic = FALSE;
 	}
 
 	if (view->image)
@@ -1032,6 +1035,8 @@ void display_update_view(FilerWindow *filer_window,
 		if (!list)
 			list = pango_attr_list_new();
 		pango_attr_list_insert(list, attr);
+
+		basic = FALSE;
 	}
 
 	if (item->flags & ITEM_FLAG_RECENT)
@@ -1044,6 +1049,8 @@ void display_update_view(FilerWindow *filer_window,
 		if (!list)
 			list = pango_attr_list_new();
 		pango_attr_list_insert(list, attr);
+
+		basic = FALSE;
 	}
 
 	if (list)
@@ -1064,9 +1071,30 @@ void display_update_view(FilerWindow *filer_window,
 	pango_layout_set_wrap(view->layout, PANGO_WRAP_WORD_CHAR);
 #endif
 	if (wrap_width != -1)
+	{
 		pango_layout_set_width(view->layout, wrap_width);
+		basic = FALSE;
+	}
 
-	pango_layout_get_size(view->layout, &w, &h);
+	if (basic)
+	{
+		h = fw_font_height;
+		w = 0;
+		gchar *name = item->leafname;
+
+		for (; *name; name++)
+			if (*name >= 0x20 && *name <= 0x7e)
+				w += fw_font_widths[(gint) *name];
+			else
+			{
+				basic = FALSE;
+				break;
+			}
+	}
+
+	if (!basic)
+		pango_layout_get_size(view->layout, &w, &h);
+
 	view->name_width = w / PANGO_SCALE;
 	view->name_height = h / PANGO_SCALE;
 }

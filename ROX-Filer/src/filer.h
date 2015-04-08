@@ -132,6 +132,7 @@ struct _FilerWindow
 	gboolean	under_init;
 
 	/* for checking user resize */
+	gint	configured;
 	gint	last_width;
 	gint	last_height;
 };
@@ -142,6 +143,10 @@ extern GHashTable	*child_to_filer;
 extern Option		o_filer_auto_resize, o_unique_filer_windows;
 extern Option		o_filer_size_limit;
 extern Option		o_view_alpha;
+extern Option		o_fast_font_calc;
+extern gint 		fw_font_height;
+extern gint 		fw_font_widths[0x7f];
+
 
 /* Prototypes */
 void filer_init(void);
