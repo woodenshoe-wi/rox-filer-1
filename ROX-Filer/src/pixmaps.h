@@ -33,8 +33,8 @@ extern GtkIconSize mount_icon_size;
 #define SMALL_HEIGHT 18
 #define SMALL_WIDTH 22
 
-extern int font_height; /* window font size. used as small icon size */
-extern int small_width; /* SMALL_WIDTH * font_height / SMALL_WIDTH */
+extern int small_height; /* window font size */
+extern int small_width; /* SMALL_WIDTH * small_height / SMALL_WIDTH */
 
 typedef struct _MaskedPixmapClass MaskedPixmapClass;
 

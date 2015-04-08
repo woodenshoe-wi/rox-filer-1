@@ -84,6 +84,10 @@ FilerWindow 	*window_with_focus = NULL;
 
 GList		*all_filer_windows = NULL;
 
+gint fw_font_height;
+gint fw_font_widths[0x7f];
+static PangoFontDescription *current_font = NULL;
+
 static GHashTable *window_with_id = NULL;
 
 static FilerWindow *window_with_primary = NULL;
@@ -177,6 +181,7 @@ static Option o_filer_view_type;
 Option o_filer_auto_resize, o_unique_filer_windows;
 Option o_filer_size_limit;
 Option o_view_alpha;
+Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
@@ -201,6 +206,7 @@ void filer_init(void)
 	option_add_int(&o_right_gap, "right_gap", 32);
 	option_add_int(&o_bottom_gap, "bottom_gap", 32);
 	option_add_int(&o_auto_move, "auto_move", FALSE);
+	option_add_int(&o_fast_font_calc, "fast_font_calc", FALSE);
 
 	option_add_notify(filer_options_changed);
 
@@ -1806,16 +1812,50 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 	}
 }
 
-static int get_font_height(GtkWidget *widget)
+static gint set_font(GtkWidget *widget)
 {
+	static GMutex m_font;
+	static PangoFontDescription *tmp;
+
+	g_mutex_lock(&m_font);
+
 	PangoContext *context = gtk_widget_get_pango_context(widget);
-	PangoFontMetrics *metrics = pango_context_get_metrics (context, NULL, NULL);
-	int font_height = (pango_font_metrics_get_ascent(metrics) +
-			pango_font_metrics_get_descent(metrics)) / PANGO_SCALE;
+	tmp = pango_context_get_font_description(context);
 
-	pango_font_metrics_unref(metrics);
+	if (!current_font || !pango_font_description_equal(tmp, current_font))
+	{
+		pango_font_description_free(current_font);
+		current_font = pango_font_description_copy(tmp);
 
-	return font_height;
+		gint i;
+		gchar n[] = {' ', '\0'};
+		PangoLayout *layout =
+			gtk_widget_create_pango_layout(widget, n);
+
+		if (o_fast_font_calc.int_value)
+			i = 0x20;
+		else
+			i = 0x7e;
+
+		for (; i <= 0x7e; i++)
+		{
+			n[0] = (gchar) i;
+			pango_layout_set_text(layout, n, -1);
+
+			pango_layout_get_size(layout,
+					&fw_font_widths[i],
+					&fw_font_height);
+		}
+
+		g_object_unref(layout);
+	}
+	g_mutex_unlock(&m_font);
+
+	if (pango_font_description_get_size_is_absolute(tmp))
+		return fw_font_height / PANGO_SCALE;
+	else
+		/* if same font size then same icon size is good */
+		return pango_font_description_get_size(tmp) * 18 / 10 / PANGO_SCALE;
 }
 
 /* This adds all the widgets to a new filer window. It is in a separate
@@ -1834,10 +1874,10 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 		gtk_window_set_wmclass(GTK_WINDOW(filer_window->window),
 				       wm_class, PROJECT);
 
-	if (font_height == 0)
+	if (small_height == 0)
 	{
-		font_height = get_font_height(filer_window->window);
-		small_width = (SMALL_WIDTH * font_height) / SMALL_HEIGHT;
+		small_height = set_font(filer_window->window);
+		small_width = (SMALL_WIDTH * small_height) / SMALL_HEIGHT;
 	}
 
 	if (o_view_alpha.int_value > 0)
@@ -1957,6 +1997,9 @@ static void filer_add_signals(FilerWindow *filer_window)
 			G_CALLBACK(popup_menu), filer_window);
 	g_signal_connect(filer_window->window, "key_press_event",
 			G_CALLBACK(filer_key_press_event), filer_window);
+
+	g_signal_connect_swapped(filer_window->window, "style_set",
+			G_CALLBACK(set_font), filer_window->window);
 
 	gtk_window_add_accel_group(GTK_WINDOW(filer_window->window),
 				   filer_keys);
@@ -2473,6 +2516,15 @@ static void filer_options_changed(void)
 
 			filer_set_title(filer_window);
 		}
+	}
+
+	if (o_fast_font_calc.has_changed &&
+		o_fast_font_calc.int_value &&
+		all_filer_windows)
+	{
+		pango_font_description_free(current_font);
+		current_font = NULL;
+		set_font(((FilerWindow *) all_filer_windows->data)->window);
 	}
 }
 
