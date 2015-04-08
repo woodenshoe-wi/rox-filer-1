@@ -132,6 +132,7 @@ struct _FilerWindow
 	gboolean	under_init;
 
 	/* for checking user resize */
+	gint	configured;
 	gint	last_width;
 	gint	last_height;
 };

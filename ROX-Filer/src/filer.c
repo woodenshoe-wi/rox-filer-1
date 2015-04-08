@@ -383,6 +383,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	else
 		gtk_window_resize(GTK_WINDOW(window), w, h);
 
+	filer_window->configured = 0;
 	filer_window->last_width = w;
 	filer_window->last_height = h;
 
@@ -434,9 +435,9 @@ static gint open_filer_window(FilerWindow *filer_window)
 
 	if (!GTK_WIDGET_VISIBLE(filer_window->window))
 	{
+		filer_window->under_init = FALSE;
 		display_set_actual_size(filer_window, TRUE);
 		gtk_widget_show(filer_window->window);
-		filer_window->under_init = FALSE;
 	}
 
 	return FALSE;
@@ -494,8 +495,8 @@ static void update_display(Directory *dir,
 				fi = get_globicon(filer_window->real_path);
 			if (!fi)
 				fi = g_fscache_lookup_full(pixmap_cache,
-							make_path(filer_window->real_path, ".DirIcon"),
-							FSCACHE_LOOKUP_ONLY_NEW, NULL);
+						make_path(filer_window->real_path, ".DirIcon"),
+						FSCACHE_LOOKUP_ONLY_NEW, NULL);
 
 			gtk_window_set_icon(GTK_WINDOW(filer_window->window),
 							fi ? fi->src_pixbuf : NULL);
@@ -536,9 +537,9 @@ static void update_display(Directory *dir,
 			if (!init && !filer_window->dir_icon)
 			{
 				filer_window->dir_icon = g_fscache_lookup_full(
-							pixmap_cache,
-							make_path(filer_window->real_path, ".DirIcon"),
-							FSCACHE_LOOKUP_ONLY_NEW, NULL);
+						pixmap_cache,
+						make_path(filer_window->real_path, ".DirIcon"),
+						FSCACHE_LOOKUP_ONLY_NEW, NULL);
 
 				if (filer_window->dir_icon)
 					gtk_window_set_icon(GTK_WINDOW(filer_window->window),
@@ -559,8 +560,9 @@ static void update_display(Directory *dir,
 	{
 		gint w,h;
 		gtk_window_get_size(GTK_WINDOW(filer_window->window), &w, &h);
-		if (w == filer_window->last_width &&
-			h == filer_window->last_height)
+		if (!filer_window->configured ||
+			(w == filer_window->last_width &&
+			h == filer_window->last_height))
 		{
 			view_style_changed(filer_window->view, 0);
 			view_autosize(filer_window->view);
@@ -1519,12 +1521,11 @@ void filer_change_to(FilerWindow *filer_window,
 
 	attach(filer_window);
 
+	filer_window->under_init = FALSE;
 	display_set_actual_size(filer_window, force_resize);
 
 	if (filer_window->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, filer_window);
-
-	filer_window->under_init = FALSE;
 }
 
 /* Returns a list containing the full (sym) pathname of every selected item.
@@ -1619,6 +1620,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->icon_scale = 1.0;
 	filer_window->dir_color = NULL;
 	filer_window->under_init = TRUE;
+	filer_window->configured = 0;
 	filer_window->last_width = -1;
 	filer_window->last_height = -1;
 	filer_window->dir_icon = NULL;
@@ -1962,6 +1964,13 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 			    filer_window->sym_path);
 }
 
+static gboolean configure_cb(FilerWindow *filer_window)
+{
+	filer_window->configured = 1;
+
+	return FALSE;
+}
+
 static void filer_add_signals(FilerWindow *filer_window)
 {
 	GtkTargetEntry 	target_table[] =
@@ -2000,6 +2009,9 @@ static void filer_add_signals(FilerWindow *filer_window)
 
 	g_signal_connect_swapped(filer_window->window, "style_set",
 			G_CALLBACK(set_font), filer_window->window);
+
+	g_signal_connect_swapped(filer_window->window, "configure-event",
+			G_CALLBACK(configure_cb), filer_window);
 
 	gtk_window_add_accel_group(GTK_WINDOW(filer_window->window),
 				   filer_keys);
