@@ -416,13 +416,13 @@ static void draw_item(GtkWidget *widget,
 		draw_huge_icon(filer_window, widget->window, widget->style, &template.icon,
 				item, view->image, selected, color);
 	}
-	
+
 	draw_string(widget, view->layout,
 			&template.leafname,
 			view->name_width,
 			selection_state,
 			TRUE);
-	if (view->details)
+	if (view->details && item->base_type != TYPE_UNKNOWN)
 		draw_string(widget, view->details,
 				&template.details,
 				template.details.width,
