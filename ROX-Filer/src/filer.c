@@ -2413,7 +2413,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 	total = filer_window->max_thumbs;
 	done = total - g_list_length(filer_window->thumb_queue);
 
-	path = (gchar *) filer_window->thumb_queue->data;
+	path = (gchar *) g_list_last(filer_window->thumb_queue)->data;
 
 	pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
 
@@ -2453,15 +2453,11 @@ static void start_thumb_scanning(FilerWindow *filer_window)
 /* Set this image to be loaded some time in the future */
 void filer_create_thumb(FilerWindow *filer_window, const gchar *path)
 {
-	if (g_list_find_custom(filer_window->thumb_queue, path,
-			       (GCompareFunc) strcmp))
-		return;
-
 	if (!filer_window->thumb_queue)
 		filer_window->max_thumbs=0;
 	filer_window->max_thumbs++;
 
-	filer_window->thumb_queue = g_list_append(filer_window->thumb_queue,
+	filer_window->thumb_queue = g_list_prepend(filer_window->thumb_queue,
 						  g_strdup(path));
 
 	if (filer_window->scanning)
