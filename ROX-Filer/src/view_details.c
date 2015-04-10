@@ -1404,6 +1404,10 @@ static void view_details_clear(ViewIface *view)
 	while (gtk_tree_path_prev(path))
 		gtk_tree_model_row_deleted(model, path);
 
+	int i = items->len;
+	while (i--)
+		free_view_item(items->pdata[i]);
+
 	g_ptr_array_set_size(items, 0);
 	gtk_tree_path_free(path);
 }
