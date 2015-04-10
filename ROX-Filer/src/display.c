@@ -1006,6 +1006,7 @@ void display_update_view(FilerWindow *filer_window,
 	if (view->layout && update_name_layout)
 	{
 		g_object_unref(G_OBJECT(view->layout));
+
 		view->layout = NULL;
 	}
 
@@ -1049,12 +1050,14 @@ void display_update_view(FilerWindow *filer_window,
 		if (!list)
 			list = pango_attr_list_new();
 		pango_attr_list_insert(list, attr);
-
 		basic = FALSE;
 	}
 
 	if (list)
+	{
 		pango_layout_set_attributes(view->layout, list);
+		pango_attr_list_unref(list);
+	}
 
 	if (filer_window->details_type == DETAILS_NONE)
 	{
