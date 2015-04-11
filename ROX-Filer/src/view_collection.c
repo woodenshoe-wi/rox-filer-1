@@ -382,6 +382,7 @@ static void draw_item(GtkWidget *widget,
 	FilerWindow	*filer_window = view_collection->filer_window;
 	GtkStateType	selection_state;
 	GdkColor	*color;
+	PangoLayout *layout;
 
 	g_return_if_fail(view != NULL);
 
@@ -419,7 +420,9 @@ static void draw_item(GtkWidget *widget,
 				item, view->image, selected, color);
 	}
 
-	draw_string(widget, view->layout,
+	layout = make_layout(filer_window, item);
+
+	draw_string(widget, layout,
 			&template.leafname,
 			view->name_width,
 			selection_state,
@@ -430,6 +433,8 @@ static void draw_item(GtkWidget *widget,
 				template.details.width,
 				selection_state,
 				TRUE);
+
+	g_object_unref(G_OBJECT(layout));
 }
 
 /* A template contains the locations of the three rectangles (for the icon,
@@ -895,11 +900,6 @@ static void display_free_colitem(Collection *collection,
 	if (!view)
 		return;
 
-	if (view->layout)
-	{
-		g_object_unref(G_OBJECT(view->layout));
-		view->layout = NULL;
-	}
 	if (view->details)
 		g_object_unref(G_OBJECT(view->details));
 

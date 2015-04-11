@@ -16,7 +16,6 @@ typedef struct _ViewData ViewData;
 
 struct _ViewData
 {
-	PangoLayout *layout;
 	PangoLayout *details;
 
 	int	name_width;
@@ -72,6 +71,7 @@ void display_update_view(FilerWindow *filer_window,
 			 DirItem *item,
 			 ViewData *view,
 			 gboolean update_name_layout);
+PangoLayout *make_layout(FilerWindow *fw, DirItem *item);
 void display_update_views(FilerWindow *filer_window);
 void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 		     DirItem  *item, MaskedPixmap *image, gboolean selected,
