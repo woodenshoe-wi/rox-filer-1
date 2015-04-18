@@ -227,6 +227,8 @@ GType view_collection_get_type(void)
 static void view_collection_destroy(GtkObject *view_collection)
 {
 	VIEW_COLLECTION(view_collection)->filer_window = NULL;
+
+	(*GTK_OBJECT_CLASS(parent_class)->destroy)(view_collection);
 }
 
 static void view_collection_finialize(GObject *object)
@@ -312,17 +314,8 @@ static void view_collection_init(GTypeInstance *object, gpointer gclass)
 
 	collection = collection_new();
 
-	if (o_view_alpha.int_value > 0)
-	{
-		GdkScreen *screen = gtk_widget_get_screen(collection);
-		GdkColormap *rgba = gdk_screen_get_rgba_colormap(screen);
-		if (rgba)
-		{
-			gtk_widget_set_colormap(collection, rgba);
-			g_signal_connect(collection, "expose-event",
-						G_CALLBACK(transparent_expose), object);
-		}
-	}
+	g_signal_connect(collection, "expose-event",
+				G_CALLBACK(transparent_expose), object);
 
 	view_collection->collection = COLLECTION(collection);
 
@@ -380,6 +373,7 @@ static void draw_item(GtkWidget *widget,
 	FilerWindow	*filer_window = view_collection->filer_window;
 	GtkStateType	selection_state;
 	GdkColor	*color;
+	PangoLayout *layout;
 
 	g_return_if_fail(view != NULL);
 
@@ -417,7 +411,9 @@ static void draw_item(GtkWidget *widget,
 				item, view->image, selected, color);
 	}
 
-	draw_string(widget, view->layout,
+	layout = make_layout(filer_window, item);
+
+	draw_string(widget, layout,
 			&template.leafname,
 			view->name_width,
 			selection_state,
@@ -428,6 +424,8 @@ static void draw_item(GtkWidget *widget,
 				template.details.width,
 				selection_state,
 				TRUE);
+
+	g_object_unref(G_OBJECT(layout));
 }
 
 /* A template contains the locations of the three rectangles (for the icon,
@@ -893,11 +891,6 @@ static void display_free_colitem(Collection *collection,
 	if (!view)
 		return;
 
-	if (view->layout)
-	{
-		g_object_unref(G_OBJECT(view->layout));
-		view->layout = NULL;
-	}
 	if (view->details)
 		g_object_unref(G_OBJECT(view->details));
 

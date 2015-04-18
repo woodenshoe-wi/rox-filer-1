@@ -1135,8 +1135,11 @@ static void dir_rescan(Directory *dir)
 	}
 	in_callback--;
 
+	for (i = names->len; i--;)
+		g_free(names->pdata[i]);
+
 	g_ptr_array_free(names, TRUE);
-		
+
 	set_idle_callback(dir);
 	dir_merge_new(dir);
 }

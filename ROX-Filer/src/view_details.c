@@ -911,11 +911,17 @@ static void view_details_destroy(GtkObject *obj)
 
 	view_details->filer_window = NULL;
 	cancel_wink(view_details);
+
+	(*GTK_OBJECT_CLASS(parent_class)->destroy)(obj);
 }
 
 static void view_details_finialize(GObject *object)
 {
 	ViewDetails *view_details = (ViewDetails *) object;
+
+	int i = view_details->items->len;
+	while (i--)
+		free_view_item(view_details->items->pdata[i]);
 
 	g_ptr_array_free(view_details->items, TRUE);
 	view_details->items = NULL;
@@ -1397,6 +1403,10 @@ static void view_details_clear(ViewIface *view)
 
 	while (gtk_tree_path_prev(path))
 		gtk_tree_model_row_deleted(model, path);
+
+	int i = items->len;
+	while (i--)
+		free_view_item(items->pdata[i]);
 
 	g_ptr_array_set_size(items, 0);
 	gtk_tree_path_free(path);

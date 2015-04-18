@@ -776,7 +776,6 @@ ViewData *display_create_viewdata(FilerWindow *filer_window, DirItem *item)
 
 	view = g_new(ViewData, 1);
 
-	view->layout = NULL;
 	view->details = NULL;
 	view->image = NULL;
 
@@ -913,6 +912,75 @@ static void display_style_set(FilerWindow *filer_window, DisplayStyle style)
 	display_set_actual_size_real(filer_window);
 }
 
+PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
+{
+	DisplayStyle style = fw->display_style;
+	int	wrap_width = -1;
+	PangoLayout *ret;
+	PangoAttrList *list = NULL;
+
+	if (g_utf8_validate(item->leafname, -1, NULL))
+	{
+		ret = gtk_widget_create_pango_layout(
+				fw->window, item->leafname);
+		pango_layout_set_auto_dir(ret, FALSE);
+	}
+	else
+	{
+		PangoAttribute	*attr;
+		gchar *utf8;
+
+		utf8 = to_utf8(item->leafname);
+		ret = gtk_widget_create_pango_layout(
+				fw->window, utf8);
+		g_free(utf8);
+
+		attr = pango_attr_foreground_new(0xffff, 0, 0);
+		attr->start_index = 0;
+		attr->end_index = -1;
+
+		list = pango_attr_list_new();
+		pango_attr_list_insert(list, attr);
+
+	}
+
+	if (item->flags & ITEM_FLAG_RECENT)
+	{
+		PangoAttribute	*attr;
+
+		attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
+		attr->start_index = 0;
+		attr->end_index = -1;
+		if (!list)
+			list = pango_attr_list_new();
+		pango_attr_list_insert(list, attr);
+	}
+
+	if (list)
+	{
+		pango_layout_set_attributes(ret, list);
+		pango_attr_list_unref(list);
+	}
+
+	if (fw->details_type == DETAILS_NONE)
+	{
+		if (style == HUGE_ICONS)
+			wrap_width = HUGE_WRAP * PANGO_SCALE;
+			/* Since this function is heavy, this is skepped.
+			wrap_width = HUGE_WRAP * filer_window->icon_scale * PANGO_SCALE;
+			*/
+		else if (style == LARGE_ICONS)
+			wrap_width = o_large_width.int_value * PANGO_SCALE;
+	}
+
+#ifdef USE_PANGO_WRAP_WORD_CHAR
+	pango_layout_set_wrap(ret, PANGO_WRAP_WORD_CHAR);
+#endif
+	if (wrap_width != -1)
+		pango_layout_set_width(ret, wrap_width);
+
+	return ret;
+}
 /* Each displayed item has a ViewData structure with some cached information
  * to help quickly draw the item (eg, the PangoLayout). This function updates
  * this information.
@@ -922,12 +990,9 @@ void display_update_view(FilerWindow *filer_window,
 			 ViewData *view,
 			 gboolean update_name_layout)
 {
-	DisplayStyle	style = filer_window->display_style;
 	int	w, h;
-	int	wrap_width = -1;
 	char	*str;
 	static PangoFontDescription *monospace = NULL;
-	PangoAttrList *list = NULL;
 	gboolean basic = o_fast_font_calc.int_value;
 
 	if (!monospace)
@@ -970,9 +1035,9 @@ void display_update_view(FilerWindow *filer_window,
 			pango_attr_list_insert(details_list, attr);
 			pango_layout_set_attributes(view->details,
 							details_list);
-		}
 
-		basic = FALSE;
+			pango_attr_list_unref(details_list);
+		}
 	}
 
 	if (view->image)
@@ -1003,78 +1068,9 @@ void display_update_view(FilerWindow *filer_window,
 			g_object_ref(view->image);
 	}
 
-	if (view->layout && update_name_layout)
-	{
-		g_object_unref(G_OBJECT(view->layout));
-		view->layout = NULL;
-	}
-
-	if (view->layout)
-	{
-		/* Do nothing */
-	}
-	else if (g_utf8_validate(item->leafname, -1, NULL))
-	{
-		view->layout = gtk_widget_create_pango_layout(
-				filer_window->window, item->leafname);
-		pango_layout_set_auto_dir(view->layout, FALSE);
-	}
-	else
-	{
-		PangoAttribute	*attr;
-		gchar *utf8;
-
-		utf8 = to_utf8(item->leafname);
-		view->layout = gtk_widget_create_pango_layout(
-				filer_window->window, utf8);
-		g_free(utf8);
-
-		attr = pango_attr_foreground_new(0xffff, 0, 0);
-		attr->start_index = 0;
-		attr->end_index = -1;
-		if (!list)
-			list = pango_attr_list_new();
-		pango_attr_list_insert(list, attr);
-
-		basic = FALSE;
-	}
-
-	if (item->flags & ITEM_FLAG_RECENT)
-	{
-		PangoAttribute	*attr;
-
-		attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
-		attr->start_index = 0;
-		attr->end_index = -1;
-		if (!list)
-			list = pango_attr_list_new();
-		pango_attr_list_insert(list, attr);
-
-		basic = FALSE;
-	}
-
-	if (list)
-		pango_layout_set_attributes(view->layout, list);
-
-	if (filer_window->details_type == DETAILS_NONE)
-	{
-		if (style == HUGE_ICONS)
-			wrap_width = HUGE_WRAP * PANGO_SCALE;
-			/* Since this function is heavy, this is skepped.
-			wrap_width = HUGE_WRAP * filer_window->icon_scale * PANGO_SCALE;
-			*/
-		else if (style == LARGE_ICONS)
-			wrap_width = o_large_width.int_value * PANGO_SCALE;
-	}
-
-#ifdef USE_PANGO_WRAP_WORD_CHAR
-	pango_layout_set_wrap(view->layout, PANGO_WRAP_WORD_CHAR);
-#endif
-	if (wrap_width != -1)
-	{
-		pango_layout_set_width(view->layout, wrap_width);
-		basic = FALSE;
-	}
+	basic &= !(item->flags & ITEM_FLAG_RECENT);
+	basic &= (filer_window->display_style == SMALL_ICONS ||
+				filer_window->details_type != DETAILS_NONE);
 
 	if (basic)
 	{
@@ -1093,7 +1089,13 @@ void display_update_view(FilerWindow *filer_window,
 	}
 
 	if (!basic)
-		pango_layout_get_size(view->layout, &w, &h);
+	{
+		PangoLayout *layout = make_layout(filer_window, item);
+
+		pango_layout_get_size(layout, &w, &h);
+
+		g_object_unref(G_OBJECT(layout));
+	}
 
 	view->name_width = w / PANGO_SCALE;
 	view->name_height = h / PANGO_SCALE;

@@ -917,55 +917,6 @@ static void filer_lost_primary(GtkWidget *window,
 	}
 }
 
-/* Someone wants us to send them the selection */
-static void selection_get(GtkWidget *widget, 
-		       GtkSelectionData *selection_data,
-		       guint      info,
-		       guint      time,
-		       gpointer   data)
-{
-	GString	*reply, *header;
-	FilerWindow 	*filer_window = (FilerWindow *) data;
-	ViewIter	iter;
-	DirItem		*item;
-
-	reply = g_string_new(NULL);
-	header = g_string_new(NULL);
-
-	switch (info)
-	{
-		case TARGET_STRING:
-			g_string_printf(header, " %s",
-				make_path(filer_window->sym_path, ""));
-			break;
-		case TARGET_URI_LIST:
-			g_string_printf(header, " file://%s%s",
-				our_host_name_for_dnd(),
-				make_path(filer_window->sym_path, ""));
-			break;
-	}
-
-	view_get_iter(filer_window->view, &iter, VIEW_ITER_SELECTED);
-
-	while ((item = iter.next(&iter)))
-	{
-		g_string_append(reply, header->str);
-		g_string_append(reply, item->leafname);
-	}
-	
-	if (reply->len > 0)
-		gtk_selection_data_set_text(selection_data,
-				reply->str + 1, reply->len - 1);
-	else
-	{
-		g_warning("Attempt to paste empty selection!");
-		gtk_selection_data_set_text(selection_data, "", 0);
-	}
-
-	g_string_free(reply, TRUE);
-	g_string_free(header, TRUE);
-}
-
 /* Selection has been changed -- try to grab the primary selection
  * if we don't have it. Also called when clicking on an insensitive selection
  * to regain primary.
@@ -1995,8 +1946,6 @@ static void filer_add_signals(FilerWindow *filer_window)
 	g_signal_connect(filer_window->window, "selection_clear_event",
 			G_CALLBACK(filer_lost_primary), filer_window);
 
-	g_signal_connect(filer_window->window, "selection_get",
-			G_CALLBACK(selection_get), filer_window);
 	gtk_selection_add_targets(GTK_WIDGET(filer_window->window),
 			GDK_SELECTION_PRIMARY,
 			target_table,
