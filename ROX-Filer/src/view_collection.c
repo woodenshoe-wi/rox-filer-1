@@ -314,14 +314,8 @@ static void view_collection_init(GTypeInstance *object, gpointer gclass)
 
 	collection = collection_new();
 
-	GdkScreen *screen = gtk_widget_get_screen(collection);
-	GdkColormap *rgba = gdk_screen_get_rgba_colormap(screen);
-	if (rgba)
-	{
-		gtk_widget_set_colormap(collection, rgba);
-		g_signal_connect(collection, "expose-event",
-					G_CALLBACK(transparent_expose), object);
-	}
+	g_signal_connect(collection, "expose-event",
+				G_CALLBACK(transparent_expose), object);
 
 	view_collection->collection = COLLECTION(collection);
 
