@@ -335,8 +335,8 @@ static void show_help(FilerWindow *filer_window)
 		case MINI_TEMP_FILTER:
 			info_message(
 				_("Enter a pattern to match for files to "
-				"be shown.  An empty filter turns the "
-				  "filter off."));
+				"be shown and press Enter Key.\n"
+				"It is active until the minibuffer is closed."));
 			break;
 		default:
 			g_warning("Unknown minibuffer type!");
