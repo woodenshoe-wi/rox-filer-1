@@ -134,8 +134,9 @@ void minibuffer_show(FilerWindow *filer_window, MiniType mini_type, guint keyval
 			mini_type == MINI_SHELL ? _("Shell:") :
 			mini_type == MINI_SELECT_IF ? _("Select If:") :
 			mini_type == MINI_SELECT_BY_NAME ? _("Select Named:") :
-			mini_type == MINI_EASY_SELECT ? _("Easy Select:") :
+			mini_type == MINI_EASY_SELECT ? _("Easy Select (reg-i):") :
 			mini_type == MINI_FILTER ? _("Pattern:") :
+			mini_type == MINI_TEMP_FILTER ? _("Temp Filter (reg-i):") :
 			"?");
 
 	switch (mini_type)
@@ -173,7 +174,7 @@ void minibuffer_show(FilerWindow *filer_window, MiniType mini_type, guint keyval
 
 			filer_window->mini_cursor_base = -1;	/* History */
 
-			gchar it[2] = {keyval? : '^', '\0'};
+			gchar it[] = {keyval? : '^', '\0'};
 			gtk_entry_set_text(mini, it);
 			view_select_if_reg(filer_window->view, it);
 			ViewIter iter;
@@ -190,6 +191,12 @@ void minibuffer_show(FilerWindow *filer_window, MiniType mini_type, guint keyval
 			else
 				gtk_entry_set_text(mini,
 						  filer_window->filter_string);
+			break;
+		case MINI_TEMP_FILTER:
+			{
+				gchar it[] = {keyval? : '\0', '\0'};
+				gtk_entry_set_text(mini, it);
+			}
 			break;
 		case MINI_SHELL:
 		{
@@ -320,6 +327,12 @@ static void show_help(FilerWindow *filer_window)
 			show_condition_help(NULL);
 			break;
 		case MINI_FILTER:
+			info_message(
+				_("Enter a pattern to match for files to "
+				"be shown.  An empty filter turns the "
+				  "filter off."));
+			break;
+		case MINI_TEMP_FILTER:
 			info_message(
 				_("Enter a pattern to match for files to "
 				"be shown.  An empty filter turns the "
@@ -980,6 +993,25 @@ static void filter_return_pressed(FilerWindow *filer_window, guint etime)
 	minibuffer_hide(filer_window);
 }
 
+static void temp_filter_return_pressed(FilerWindow *filer_window, guint etime)
+{
+	const gchar	*pattern = mini_contents(filer_window);
+	regex_t **exp = (regex_t **) &filer_window->regexp;
+
+	if (*exp)
+		regfree(*exp);
+	else
+		*exp = g_new(regex_t, 1);
+
+	if (!pattern || strlen(pattern) == 0 || strcmp(pattern, "^") == 0 ||
+		regcomp(*exp, pattern, REG_EXTENDED | REG_ICASE | REG_NOSUB) != 0)
+	{
+		g_free(*exp);
+		*exp = NULL;
+	}
+
+	display_update_hidden(filer_window);
+}
 
 /*			EVENT HANDLERS			*/
 
@@ -987,6 +1019,8 @@ static gint key_press_event(GtkWidget	*widget,
 			GdkEventKey	*event,
 			FilerWindow	*filer_window)
 {
+	ViewIter cursor;
+
 	if (event->keyval == GDK_Escape)
 	{
 		if (filer_window->mini_type == MINI_SHELL)
@@ -996,6 +1030,19 @@ static gint key_press_event(GtkWidget	*widget,
 			line = mini_contents(filer_window);
 			if (line)
 				add_to_history(line);
+		}
+
+		if (filer_window->mini_type == MINI_TEMP_FILTER)
+		{
+			regex_t **exp = (regex_t **) &filer_window->regexp;
+
+			if (*exp)
+			{
+				regfree(*exp);
+				g_free(*exp);
+				*exp = NULL;
+				display_update_hidden(filer_window);
+			}
 		}
 
 		minibuffer_hide(filer_window);
@@ -1126,6 +1173,47 @@ static gint key_press_event(GtkWidget	*widget,
 					return FALSE;
 			}
 			break;
+		case MINI_TEMP_FILTER:
+			switch (event->keyval)
+			{
+			case GDK_Tab:
+				gtk_widget_grab_focus(GTK_WIDGET(filer_window->view));
+				break;
+			case GDK_Up:
+			case GDK_Down:
+			{
+				gint back = event->keyval == GDK_Up ? VIEW_ITER_BACKWARDS : 0;
+				view_get_iter(filer_window->view, &cursor,
+						back | VIEW_ITER_FROM_CURSOR);
+
+				if (!cursor.next(&cursor))
+					view_get_iter(filer_window->view, &cursor, back);
+
+				if (cursor.next(&cursor))
+					view_cursor_to_iter(filer_window->view, &cursor);
+				break;
+			}
+			case GDK_Page_Up:
+			case GDK_Page_Down:
+				if (filer_window->view_type == VIEW_TYPE_COLLECTION)
+					gtk_widget_event(GTK_WIDGET(
+						VIEW_COLLECTION(filer_window->view)->collection),
+						(GdkEvent *) event);
+				else {
+					gtk_widget_event(GTK_WIDGET(filer_window->view),
+						(GdkEvent *) event);
+					gtk_widget_grab_focus(filer_window->minibuffer);
+				}
+				return TRUE;
+			case GDK_Return:
+			case GDK_KP_Enter:
+				temp_filter_return_pressed(filer_window,
+							event->time);
+				break;
+			default:
+				return FALSE;
+			}
+			break;
 		default:
 			break;
 	}
@@ -1148,10 +1236,10 @@ static void view_select_if_reg(ViewIface *obj, const gchar *pattern)
 	regex_t exp;
 
 	if (strlen(pattern) == 0 || strcmp(pattern, "^") == 0 ||
-		regcomp(&exp, pattern, REG_EXTENDED | REG_ICASE) != 0)
+		regcomp(&exp, pattern, REG_EXTENDED | REG_ICASE | REG_NOSUB) != 0)
 
 		view_clear_selection(obj);
-	else	
+	else
 	{
 		view_select_if(obj, select_if_reg_cb, (gpointer) &exp);
 		regfree(&exp);
