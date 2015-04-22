@@ -29,6 +29,7 @@
 #include <netdb.h>
 #include <sys/param.h>
 #include <fnmatch.h>
+#include <regex.h>
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -847,7 +848,11 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 	if(filer_window->filter_string)
 		g_free(filer_window->filter_string);
 	if(filer_window->regexp)
+	{
+		regfree((regex_t *) filer_window->regexp);
 		g_free(filer_window->regexp);
+		g_free(filer_window->temp_filter_string);
+	}
 
 	if (filer_window->dir_icon)
 		g_object_unref(filer_window->dir_icon);
@@ -1289,6 +1294,13 @@ gint filer_key_press_event(GtkWidget	*widget,
 	if (!focus)
 		gtk_widget_grab_focus(GTK_WIDGET(view));
 
+	if (filer_window->mini_type &&
+		(key == GDK_Tab || key == GDK_ISO_Left_Tab))
+	{
+		gtk_widget_grab_focus(filer_window->minibuffer);
+		return TRUE;
+	}
+
 	switch (key)
 	{
 		case GDK_Escape:
@@ -1332,6 +1344,12 @@ gint filer_key_press_event(GtkWidget	*widget,
 						key >= GDK_a && key <= GDK_z)
 			{
 				minibuffer_show(filer_window, MINI_EASY_SELECT, key);
+				return TRUE;
+			}
+			else if ((event->state & modifiers) == GDK_SHIFT_MASK &&
+						key >= GDK_A && key <= GDK_Z)
+			{
+				minibuffer_show(filer_window, MINI_TEMP_FILTER, key);
 				return TRUE;
 			}
 			else
@@ -1454,6 +1472,16 @@ void filer_change_to(FilerWindow *filer_window,
 	filer_window->real_path = real_path;
 	filer_window->sym_path = sym_path;
 	tidy_sympath(filer_window->sym_path);
+	if (filer_window->regexp)
+	{
+		regfree((regex_t *) filer_window->regexp);
+		g_free(filer_window->regexp);
+		filer_window->regexp = NULL;
+		g_free(filer_window->temp_filter_string);
+		filer_window->temp_filter_string = NULL;
+	}
+	if (filer_window->mini_type == MINI_TEMP_FILTER)
+		minibuffer_hide(filer_window);
 
 	filer_window->directory = new_dir;
 
@@ -1600,6 +1628,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	filer_window->filter = FILER_SHOW_ALL;
 	filer_window->filter_string = NULL;
+	filer_window->temp_filter_string = NULL;
 	filer_window->regexp = NULL;
 	filer_window->filter_directories = FALSE;
 	
@@ -3125,22 +3154,29 @@ gboolean filer_match_filter(FilerWindow *filer_window, DirItem *item)
 {
 	g_return_val_if_fail(item != NULL, FALSE);
 
+	gboolean ret = TRUE;
+
 	if(is_hidden(filer_window->real_path, item) &&
 	   (!filer_window->temp_show_hidden && !filer_window->show_hidden))
 		return FALSE;
 
 	switch(filer_window->filter) {
 	case FILER_SHOW_GLOB:
-		return fnmatch(filer_window->filter_string,
+		ret = fnmatch(filer_window->filter_string,
 			       item->leafname, 0)==0 ||
 		  (item->base_type==TYPE_DIRECTORY &&
 		   !filer_window->filter_directories);
-		
+
 	case FILER_SHOW_ALL:
 	default:
 		break;
 	}
-	return TRUE;
+
+	if (ret && filer_window->regexp)
+		ret = regexec((regex_t *) filer_window->regexp,
+				item->leafname, 0, NULL, 0) == 0;
+
+	return ret;
 }
 
 /* Provided to hide the implementation */
@@ -3183,7 +3219,6 @@ gboolean filer_set_filter(FilerWindow *filer_window, FilterType type,
 		g_free(filer_window->filter_string);
 		filer_window->filter_string = NULL;
 	}
-	/* Also clean up compiled regexp when implemented */
 
 	filer_window->filter = type;
 

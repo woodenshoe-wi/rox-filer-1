@@ -91,6 +91,7 @@ struct _FilerWindow
 
 	FilterType      filter;
 	gchar           *filter_string;  /* Glob or regexp pattern */
+	gchar           *temp_filter_string;  /* regexp pattern */
 	gchar           *regexp;         /* Compiled regexp pattern */
 	/* TRUE if hidden files are shown because the minibuffer leafname
 	 * starts with a dot.
