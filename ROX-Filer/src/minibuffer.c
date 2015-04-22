@@ -194,8 +194,14 @@ void minibuffer_show(FilerWindow *filer_window, MiniType mini_type, guint keyval
 			break;
 		case MINI_TEMP_FILTER:
 			{
-				gchar it[] = {keyval? : '\0', '\0'};
-				gtk_entry_set_text(mini, it);
+				if (filer_window->regexp)
+					gtk_entry_set_text(mini,
+							filer_window->temp_filter_string);
+				else
+				{
+					gchar it[] = {keyval? : '\0', '\0'};
+					gtk_entry_set_text(mini, it);
+				}
 			}
 			break;
 		case MINI_SHELL:
@@ -258,6 +264,9 @@ void minibuffer_hide(FilerWindow *filer_window)
 		        display_update_hidden(filer_window);
 		filer_window->temp_show_hidden = FALSE;
 	}
+
+	if (filer_window->regexp)
+		minibuffer_show(filer_window, MINI_TEMP_FILTER, 0);
 }
 
 /* Insert this leafname at the cursor (replacing the selection, if any).
@@ -997,6 +1006,10 @@ static void temp_filter_return_pressed(FilerWindow *filer_window, guint etime)
 {
 	const gchar	*pattern = mini_contents(filer_window);
 	regex_t **exp = (regex_t **) &filer_window->regexp;
+	gchar **tmp = &filer_window->temp_filter_string;
+
+	g_free(*tmp);
+	*tmp = NULL;
 
 	if (*exp)
 		regfree(*exp);
@@ -1009,6 +1022,8 @@ static void temp_filter_return_pressed(FilerWindow *filer_window, guint etime)
 		g_free(*exp);
 		*exp = NULL;
 	}
+	else
+		*tmp = g_strdup(pattern);
 
 	display_update_hidden(filer_window);
 }
@@ -1041,6 +1056,8 @@ static gint key_press_event(GtkWidget	*widget,
 				regfree(*exp);
 				g_free(*exp);
 				*exp = NULL;
+				g_free(filer_window->temp_filter_string);
+				filer_window->temp_filter_string = NULL;
 				display_update_hidden(filer_window);
 			}
 		}

@@ -851,6 +851,7 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 	{
 		regfree((regex_t *) filer_window->regexp);
 		g_free(filer_window->regexp);
+		g_free(filer_window->temp_filter_string);
 	}
 
 	if (filer_window->dir_icon)
@@ -1476,6 +1477,8 @@ void filer_change_to(FilerWindow *filer_window,
 		regfree((regex_t *) filer_window->regexp);
 		g_free(filer_window->regexp);
 		filer_window->regexp = NULL;
+		g_free(filer_window->temp_filter_string);
+		filer_window->temp_filter_string = NULL;
 	}
 	if (filer_window->mini_type == MINI_TEMP_FILTER)
 		minibuffer_hide(filer_window);
@@ -1625,6 +1628,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	filer_window->filter = FILER_SHOW_ALL;
 	filer_window->filter_string = NULL;
+	filer_window->temp_filter_string = NULL;
 	filer_window->regexp = NULL;
 	filer_window->filter_directories = FALSE;
 	
