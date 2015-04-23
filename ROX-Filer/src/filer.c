@@ -1574,6 +1574,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	}
 
 	filer_window = g_new(FilerWindow, 1);
+	filer_window->under_init = TRUE;
+
 	filer_window->message = NULL;
 	filer_window->minibuffer = NULL;
 	filer_window->minibuffer_label = NULL;
@@ -1596,9 +1598,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->scrollbar = NULL;
 	filer_window->auto_scroll = -1;
 	filer_window->window_id = NULL;
-	filer_window->icon_scale = 1.0;
 	filer_window->dir_color = NULL;
-	filer_window->under_init = TRUE;
 	filer_window->configured = 0;
 	filer_window->last_width = -1;
 	filer_window->last_height = -1;
@@ -1641,10 +1641,12 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 		filer_window->show_hidden = src_win->show_hidden;
 		filer_window->show_thumbs = src_win->show_thumbs;
 		filer_window->view_type = src_win->view_type;
+		filer_window->icon_scale = src_win->icon_scale;
 
 		filer_window->filter_directories = src_win->filter_directories;
 		filer_set_filter(filer_window, src_win->filter,
 				 src_win->filter_string);
+
 	}
 	else
 	{
@@ -1655,6 +1657,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 		filer_window->show_hidden = o_display_show_hidden.int_value;
 		filer_window->show_thumbs = o_display_show_thumbs.int_value;
 		filer_window->view_type = o_filer_view_type.int_value;
+		filer_window->icon_scale = 1.0;
 	}
 
 	filer_window->display_style_wanted = dstylew;
@@ -2209,7 +2212,8 @@ void filer_set_title(FilerWindow *filer_window)
 	if (filer_window->scanning ||
 	    filer_window->filter != FILER_SHOW_ALL ||
  	    (filer_window->show_hidden != o_display_show_hidden.int_value) ||
- 		(filer_window->show_thumbs != o_display_show_thumbs.int_value))
+ 		(filer_window->show_thumbs != o_display_show_thumbs.int_value) ||
+		filer_window->dirs_only || filer_window->files_only)
 	{
 		if (o_short_flag_names.int_value)
 		{
@@ -2233,6 +2237,8 @@ void filer_set_title(FilerWindow *filer_window)
 				filer_window->show_thumbs != o_display_show_thumbs.int_value &&
  					!filer_window->show_thumbs ? _("!") : "",
  				filer_window->show_thumbs != o_display_show_thumbs.int_value ? _("T") : "",
+				filer_window->dirs_only ? _("D") : "",
+				filer_window->files_only ? _("F") : "",
 				NULL);
 		}
 		else
@@ -2259,6 +2265,8 @@ void filer_set_title(FilerWindow *filer_window)
 				hidden,
  				filer_window->show_thumbs != o_display_show_thumbs.int_value ?
  					(filer_window->show_thumbs ? _("Thumbs, ") : _("Not Thumbs, ")) : "",
+				filer_window->dirs_only ? _("Dirs only, ") : "",
+				filer_window->files_only ? _("Files only, ") : "",
 				NULL);
 			flags[strlen(flags) - 2] = ')';
 			g_free(hidden);
@@ -3154,7 +3162,13 @@ gboolean filer_match_filter(FilerWindow *filer_window, DirItem *item)
 {
 	g_return_val_if_fail(item != NULL, FALSE);
 
-	gboolean ret = TRUE;
+	if (filer_window->files_only &&
+			item->base_type == TYPE_DIRECTORY)
+		return FALSE;
+
+	if (filer_window->dirs_only &&
+			item->base_type != TYPE_DIRECTORY)
+		return FALSE;
 
 	if(is_hidden(filer_window->real_path, item) &&
 	   (!filer_window->temp_show_hidden && !filer_window->show_hidden))
@@ -3162,21 +3176,26 @@ gboolean filer_match_filter(FilerWindow *filer_window, DirItem *item)
 
 	switch(filer_window->filter) {
 	case FILER_SHOW_GLOB:
-		ret = fnmatch(filer_window->filter_string,
-			       item->leafname, 0)==0 ||
-		  (item->base_type==TYPE_DIRECTORY &&
-		   !filer_window->filter_directories);
+		if (!(
+			fnmatch(filer_window->filter_string,
+				item->leafname, 0) == 0 ||
+			(item->base_type == TYPE_DIRECTORY &&
+				!filer_window->filter_directories)
+		))
+			return FALSE;
 
 	case FILER_SHOW_ALL:
 	default:
 		break;
 	}
 
-	if (ret && filer_window->regexp)
-		ret = regexec((regex_t *) filer_window->regexp,
-				item->leafname, 0, NULL, 0) == 0;
+	if (filer_window->regexp &&
+		regexec((regex_t *) filer_window->regexp,
+			item->leafname, 0, NULL, 0) != 0
+	)
+		return FALSE;
 
-	return ret;
+	return TRUE;
 }
 
 /* Provided to hide the implementation */
@@ -3189,7 +3208,7 @@ void filer_set_hidden(FilerWindow *filer_window, gboolean hidden)
 void filer_set_filter_directories(FilerWindow *filer_window,
         gboolean filter_directories)
 {
-	filer_window->filter_directories=filter_directories;
+	filer_window->filter_directories = filter_directories;
 }
 
 /* Set the filter type. Returns TRUE if the type has changed
@@ -3558,6 +3577,10 @@ static gboolean check_settings(FilerWindow *filer_window)
 
 	filer_window->reqx = filer_window->reqy = -1;
 	filer_window->req_width = filer_window->req_height = -1;
+
+	/* shared init (open and change to) */
+	filer_window->dirs_only = FALSE;
+	filer_window->files_only = FALSE;
 
 	set=(Settings *) g_hash_table_lookup(settings_table,
 					      filer_window->sym_path);
