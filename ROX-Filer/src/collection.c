@@ -36,7 +36,7 @@
 #define MIN_HEIGHT 60
 #define MINIMUM_ITEMS 16
 
-#define MAX_WINKS 5		/* Should be an odd number */
+#define MAX_WINKS 7		/* Should be an odd number */
 
 /* Macro to emit the "selection_changed" signal only if allowed */
 #define EMIT_SELECTION_CHANGED(collection, time) \
@@ -1017,7 +1017,6 @@ static void scroll_to_show(Collection *collection, int item)
 
 	collection_item_to_rowcol(collection, item, &row, &col);
 	get_visible_limits(collection, &first, &last);
-
 	if (row <= first)
 	{
 		gtk_adjustment_set_value(collection->vadj,
@@ -1175,6 +1174,8 @@ static void collection_item_set_selected(Collection *collection,
 void collection_clear(Collection *collection)
 {
 	collection_delete_if(collection, NULL, NULL);
+	if (collection->vadj)
+		gtk_adjustment_set_value(collection->vadj, 0);
 }
 
 /* Inserts a new item at the end. The new item is unselected, and its
