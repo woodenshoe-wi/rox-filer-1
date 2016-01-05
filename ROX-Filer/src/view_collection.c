@@ -475,7 +475,6 @@ static void huge_template(GdkRectangle *area, CollectionItem *colitem,
 {
 	gfloat scale = view_collection->filer_window->icon_scale;
 	int	col_width = view_collection->collection->item_width;
-	int icon_area_height = HUGE_HEIGHT * scale;
 	ViewData	*view = (ViewData *) colitem->view_data;
 	MaskedPixmap	*image = view->image;
 
@@ -498,13 +497,14 @@ static void huge_template(GdkRectangle *area, CollectionItem *colitem,
 	}
 
 	template->leafname.width = view->name_width;
-	template->leafname.height = MIN(view->name_height, area->height - icon_area_height - 2);
+	template->leafname.height = MIN(view->name_height, area->height - template->icon.height - 4);
 
 	template->leafname.x = area->x + MAX((col_width - template->leafname.width) >> 1, 3);
-	template->leafname.y = area->y + icon_area_height + 2;
-
 	template->icon.x = area->x + ((col_width - template->icon.width) >> 1);
-	template->icon.y = template->leafname.y - template->icon.height;
+
+	template->icon.y = area->y + (area->height - template->leafname.height - template->icon.height) / 2;
+	template->leafname.y = template->icon.y + template->icon.height;
+
 }
 
 static void large_template(GdkRectangle *area, CollectionItem *colitem,
