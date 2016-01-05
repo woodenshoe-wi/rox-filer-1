@@ -737,8 +737,8 @@ static void draw_string(GtkWidget *widget,
 				1, area->height);
 		if (height > area->height)
 			gdk_draw_rectangle(widget->window, red_gc, TRUE,
-				area->x, area->y + area->height - 1,
-				area->width, 1);
+				area->x + area->width - small_width, area->y + area->height - 1,
+				small_width, 1);
 
 		gdk_gc_set_clip_rectangle(type_gc, NULL);
 	}
