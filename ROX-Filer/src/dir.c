@@ -468,8 +468,8 @@ static gboolean recheck_callback(gpointer data)
 	g_return_val_if_fail(dir != NULL, FALSE);
 	g_return_val_if_fail(dir->recheck_list != NULL, FALSE);
 
-	/* Remove the first name from the list */
-	next = dir->recheck_list;
+	/* Remove the last name from the list. It is slow but last items are on sight */
+	next = g_list_last(dir->recheck_list);
 	dir->recheck_list = g_list_remove_link(dir->recheck_list, next);
 	leaf = (guchar *) next->data;
 	g_list_free_1(next);
