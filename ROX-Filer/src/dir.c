@@ -706,7 +706,7 @@ static void delayed_notify(Directory *dir)
 /*	1500 is too long, but  
  *	I don't know what wills happen. So I can't delete this line.
  *	g_timeout_add(1500, notify_timeout, dir); */
-	g_timeout_add(1000, notify_timeout, dir);
+	g_timeout_add(100, notify_timeout, dir);
 	dir->notify_active = TRUE;
 }
 
