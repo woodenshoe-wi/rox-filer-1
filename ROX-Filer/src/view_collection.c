@@ -502,7 +502,7 @@ static void huge_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.x = area->x + MAX((col_width - template->leafname.width) >> 1, 3);
 	template->icon.x = area->x + ((col_width - template->icon.width) >> 1);
 
-	template->icon.y = area->y + (area->height - template->leafname.height - template->icon.height) / 2;
+	template->icon.y = area->y + (area->height - template->leafname.height - template->icon.height) / 2 + 1;
 	template->leafname.y = template->icon.y + template->icon.height;
 
 }
