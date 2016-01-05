@@ -68,6 +68,7 @@ Option o_display_details;
 Option o_display_sort_by;
 static Option o_large_width;
 Option o_small_width;
+Option o_max_length;
 Option o_display_show_hidden;
 Option o_display_show_thumbs;
 Option o_display_show_headers;
@@ -97,6 +98,7 @@ void display_init()
 	option_add_int(&o_display_sort_by, "display_sort_by", SORT_NAME);
 	option_add_int(&o_large_width, "display_large_width", 155);
 	option_add_int(&o_small_width, "display_small_width", 250);
+	option_add_int(&o_max_length, "display_max_length", 0);
 	option_add_int(&o_display_show_hidden, "display_show_hidden", FALSE);
 	option_add_int(&o_display_show_thumbs, "display_show_thumbs", FALSE);
 	option_add_int(&o_display_show_headers, "display_show_headers", TRUE);
@@ -815,7 +817,7 @@ static void options_changed(void)
 		if (o_display_show_headers.has_changed)
 			flags |= VIEW_UPDATE_HEADERS;
 
-		if (o_large_width.has_changed || o_small_width.has_changed)
+		if (o_large_width.has_changed || o_small_width.has_changed || o_max_length.has_changed)
 			flags |= VIEW_UPDATE_NAME; /* Recreate PangoLayout */
 
 		view_style_changed(filer_window->view, flags);
