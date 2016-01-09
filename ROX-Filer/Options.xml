@@ -72,10 +72,14 @@ indicator'>If this is on then files which have one or more extended attributes s
         </hbox>
 	<spacer/>
 	<hbox>
-          <numentry name='display_large_width' label='Max width (Large icons):' unit='pixels' min='0' max='2000' width='4'>Text wider than this is broken onto two lines in Large Icons mode. In Huge Icons mode, text is wrapped when 50% wider than this.</numentry>
+          <numentry name='display_large_width' label='Large Icons (Max width):' unit='pixels' min='0' max='2000' width='4'>Text wider than this is broken onto two lines in Large Icons mode. In Huge Icons mode, text is wrapped when 50% wider than this.</numentry>
 	  <spacer/>
-          <numentry name='display_small_width' label='(Small Icons):' unit='pixels' min='0' max='2000' width='4'>Maximum width for the text beside a Small Icon.</numentry>
+			<numentry name='display_max_length' label='(Wrapped, Details):' unit='pixels' min='0' max='2000' width='4'>Maximum length for Large Icons mode and Details.</numentry>
         </hbox>
+		<hbox>
+          <numentry name='display_small_width' label='Small Icons (Max width):' unit='pixels' min='0' max='2000' width='4'>Maximum width for the text beside a Small Icon.</numentry>
+		</hbox>
+		<spacer/>
 		<hbox>
 			<numentry name='view_alpha' label='Transparency:' unit='%' min='0' max='100' width='3'>
 			When the value is 0, the window will open without alpha support. So it needs re-open. Also this depends on your environment. Basically if your windows have shadows, then you'll get transparent view.

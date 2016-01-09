@@ -468,8 +468,8 @@ static gboolean recheck_callback(gpointer data)
 	g_return_val_if_fail(dir != NULL, FALSE);
 	g_return_val_if_fail(dir->recheck_list != NULL, FALSE);
 
-	/* Remove the first name from the list */
-	next = dir->recheck_list;
+	/* Remove the last name from the list. It is slow but last items are on sight */
+	next = g_list_last(dir->recheck_list);
 	dir->recheck_list = g_list_remove_link(dir->recheck_list, next);
 	leaf = (guchar *) next->data;
 	g_list_free_1(next);
@@ -706,7 +706,7 @@ static void delayed_notify(Directory *dir)
 /*	1500 is too long, but  
  *	I don't know what wills happen. So I can't delete this line.
  *	g_timeout_add(1500, notify_timeout, dir); */
-	g_timeout_add(1000, notify_timeout, dir);
+	g_timeout_add(100, notify_timeout, dir);
 	dir->notify_active = TRUE;
 }
 
