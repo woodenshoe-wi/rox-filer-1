@@ -866,6 +866,11 @@ static gint coll_button_press(GtkWidget *widget,
 
 	if (dnd_motion_press(widget, event))
 		filer_perform_action(view_collection->filer_window, event);
+	else {
+		/* rocker gesture */
+		dnd_motion_ungrab();
+		change_to_parent(view_collection->filer_window);
+	}
 
 	return FALSE;
 }
