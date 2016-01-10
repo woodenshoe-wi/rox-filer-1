@@ -1486,7 +1486,7 @@ void filer_change_to(FilerWindow *filer_window,
 	filer_window->directory = new_dir;
 
 	g_free(filer_window->auto_select);
-	filer_window->auto_select = from_dup;
+	filer_window->auto_select = NULL;
 
 	force_resize = check_settings(filer_window);
 
@@ -1499,6 +1499,9 @@ void filer_change_to(FilerWindow *filer_window,
 	view_cursor_to_iter(filer_window->view, NULL);
 
 	attach(filer_window);
+
+	if (from_dup)
+		display_set_autoselect(filer_window, from_dup);
 
 	filer_window->under_init = FALSE;
 	display_set_actual_size(filer_window, force_resize);

@@ -125,6 +125,7 @@ static void cancel_wink(Collection *collection);
 static gint collection_key_press(GtkWidget *widget, GdkEventKey *event);
 static void get_visible_limits(Collection *collection, int *first, int *last);
 static void scroll_to_show(Collection *collection, int item);
+static void scroll_to_center(Collection *collection, int item);
 static void collection_item_set_selected(Collection *collection,
                                          gint item,
                                          gboolean selected,
@@ -305,6 +306,7 @@ static void collection_init(GTypeInstance *instance, gpointer g_class)
 	object->block_selection_changed = 0;
 	object->columns = 1;
 	object->vertical_order = FALSE;
+	object->center_wink = TRUE;
 	object->item_width = 64;
 	object->item_height = 64;
 	object->vadj = NULL;
@@ -454,11 +456,17 @@ static void collection_size_request(GtkWidget *widget,
 static gboolean scroll_after_alloc(Collection *collection)
 {
 	if (collection->wink_item != -1)
-		scroll_to_show(collection, collection->wink_item);
+	{
+		if (collection->center_wink)
+			scroll_to_center(collection, collection->wink_item);
+		else
+			scroll_to_show(collection, collection->wink_item);
+	}
 	else if (collection->cursor_item != -1)
 		scroll_to_show(collection, collection->cursor_item);
 	g_object_unref(G_OBJECT(collection));
 
+	collection->center_wink = FALSE;
 	return FALSE;
 }
 
@@ -1008,7 +1016,7 @@ static void remove_lasso_box(Collection *collection)
 }
 
 /* Make sure that 'item' is fully visible (vertically), scrolling if not. */
-static void scroll_to_show(Collection *collection, int item)
+static void _scroll_to_show(Collection *collection, int item, gboolean center)
 {
         int     first, last, row, col;
 
@@ -1016,6 +1024,15 @@ static void scroll_to_show(Collection *collection, int item)
 	g_return_if_fail(IS_COLLECTION(collection));
 
 	collection_item_to_rowcol(collection, item, &row, &col);
+	if (center)
+	{
+		gtk_adjustment_set_value(collection->vadj, MIN(
+			row * collection->item_height - (collection->vadj->page_size - collection->item_height) / 2,
+			GTK_WIDGET(collection)->allocation.height - collection->vadj->page_size
+		));
+		return;
+	}
+
 	get_visible_limits(collection, &first, &last);
 	if (row <= first)
 	{
@@ -1034,6 +1051,12 @@ static void scroll_to_show(Collection *collection, int item)
 				(row + 1) * collection->item_height - height);
 		}
 	}
+}
+static void scroll_to_show(Collection *collection, int item) {
+	_scroll_to_show(collection, item, FALSE);
+}
+static void scroll_to_center(Collection *collection, int item) {
+	_scroll_to_show(collection, item, TRUE);
 }
 
 /* Return the first and last rows which are [partly] visible. Does not
@@ -1174,6 +1197,7 @@ static void collection_item_set_selected(Collection *collection,
 void collection_clear(Collection *collection)
 {
 	collection_delete_if(collection, NULL, NULL);
+	collection->center_wink = TRUE;
 	if (collection->vadj)
 		gtk_adjustment_set_value(collection->vadj, 0);
 }
@@ -1626,7 +1650,9 @@ void collection_wink_item(Collection *collection, gint item)
 	collection->wink_timeout = g_timeout_add(70,
 					   (GSourceFunc) wink_timeout,
 					   collection);
+
 	scroll_to_show(collection, item);
+
 	invert_wink(collection);
 
 	gdk_flush();

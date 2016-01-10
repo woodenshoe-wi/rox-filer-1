@@ -1631,6 +1631,9 @@ static void view_collection_autosize(ViewIface *view)
 	cols = x / w;
 	cols = MAX(cols, 1);
 
+	/* This is important for init processes to use col size. */
+	collection->columns = cols;
+
 	rows = MAX((n + cols - 1) / cols, 1);
 
 	filer_window_set_size(filer_window,
