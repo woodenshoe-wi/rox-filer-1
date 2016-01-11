@@ -952,8 +952,10 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 	{
 		h = o_max_length.int_value == 0 ? view->name_height :
 			MIN(view->name_height,
-				((o_max_length.int_value - 1) / view->name_width + 1) * fw_font_height / PANGO_SCALE
+				((o_max_length.int_value - 1) / o_large_width.int_value + 1)
+					* fw_font_height / PANGO_SCALE
 			);
+
 		if (style == HUGE_ICONS)
 		{
 			if (view->image)
