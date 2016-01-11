@@ -125,7 +125,6 @@ static void cancel_wink(Collection *collection);
 static gint collection_key_press(GtkWidget *widget, GdkEventKey *event);
 static void get_visible_limits(Collection *collection, int *first, int *last);
 static void scroll_to_show(Collection *collection, int item);
-static void scroll_to_center(Collection *collection, int item);
 static void collection_item_set_selected(Collection *collection,
                                          gint item,
                                          gboolean selected,
@@ -378,6 +377,8 @@ static void collection_map(GtkWidget *widget)
 		collection_wink_item(collection, collection->wink_on_map);
 		collection->wink_on_map = -1;
 	}
+
+	collection->center_wink = FALSE;
 }
 
 static void style_set_cb(GtkWidget *widget,
@@ -456,17 +457,14 @@ static void collection_size_request(GtkWidget *widget,
 static gboolean scroll_after_alloc(Collection *collection)
 {
 	if (collection->wink_item != -1)
-	{
-		if (collection->center_wink)
-			scroll_to_center(collection, collection->wink_item);
-		else
-			scroll_to_show(collection, collection->wink_item);
-	}
+		scroll_to_show(collection, collection->wink_item);
 	else if (collection->cursor_item != -1)
 		scroll_to_show(collection, collection->cursor_item);
 	g_object_unref(G_OBJECT(collection));
 
-	collection->center_wink = FALSE;
+	if (collection->wink_on_map < 0)
+		collection->center_wink = FALSE;
+
 	return FALSE;
 }
 
@@ -525,6 +523,8 @@ static void collection_size_allocate(GtkWidget *widget,
 		g_object_ref(G_OBJECT(collection));
 		g_idle_add((GSourceFunc) scroll_after_alloc, collection);
 	}
+	else if (collection->wink_on_map < 0)
+		collection->center_wink = FALSE;
 }
 
 /* Return the area occupied by the item at (row, col) by filling
@@ -1016,7 +1016,7 @@ static void remove_lasso_box(Collection *collection)
 }
 
 /* Make sure that 'item' is fully visible (vertically), scrolling if not. */
-static void _scroll_to_show(Collection *collection, int item, gboolean center)
+static void scroll_to_show(Collection *collection, int item)
 {
         int     first, last, row, col;
 
@@ -1024,7 +1024,7 @@ static void _scroll_to_show(Collection *collection, int item, gboolean center)
 	g_return_if_fail(IS_COLLECTION(collection));
 
 	collection_item_to_rowcol(collection, item, &row, &col);
-	if (center)
+	if (collection->center_wink)
 	{
 		gtk_adjustment_set_value(collection->vadj, MIN(
 			row * collection->item_height - (collection->vadj->page_size - collection->item_height) / 2,
@@ -1051,12 +1051,6 @@ static void _scroll_to_show(Collection *collection, int item, gboolean center)
 				(row + 1) * collection->item_height - height);
 		}
 	}
-}
-static void scroll_to_show(Collection *collection, int item) {
-	_scroll_to_show(collection, item, FALSE);
-}
-static void scroll_to_center(Collection *collection, int item) {
-	_scroll_to_show(collection, item, TRUE);
 }
 
 /* Return the first and last rows which are [partly] visible. Does not
@@ -1652,7 +1646,6 @@ void collection_wink_item(Collection *collection, gint item)
 					   collection);
 
 	scroll_to_show(collection, item);
-
 	invert_wink(collection);
 
 	gdk_flush();
