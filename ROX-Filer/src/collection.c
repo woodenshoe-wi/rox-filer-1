@@ -374,6 +374,7 @@ static void collection_map(GtkWidget *widget)
 
 	if (collection->wink_on_map >= 0)
 	{
+		scroll_to_show(collection, collection->wink_on_map);
 		collection_wink_item(collection, collection->wink_on_map);
 		collection->wink_on_map = -1;
 	}
@@ -1645,7 +1646,8 @@ void collection_wink_item(Collection *collection, gint item)
 					   (GSourceFunc) wink_timeout,
 					   collection);
 
-	scroll_to_show(collection, item);
+	if (!collection->center_wink)
+		scroll_to_show(collection, item);
 	invert_wink(collection);
 
 	gdk_flush();
