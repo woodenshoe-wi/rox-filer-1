@@ -308,6 +308,7 @@ static void collection_init(GTypeInstance *instance, gpointer g_class)
 	object->center_wink = TRUE;
 	object->item_width = 64;
 	object->item_height = 64;
+	object->old_height = 0;
 	object->vadj = NULL;
 
 	object->items = g_new(CollectionItem, MINIMUM_ITEMS);
@@ -512,6 +513,20 @@ static void collection_size_allocate(GtkWidget *widget,
 		if (cursor_visible)
 			scroll_to_show(collection, collection->cursor_item);
 	}
+
+	if (collection->old_height != 0 &&
+		collection->vadj->value > 0 &&
+		collection->old_height != allocation->height
+	){
+		gtk_adjustment_set_value(collection->vadj,
+			(allocation->height / collection->old_height) *
+			(collection->vadj->value + collection->vadj->page_size / 2) -
+			collection->vadj->page_size / 2);
+
+		gtk_widget_queue_draw(widget);
+	}
+
+	collection->old_height = allocation->height;
 
 	if (old_columns != collection->columns)
 	{
@@ -1193,6 +1208,7 @@ void collection_clear(Collection *collection)
 {
 	collection_delete_if(collection, NULL, NULL);
 	collection->center_wink = TRUE;
+	collection->old_height = 0;
 	if (collection->vadj)
 		gtk_adjustment_set_value(collection->vadj, 0);
 }

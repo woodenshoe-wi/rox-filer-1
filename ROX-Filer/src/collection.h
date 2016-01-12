@@ -92,6 +92,7 @@ struct _Collection
 	gboolean        center_wink;
 	gint		number_of_items;	/* (often compared with -1) */
 	guint		item_width, item_height;
+	gdouble		old_height;
 
 	guint		number_selected;
 
