@@ -308,7 +308,7 @@ static void collection_init(GTypeInstance *instance, gpointer g_class)
 	object->center_wink = TRUE;
 	object->item_width = 64;
 	object->item_height = 64;
-	object->old_height = 0;
+	object->old_height = object->old_pos = 0;
 	object->vadj = NULL;
 
 	object->items = g_new(CollectionItem, MINIMUM_ITEMS);
@@ -503,7 +503,7 @@ static void collection_size_allocate(GtkWidget *widget,
 	collection->columns = allocation->width / collection->item_width;
 	if (collection->columns < 1)
 		collection->columns = 1;
-	
+
 	if (GTK_WIDGET_REALIZED(widget))
 	{
 		gdk_window_move_resize(widget->window,
@@ -515,21 +515,26 @@ static void collection_size_allocate(GtkWidget *widget,
 	}
 
 	if (collection->old_height != 0 &&
-		collection->vadj->value > 0 &&
-		collection->old_height != allocation->height
+		collection->vadj->value > 0
 	){
 		gtk_adjustment_set_value(collection->vadj,
-			(allocation->height / collection->old_height) *
-			(collection->vadj->value + collection->vadj->page_size / 2) -
-			collection->vadj->page_size / 2);
+			CLAMP(
+				(allocation->height / collection->old_height) *
+				(collection->old_pos + collection->vadj->page_size / 2) -
+				collection->vadj->page_size / 2,
+				0,
+				allocation->height - collection->vadj->page_size));
 
+		collection->old_height = collection->old_pos = 0;
 		gtk_widget_queue_draw(widget);
 	}
 
-	collection->old_height = allocation->height;
 
 	if (old_columns != collection->columns)
 	{
+		collection->old_height = allocation->height;
+		collection->old_pos = collection->vadj->value;
+
 		/* Need to go around again... */
 		gtk_widget_queue_resize(widget);
 	}
@@ -1208,7 +1213,7 @@ void collection_clear(Collection *collection)
 {
 	collection_delete_if(collection, NULL, NULL);
 	collection->center_wink = TRUE;
-	collection->old_height = 0;
+	collection->old_height = collection->old_pos = 0;
 	if (collection->vadj)
 		gtk_adjustment_set_value(collection->vadj, 0);
 }
@@ -1418,6 +1423,8 @@ void collection_set_item_size(Collection *collection, int width, int height)
 		gtk_widget_queue_draw(widget);
 	}
 
+	collection->old_height = GTK_WIDGET(collection)->allocation.height;
+	collection->old_pos = collection->vadj->value;
 	gtk_widget_queue_resize(GTK_WIDGET(collection));
 }
 
