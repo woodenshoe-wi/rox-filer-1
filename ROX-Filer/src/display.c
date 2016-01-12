@@ -66,7 +66,7 @@ static Option o_display_dirs_first;
 Option o_display_size;
 Option o_display_details;
 Option o_display_sort_by;
-static Option o_large_width;
+Option o_large_width;
 Option o_small_width;
 Option o_max_length;
 Option o_display_show_hidden;

@@ -1145,6 +1145,12 @@ static gint key_press_event(GtkWidget	*widget,
 					gtk_widget_grab_focus(filer_window->minibuffer);
 				}
 				return TRUE;
+			case GDK_Tab:
+				filer_next_selected(filer_window, 1);
+				break;
+			case GDK_ISO_Left_Tab:
+				filer_next_selected(filer_window, -1);
+				break;
 			case GDK_Up:
 				filer_next_selected(filer_window, -1);
 				break;

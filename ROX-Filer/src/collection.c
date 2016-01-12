@@ -305,8 +305,10 @@ static void collection_init(GTypeInstance *instance, gpointer g_class)
 	object->block_selection_changed = 0;
 	object->columns = 1;
 	object->vertical_order = FALSE;
+	object->center_wink = TRUE;
 	object->item_width = 64;
 	object->item_height = 64;
+	object->old_height = 0;
 	object->vadj = NULL;
 
 	object->items = g_new(CollectionItem, MINIMUM_ITEMS);
@@ -373,9 +375,12 @@ static void collection_map(GtkWidget *widget)
 
 	if (collection->wink_on_map >= 0)
 	{
+		scroll_to_show(collection, collection->wink_on_map);
 		collection_wink_item(collection, collection->wink_on_map);
 		collection->wink_on_map = -1;
 	}
+
+	collection->center_wink = FALSE;
 }
 
 static void style_set_cb(GtkWidget *widget,
@@ -459,6 +464,9 @@ static gboolean scroll_after_alloc(Collection *collection)
 		scroll_to_show(collection, collection->cursor_item);
 	g_object_unref(G_OBJECT(collection));
 
+	if (collection->wink_on_map < 0)
+		collection->center_wink = FALSE;
+
 	return FALSE;
 }
 
@@ -506,6 +514,20 @@ static void collection_size_allocate(GtkWidget *widget,
 			scroll_to_show(collection, collection->cursor_item);
 	}
 
+	if (collection->old_height != 0 &&
+		collection->vadj->value > 0 &&
+		collection->old_height != allocation->height
+	){
+		gtk_adjustment_set_value(collection->vadj,
+			(allocation->height / collection->old_height) *
+			(collection->vadj->value + collection->vadj->page_size / 2) -
+			collection->vadj->page_size / 2);
+
+		gtk_widget_queue_draw(widget);
+	}
+
+	collection->old_height = allocation->height;
+
 	if (old_columns != collection->columns)
 	{
 		/* Need to go around again... */
@@ -517,6 +539,8 @@ static void collection_size_allocate(GtkWidget *widget,
 		g_object_ref(G_OBJECT(collection));
 		g_idle_add((GSourceFunc) scroll_after_alloc, collection);
 	}
+	else if (collection->wink_on_map < 0)
+		collection->center_wink = FALSE;
 }
 
 /* Return the area occupied by the item at (row, col) by filling
@@ -1016,6 +1040,15 @@ static void scroll_to_show(Collection *collection, int item)
 	g_return_if_fail(IS_COLLECTION(collection));
 
 	collection_item_to_rowcol(collection, item, &row, &col);
+	if (collection->center_wink)
+	{
+		gtk_adjustment_set_value(collection->vadj, MIN(
+			row * collection->item_height - (collection->vadj->page_size - collection->item_height) / 2,
+			GTK_WIDGET(collection)->allocation.height - collection->vadj->page_size
+		));
+		return;
+	}
+
 	get_visible_limits(collection, &first, &last);
 	if (row <= first)
 	{
@@ -1174,6 +1207,8 @@ static void collection_item_set_selected(Collection *collection,
 void collection_clear(Collection *collection)
 {
 	collection_delete_if(collection, NULL, NULL);
+	collection->center_wink = TRUE;
+	collection->old_height = 0;
 	if (collection->vadj)
 		gtk_adjustment_set_value(collection->vadj, 0);
 }
@@ -1626,7 +1661,9 @@ void collection_wink_item(Collection *collection, gint item)
 	collection->wink_timeout = g_timeout_add(70,
 					   (GSourceFunc) wink_timeout,
 					   collection);
-	scroll_to_show(collection, item);
+
+	if (!collection->center_wink)
+		scroll_to_show(collection, item);
 	invert_wink(collection);
 
 	gdk_flush();

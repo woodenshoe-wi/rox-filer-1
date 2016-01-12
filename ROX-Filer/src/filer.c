@@ -472,8 +472,6 @@ static void update_display(Directory *dir,
 	{
 		case DIR_ADD:
 			view_add_items(view, items);
-			/* Open and resize if currently hidden */
-			open_filer_window(filer_window);
 			break;
 		case DIR_REMOVE:
 			view_delete_if(view, if_deleted, items);
@@ -510,7 +508,6 @@ static void update_display(Directory *dir,
 						NULL);
 			set_scanning_display(filer_window, FALSE);
 			toolbar_update_info(filer_window);
-			open_filer_window(filer_window);
 
 			if (filer_window->had_cursor &&
 					!view_cursor_visible(view))
@@ -1486,7 +1483,7 @@ void filer_change_to(FilerWindow *filer_window,
 	filer_window->directory = new_dir;
 
 	g_free(filer_window->auto_select);
-	filer_window->auto_select = from_dup;
+	filer_window->auto_select = NULL;
 
 	force_resize = check_settings(filer_window);
 
@@ -1499,6 +1496,10 @@ void filer_change_to(FilerWindow *filer_window,
 	view_cursor_to_iter(filer_window->view, NULL);
 
 	attach(filer_window);
+
+	if (from_dup)
+		display_set_autoselect(filer_window, from_dup);
+	g_free(from_dup);
 
 	filer_window->under_init = FALSE;
 	display_set_actual_size(filer_window, force_resize);
@@ -1556,6 +1557,14 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	DetailsType     dtype;
 	SortType	s_type;
 	GtkSortType	s_order;
+	char *from_dup = NULL;
+
+	if (src_win) {
+		char *dir = g_path_get_dirname(src_win->sym_path);
+		if (strcmp(path, dir) == 0)
+			from_dup = g_path_get_basename(src_win->sym_path);
+		g_free(dir);
+	}
 
 	/* Get the real pathname of the directory and copy it */
 	real_path = pathdup(path);
@@ -1702,8 +1711,14 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	attach(filer_window);
 
+	if (from_dup)
+		display_set_autoselect(filer_window, from_dup);
+	g_free(from_dup);
+
 	number_of_windows++;
 	all_filer_windows = g_list_prepend(all_filer_windows, filer_window);
+
+	open_filer_window(filer_window);
 
 	return filer_window;
 }
