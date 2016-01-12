@@ -514,7 +514,7 @@ static void collection_size_allocate(GtkWidget *widget,
 			scroll_to_show(collection, collection->cursor_item);
 	}
 
-	if (collection->old_height != 0 &&
+	if (collection->old_pos != 0 &&
 		collection->vadj->value > 0
 	){
 		gtk_adjustment_set_value(collection->vadj,
