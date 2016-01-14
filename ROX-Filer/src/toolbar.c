@@ -118,7 +118,8 @@ static Tool all_tools[] = {
 	 
 	{N_("Up"), GTK_STOCK_GO_UP, N_("Change to parent directory\n"
 						"Right: Open parent directory\n"
-						"Center: Change to parent directory in real path"),
+						"Center: Change to parent directory in real path\n"
+						"* Hint * You can also change to parent by use of hold left and right on Icons view"),
 	 toolbar_up_clicked, DROP_TO_PARENT, TRUE,
 	 FALSE},
 	 
