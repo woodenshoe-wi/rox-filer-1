@@ -1238,10 +1238,6 @@ gint collection_insert(Collection *collection, gpointer data, gpointer view)
 
 	collection->number_of_items++;
 
-	gtk_widget_queue_resize(GTK_WIDGET(collection));
-
-	collection_draw_item(collection, item, FALSE);
-
 	return item;
 }
 
