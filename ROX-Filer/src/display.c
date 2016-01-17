@@ -82,7 +82,7 @@ Option o_xattr_show;
 static void display_details_set(FilerWindow *filer_window, DetailsType details);
 static void display_style_set(FilerWindow *filer_window, DisplayStyle style);
 static void options_changed(void);
-static char *details(FilerWindow *filer_window, DirItem *item);
+static char *getdetails(FilerWindow *filer_window, DirItem *item);
 static void display_set_actual_size_real(FilerWindow *filer_window);
 
 /****************************************************************
@@ -828,14 +828,11 @@ static void options_changed(void)
  * are not being displayed. If details are not yet available, return
  * a string of the right length.
  */
-static char *details(FilerWindow *filer_window, DirItem *item)
+static char *getdetails(FilerWindow *filer_window, DirItem *item)
 {
 	mode_t	m = item->mode;
 	guchar 	*buf = NULL;
 	gboolean scanned = item->base_type != TYPE_UNKNOWN;
-
-	if (filer_window->details_type == DETAILS_NONE)
-		return NULL;
 
 	if (scanned && item->lstat_errno)
 		buf = g_strdup_printf(_("lstat(2) failed: %s"),
@@ -997,48 +994,51 @@ void display_update_view(FilerWindow *filer_window,
 	static PangoFontDescription *monospace = NULL;
 	gboolean basic = o_fast_font_calc.int_value;
 
-	if (!monospace)
-		monospace = pango_font_description_from_string("monospace");
-	
-	if (view->details)
+	if (filer_window->details_type != DETAILS_NONE)
 	{
-		g_object_unref(G_OBJECT(view->details));
-		view->details = NULL;
-	}
+		if (!monospace)
+			monospace = pango_font_description_from_string("monospace");
 
-	str = details(filer_window, item);
-	if (str)
-	{
-		PangoAttrList	*details_list;
-		int	perm_offset = -1;
-		
-		view->details = gtk_widget_create_pango_layout(
-					filer_window->window, str);
-		g_free(str);
-
-		pango_layout_set_font_description(view->details, monospace);
-		pango_layout_get_size(view->details, &w, &h);
-		view->details_width = w / PANGO_SCALE;
-		view->details_height = h / PANGO_SCALE;
-
-		if (filer_window->details_type == DETAILS_PERMISSIONS)
-			perm_offset = 0;
-		if (perm_offset > -1)
+		if (view->details)
 		{
-			PangoAttribute	*attr;
+			g_object_unref(G_OBJECT(view->details));
+			view->details = NULL;
+		}
 
-			attr = pango_attr_underline_new(PANGO_UNDERLINE_SINGLE);
+		str = getdetails(filer_window, item);
+		if (str)
+		{
+			PangoAttrList	*details_list;
+			int	perm_offset = -1;
 
-			perm_offset += 4 * applicable(item->uid, item->gid);
-			attr->start_index = perm_offset;
-			attr->end_index = perm_offset + 3;
+			view->details = gtk_widget_create_pango_layout(
+					filer_window->window, str);
+			g_free(str);
 
-			details_list = pango_attr_list_new();
-			pango_attr_list_insert(details_list, attr);
-			pango_layout_set_attributes(view->details,
-							details_list);
+			pango_layout_set_font_description(view->details, monospace);
+			pango_layout_get_size(view->details, &w, &h);
+			view->details_width = w / PANGO_SCALE;
+			view->details_height = h / PANGO_SCALE;
 
-			pango_attr_list_unref(details_list);
+			if (filer_window->details_type == DETAILS_PERMISSIONS)
+				perm_offset = 0;
+			if (perm_offset > -1)
+			{
+				PangoAttribute	*attr;
+
+				attr = pango_attr_underline_new(PANGO_UNDERLINE_SINGLE);
+
+				perm_offset += 4 * applicable(item->uid, item->gid);
+				attr->start_index = perm_offset;
+				attr->end_index = perm_offset + 3;
+
+				details_list = pango_attr_list_new();
+				pango_attr_list_insert(details_list, attr);
+				pango_layout_set_attributes(view->details,
+						details_list);
+
+				pango_attr_list_unref(details_list);
+			}
 		}
 	}
 
@@ -1069,6 +1069,8 @@ void display_update_view(FilerWindow *filer_window,
 		if (view->image)
 			g_object_ref(view->image);
 	}
+
+	if (!update_name_layout) return;
 
 	basic &= !(item->flags & ITEM_FLAG_RECENT);
 	basic &= (filer_window->display_style == SMALL_ICONS ||

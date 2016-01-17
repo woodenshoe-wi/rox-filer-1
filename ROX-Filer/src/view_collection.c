@@ -420,7 +420,9 @@ static void draw_item(GtkWidget *widget,
 			view->name_height,
 			selection_state,
 			TRUE);
-	if (view->details && item->base_type != TYPE_UNKNOWN)
+
+	if (filer_window->details_type != DETAILS_NONE &&
+		view->details && item->base_type != TYPE_UNKNOWN)
 		draw_string(widget, view->details,
 				&template.details,
 				template.details.width,
@@ -441,7 +443,7 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 	DisplayStyle	style = view_collection->filer_window->display_style;
 	ViewData 	*view = (ViewData *) colitem->view_data;
 
-	if (view->details)
+	if (view_collection->filer_window->details_type != DETAILS_NONE)
 	{
 		template->details.width = view->details_width;
 		template->details.height = view->details_height;
@@ -1632,9 +1634,6 @@ static void view_collection_autosize(ViewIface *view)
 
 	cols = x / w;
 	cols = MAX(cols, 1);
-
-	/* This is important for init processes to use col size. */
-	collection->columns = cols;
 
 	rows = MAX((n + cols - 1) / cols, 1);
 
