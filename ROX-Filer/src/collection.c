@@ -517,6 +517,9 @@ static void collection_size_allocate(GtkWidget *widget,
 	if (collection->old_pos != 0 &&
 		collection->vadj->value > 0
 	){
+		if (collection->winks_left > 0)
+			collection->winks_left += MAX_WINKS - 1;
+
 		gtk_adjustment_set_value(collection->vadj,
 			CLAMP(
 				(allocation->height / collection->old_height) *
