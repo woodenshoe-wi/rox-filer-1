@@ -790,7 +790,7 @@ static gint toolbar_size_enter(GtkButton *button,
 				FilerWindow *fw)
 {
 	gtk_widget_set_has_tooltip((GtkWidget *) button, TRUE);
-	return TRUE;
+	return FALSE;
 }
 static gint toolbar_button_scroll(GtkButton *button,
 				GdkEventScroll *event,
