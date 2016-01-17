@@ -785,6 +785,13 @@ static gint toolbar_button_pressed(GtkButton *button,
 	return FALSE;
 }
 
+static gint toolbar_size_enter(GtkButton *button,
+				GdkEventScroll *event,
+				FilerWindow *fw)
+{
+	gtk_widget_set_has_tooltip((GtkWidget *) button, TRUE);
+	return TRUE;
+}
 static gint toolbar_button_scroll(GtkButton *button,
 				GdkEventScroll *event,
 				FilerWindow *fw)
@@ -797,6 +804,8 @@ static gint toolbar_button_scroll(GtkButton *button,
 		start = (ICON_HEIGHT + step_pix) / HUGE_HEIGHT,
 		step  = step_pix / HUGE_HEIGHT,	
 		end   = HUGE_LIMIT_F / HUGE_HEIGHT;
+
+	gtk_widget_set_has_tooltip((GtkWidget *) button, FALSE);
 
 	if (event->direction == GDK_SCROLL_UP)
 	{
@@ -898,6 +907,8 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 			filer_window->toolbar_size_text = GTK_LABEL(label);
 			g_signal_connect(button, "scroll_event",
 				G_CALLBACK(toolbar_button_scroll), filer_window);
+			g_signal_connect(button, "enter_notify_event",
+				G_CALLBACK(toolbar_size_enter), filer_window);
 		}
 		if (tool->clicked == toolbar_settings_clicked)
 			filer_window->toolbar_settings_text = GTK_LABEL(label);
