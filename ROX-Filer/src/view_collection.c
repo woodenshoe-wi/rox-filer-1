@@ -1123,7 +1123,7 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
 	FilerWindow	*filer_window = view_collection->filer_window;
-	int old_num, i;
+	int old_num, i, reti;
 	int old_w = collection->item_width;
 	int old_h = collection->item_height;
 	int w, h, mw = 0, mh = 0;
@@ -1136,10 +1136,10 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 		if (!filer_match_filter(filer_window, item))
 			continue;
 
-		i = collection_insert(collection, item,
+		reti = collection_insert(collection, item,
 					display_create_viewdata(filer_window, item));
 
-		calc_size(filer_window, &collection->items[i], &w, &h); 
+		calc_size(filer_window, &collection->items[reti], &w, &h); 
 		mw = MAX(mw, w);
 		mh = MAX(mh, w);
 	}
