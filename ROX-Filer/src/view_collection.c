@@ -1141,7 +1141,7 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 
 		calc_size(filer_window, &collection->items[reti], &w, &h); 
 		mw = MAX(mw, w);
-		mh = MAX(mh, w);
+		mh = MAX(mh, h);
 	}
 	if (mw > old_w || mh > old_h)
 		collection_set_item_size(collection,
