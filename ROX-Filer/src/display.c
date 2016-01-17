@@ -230,6 +230,26 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 	*x += dx * 2 / 3;
 }
 
+static void draw_noimage(GdkWindow *window, GdkRectangle *rect)
+{
+	cairo_t *cr;
+	GdkRectangle drect;
+	GdkColor colour = {0, 0x9999, 0x9999, 0x9999};
+
+	cr = gdk_cairo_create(window);
+	gdk_cairo_set_source_color(cr, &colour);
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+	drect.x      = rect->x + rect->width / 3;
+	drect.width  = rect->width / 6 * 4;
+	drect.y      = rect->y + rect->height / 6;
+	drect.height = rect->height / 6 * 4;
+	gdk_cairo_rectangle(cr, &drect);
+
+	cairo_fill(cr);
+
+	cairo_destroy(cr);
+}
 static void draw_label_bg(GdkWindow *window,
 			GdkRectangle *rect,
 			GdkColor *colour)
@@ -414,7 +434,10 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 	GdkPixbuf	*pixbuf;
 	
 	if (!image)
+	{
+		draw_noimage(window, area);
 		return;
+	}
 
 	if (!image->sm_pixbuf)
 		pixmap_make_small(image);
