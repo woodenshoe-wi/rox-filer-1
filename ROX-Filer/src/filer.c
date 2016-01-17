@@ -166,7 +166,7 @@ static void load_learnt_mounts(void);
 static void save_learnt_mounts(void);
 static void load_settings(void);
 static void save_settings(void);
-static gboolean check_settings(FilerWindow *filer_window);
+static gboolean check_settings(FilerWindow *filer_window, gboolean onlycheck);
 static char *tip_from_desktop_file(const char *full_path);
 
 static GdkCursor *busy_cursor = NULL;
@@ -1485,7 +1485,7 @@ void filer_change_to(FilerWindow *filer_window,
 	g_free(filer_window->auto_select);
 	filer_window->auto_select = NULL;
 
-	force_resize = check_settings(filer_window);
+	force_resize = check_settings(filer_window, FALSE);
 
 	filer_window->had_cursor = filer_window->had_cursor ||
 			view_cursor_visible(filer_window->view);
@@ -1553,10 +1553,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 {
 	FilerWindow	*filer_window;
 	char		*real_path;
-	DisplayStyle    dstylew;
-	DetailsType     dtype;
-	SortType	s_type;
-	GtkSortType	s_order;
 	char *from_dup = NULL;
 
 	if (src_win) {
@@ -1597,6 +1593,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->auto_select = NULL;
 	filer_window->toolbar_text = NULL;
 	filer_window->toolbar_size_text = NULL;
+	filer_window->toolbar_settings_text = NULL;
 	filer_window->target_cb = NULL;
 	filer_window->mini_type = MINI_NONE;
 	filer_window->selection_state = GTK_STATE_ACTIVE;
@@ -1633,20 +1630,19 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->flags = (FilerFlags) 0;
 	filer_window->thumb_queue = NULL;
 	filer_window->max_thumbs = 0;
-	filer_window->sort_type = -1;
 
-	filer_window->filter = FILER_SHOW_ALL;
-	filer_window->filter_string = NULL;
 	filer_window->temp_filter_string = NULL;
 	filer_window->regexp = NULL;
-	filer_window->filter_directories = FALSE;
-	
+
+	/* Display settings target */
+	filer_window->filter = FILER_SHOW_ALL;
+	filer_window->filter_string = NULL;
 	if (src_win && o_display_inherit_options.int_value)
 	{
-		s_type = src_win->sort_type;
-		s_order = src_win->sort_order;
-		dstylew = src_win->display_style_wanted;
-		dtype = src_win->details_type;
+		filer_window->sort_type = src_win->sort_type;
+		filer_window->sort_order = src_win->sort_order;
+		filer_window->display_style_wanted = src_win->display_style_wanted;
+		filer_window->details_type = src_win->details_type;
 		filer_window->show_hidden = src_win->show_hidden;
 		filer_window->show_thumbs = src_win->show_thumbs;
 		filer_window->view_type = src_win->view_type;
@@ -1655,35 +1651,20 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 		filer_window->filter_directories = src_win->filter_directories;
 		filer_set_filter(filer_window, src_win->filter,
 				 src_win->filter_string);
-
 	}
 	else
-	{
-		s_type = o_display_sort_by.int_value;
-		s_order = GTK_SORT_ASCENDING;
-		dstylew = o_display_size.int_value;
-		dtype = o_display_details.int_value;
-		filer_window->show_hidden = o_display_show_hidden.int_value;
-		filer_window->show_thumbs = o_display_show_thumbs.int_value;
-		filer_window->view_type = o_filer_view_type.int_value;
-		filer_window->icon_scale = 1.0;
-	}
-
-	filer_window->display_style_wanted = dstylew;
-	filer_window->details_type = dtype;
-	filer_window->sort_type = s_type;
-	filer_window->sort_order = s_order;
-
-	/* Override the current defaults with the per-directory
-	 * user settings.
-	 */
-	check_settings(filer_window);
+		filer_clear_settings(filer_window);
 
 	/* Add all the user-interface elements & realise */
 	filer_add_widgets(filer_window, wm_class);
 	if (src_win)
 		gtk_window_set_position(GTK_WINDOW(filer_window->window),
 					GTK_WIN_POS_MOUSE);
+
+	/* Override the current defaults with the per-directory
+	 * user settings.
+	 */
+	check_settings(filer_window, FALSE);
 
 	/* Connect to all the signal handlers */
 	filer_add_signals(filer_window);
@@ -3582,23 +3563,65 @@ static void save_settings(void)
 
 }
 
-static gboolean check_settings(FilerWindow *filer_window)
+void filer_clear_settings(FilerWindow *fw)
+{
+	fw->sort_type            = o_display_sort_by.int_value;
+	fw->sort_order           = GTK_SORT_ASCENDING;
+	fw->display_style_wanted = o_display_size.int_value;
+	fw->details_type         = o_display_details.int_value;
+	fw->show_hidden          = o_display_show_hidden.int_value;
+	fw->show_thumbs          = o_display_show_thumbs.int_value;
+	fw->view_type            = o_filer_view_type.int_value;
+	fw->icon_scale           = 1.0;
+
+	fw->filter_directories   = FALSE;
+	filer_set_filter(fw, FILER_SHOW_ALL, NULL);
+}
+static gboolean check_settings(FilerWindow *filer_window, gboolean onlycheck)
 {
 	Settings *set;
 	gboolean force_resize = FALSE;
 	DisplayStyle dstyle = filer_window->display_style_wanted;
 	ViewType    vtype = filer_window->view_type;
 	DetailsType dtype = filer_window->details_type;
+	gchar *current, *moved = NULL, *status;
 
-	filer_window->reqx = filer_window->reqy = -1;
-	filer_window->req_width = filer_window->req_height = -1;
+	set = (Settings *) g_hash_table_lookup(settings_table,
+			filer_window->sym_path);
+
+	status = set ? "▼" : "▽";
+
+	current = filer_window->sym_path;
+	while (!set && !(current[0] == '/' && current[1] == '\0'))
+	{
+		current = g_path_get_dirname(current);
+
+		set = (Settings *) g_hash_table_lookup(settings_table,
+				make_path(current , "*"));
+
+		if (set)
+			status = moved ? "▷" : "▶";
+
+		g_free(moved);
+		moved = current;
+	}
+	g_free(moved);
+
+	if (filer_window->toolbar_settings_text)
+	{
+		gtk_label_set_text(filer_window->toolbar_settings_text, status);
+	}
+
+	if (onlycheck)
+		return FALSE;
+
 
 	/* shared init (open and change to) */
 	filer_window->dirs_only = FALSE;
 	filer_window->files_only = FALSE;
 
-	set=(Settings *) g_hash_table_lookup(settings_table,
-					      filer_window->sym_path);
+	filer_window->reqx = filer_window->reqy = -1;
+	filer_window->req_width = filer_window->req_height = -1;
 
 	if (!set)
 		goto out;
@@ -3676,9 +3699,9 @@ out:
 
 typedef struct settings_window {
 	GtkWidget *window;
-
+	gboolean parent;
 	GtkWidget *pos, *size, *hidden, *style, *sort, *details,
-		*thumbs, *filter;
+			  *thumbs, *filter;
 
 	Settings *set;
 } SettingsWindow;
@@ -3710,68 +3733,106 @@ static void settings_response(GtkWidget *window, gint response,
 		set_win->set->flags=flags;
 		store_settings(set_win->set);
 		save_settings();
+	} else if(response==GTK_RESPONSE_NO) {
+		Settings *old=g_hash_table_lookup(settings_table, set_win->set->path);
+		if(old) {
+			g_hash_table_remove(settings_table, set_win->set->path);
+			settings_free(old);
+		}
+		save_settings();
 	}
-	
+
+	if (response==GTK_RESPONSE_OK || response==GTK_RESPONSE_NO)
+	{
+		GList *next;
+		gchar *parent;
+		int len;
+
+		if (set_win->parent) {
+			parent = g_path_get_dirname(set_win->set->path);
+			len = strlen(parent);
+		}
+
+		for (next = all_filer_windows; next; next = next->next) {
+			FilerWindow *fw = (FilerWindow *) next->data;
+
+			if ((set_win->parent && strncmp(parent, fw->sym_path, len) == 0) ||
+				(strcmp(set_win->set->path, fw->sym_path) == 0))
+					check_settings(fw, TRUE);
+		}
+
+		if (set_win->parent)
+			g_free(parent);
+	}
+
+
 	gtk_widget_destroy(window);
 }
 
-void filer_save_settings(FilerWindow *fwin)
+void filer_save_settings(FilerWindow *fwin, gboolean parent)
 {
 	SettingsWindow *set_win;
 	GtkWidget *vbox, *frame;
 	GtkWidget *path, *lbl;
 	gint x, y;
-	
-	Settings *set=settings_new(fwin->sym_path);
+	gchar *target = fwin->sym_path;
+
+	if (parent)
+	{
+		gchar *tmp = g_path_get_dirname(target);
+		target = g_strdup(make_path(tmp , "*"));
+		g_free(tmp);
+	}
+
+	Settings *set=settings_new(target);
 	Settings *bs = (Settings *) g_hash_table_lookup(
 					settings_table,
-					fwin->sym_path);
+					target);
 
 	gtk_window_get_position(GTK_WINDOW(fwin->window),&x, &y);
-	set->flags|=SET_POSITION;
 	set->x=x;
 	set->y=y;
 
 	gtk_window_get_size(GTK_WINDOW(fwin->window),&x, &y);
-	set->flags|=SET_SIZE;
 	set->width=x;
 	set->height=y;
 
-	set->flags|=SET_HIDDEN;
 	set->show_hidden=fwin->show_hidden;
 
-	set->flags|=SET_STYLE;
 	set->display_style=fwin->display_style_wanted;
 
-	set->flags|=SET_SORT;
 	set->sort_type=fwin->sort_type;
 	set->sort_order=fwin->sort_order;
 
-	set->flags|=SET_DETAILS;
 	set->view_type=fwin->view_type;
 	set->details_type=fwin->details_type;
 
-	set->flags|=SET_THUMBS;
 	set->show_thumbs=fwin->show_thumbs;
 
-	set->flags|=SET_FILTER;
 	set->filter_type=fwin->filter;
 	if(fwin->filter_string)
 		set->filter=g_strdup(fwin->filter_string);
 	set->filter_directories=fwin->filter_directories;
 
 	if (bs)
-		set->flags&=bs->flags;
+		set->flags=bs->flags;
 
 	/* Store other parameters
 	*/
 	set_win=g_new(SettingsWindow, 1);
+
+	set_win->parent = parent;
 
 	set_win->window=gtk_dialog_new();
 	number_of_windows++;
 	
 	gtk_dialog_add_button(GTK_DIALOG(set_win->window),
 			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
+
+	if (bs)
+		gtk_dialog_add_button(GTK_DIALOG(set_win->window),
+				GTK_STOCK_DELETE, GTK_RESPONSE_NO);
+
 	gtk_dialog_add_button(GTK_DIALOG(set_win->window),
 			GTK_STOCK_OK, GTK_RESPONSE_OK);
 
@@ -3785,7 +3846,9 @@ void filer_save_settings(FilerWindow *fwin)
 
 	vbox=GTK_DIALOG(set_win->window)->vbox;
 
-	lbl=gtk_label_new(_("<b>Save display settings for directory</b>"));
+	lbl=gtk_label_new(parent ?
+			_("<b>Save display settings for parent directory/*</b>") :
+			_("<b>Save display settings for directory</b>"));
 	gtk_label_set_use_markup(GTK_LABEL(lbl), TRUE);
 	gtk_box_pack_start(GTK_BOX(vbox), lbl, FALSE, FALSE, 2);
 
@@ -3848,6 +3911,9 @@ void filer_save_settings(FilerWindow *fwin)
 			 G_CALLBACK(settings_response), set_win);
 
 	gtk_widget_show_all(set_win->window);
+
+	if (parent)
+		g_free(target);
 }
 
 static char *tip_from_desktop_file(const char *full_path)
