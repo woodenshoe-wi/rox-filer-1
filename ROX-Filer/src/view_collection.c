@@ -1634,6 +1634,9 @@ static void view_collection_autosize(ViewIface *view)
 	cols = x / w;
 	cols = MAX(cols, 1);
 
+	collection->columns = cols;
+	gtk_widget_queue_resize(GTK_WIDGET(collection));
+
 	rows = MAX((n + cols - 1) / cols, 1);
 
 	filer_window_set_size(filer_window,

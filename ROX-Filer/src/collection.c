@@ -545,7 +545,7 @@ static void collection_size_allocate(GtkWidget *widget,
 	{
 		/* Viewport resets the adjustments after the alloc */
 		g_object_ref(G_OBJECT(collection));
-		g_idle_add((GSourceFunc) scroll_after_alloc, collection);
+		scroll_after_alloc(collection);
 	}
 	else if (collection->wink_on_map < 0)
 		collection->center_wink = FALSE;
@@ -1670,6 +1670,7 @@ void collection_wink_item(Collection *collection, gint item)
 
 	if (!collection->center_wink)
 		scroll_to_show(collection, item);
+
 	invert_wink(collection);
 
 	gdk_flush();
