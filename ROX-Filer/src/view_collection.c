@@ -420,7 +420,9 @@ static void draw_item(GtkWidget *widget,
 			view->name_height,
 			selection_state,
 			TRUE);
-	if (view->details && item->base_type != TYPE_UNKNOWN)
+
+	if (filer_window->details_type != DETAILS_NONE &&
+		view->details && item->base_type != TYPE_UNKNOWN)
 		draw_string(widget, view->details,
 				&template.details,
 				template.details.width,
@@ -441,7 +443,7 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 	DisplayStyle	style = view_collection->filer_window->display_style;
 	ViewData 	*view = (ViewData *) colitem->view_data;
 
-	if (view->details)
+	if (view_collection->filer_window->details_type != DETAILS_NONE)
 	{
 		template->details.width = view->details_width;
 		template->details.height = view->details_height;
@@ -911,25 +913,6 @@ static void display_free_colitem(Collection *collection,
 	g_free(view);
 }
 
-static void add_item(ViewCollection *view_collection, DirItem *item)
-{
-	Collection *collection = view_collection->collection;
-	FilerWindow	*filer_window = view_collection->filer_window;
-	int		old_w = collection->item_width;
-	int		old_h = collection->item_height;
-	int		w, h, i;
-	
-	i = collection_insert(collection, item,
-				display_create_viewdata(filer_window, item));
-
-	calc_size(filer_window, &collection->items[i], &w, &h); 
-
-	if (w > old_w || h > old_h)
-		collection_set_item_size(collection,
-					 MAX(old_w, w),
-					 MAX(old_h, h));
-}
-
 static void style_set(Collection 	*collection,
 		      GtkStyle		*style,
 		      ViewCollection	*view_collection)
@@ -942,61 +925,64 @@ static void style_set(Collection 	*collection,
 static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		int *width, int *height)
 {
-	int		pix_width, pix_height;
-	int		w, ow, h;
 	DisplayStyle	style = filer_window->display_style;
 	ViewData	*view = (ViewData *) colitem->view_data;
 	gfloat scale = filer_window->icon_scale;
 
 	if (filer_window->details_type == DETAILS_NONE)
 	{
-		h = o_max_length.int_value == 0 ? view->name_height :
-			MIN(view->name_height,
-				((o_max_length.int_value - 1) / o_large_width.int_value + 1)
-					* fw_font_height / PANGO_SCALE
-			);
-
-		if (style == HUGE_ICONS)
+		if (style == SMALL_ICONS)
 		{
-			if (view->image)
-			{
-				if (!view->image->huge_pixbuf)
-					pixmap_make_huge(view->image);
-				
-				if (view->image->huge_width <= ICON_WIDTH &&
-					view->image->huge_height <= ICON_HEIGHT)
-					scale = 1.0;
-
-				pix_width = view->image->huge_width * scale;
-				pix_height = view->image->huge_height * scale;
-			}
-			else
-			{
-				pix_width = HUGE_WIDTH * scale;
-				pix_height = HUGE_HEIGHT * scale;
-			}
-			*width = MAX(pix_width, view->name_width);
-			*height = MAX(h + pix_height,
-					HUGE_HEIGHT * scale * 3 / 4);
-		}
-		else if (style == SMALL_ICONS)
-		{
-			w = MIN(view->name_width, o_small_width.int_value);
-			*width = small_width + 12 + w;
+			*width = small_width + 12 +
+				MIN(view->name_width, o_small_width.int_value);
 			*height = MAX(view->name_height, small_height);
 		}
 		else
 		{
-			if (view->image)
-				pix_width = view->image->width;
+			int pix_width, pix_height;
+			int	h = o_max_length.int_value == 0 ? view->name_height :
+				MIN(view->name_height,
+					((o_max_length.int_value - 1) / o_large_width.int_value + 1)
+						* fw_font_height / PANGO_SCALE
+				);
+
+			if (style == HUGE_ICONS)
+			{
+				if (view->image)
+				{
+					if (!view->image->huge_pixbuf)
+						pixmap_make_huge(view->image);
+					
+					if (view->image->huge_width <= ICON_WIDTH &&
+						view->image->huge_height <= ICON_HEIGHT)
+						scale = 1.0;
+
+					pix_width = view->image->huge_width * scale;
+					pix_height = view->image->huge_height * scale;
+				}
+				else
+				{
+					pix_width = HUGE_WIDTH * scale;
+					pix_height = HUGE_HEIGHT * scale;
+				}
+				*width = MAX(pix_width, view->name_width);
+				*height = MAX(h + pix_height,
+						HUGE_HEIGHT * scale * 3 / 4);
+			}
 			else
-				pix_width = ICON_WIDTH;
-			*width = MAX(pix_width, view->name_width);
-			*height = h + ICON_HEIGHT;
+			{
+				if (view->image)
+					pix_width = view->image->width;
+				else
+					pix_width = ICON_WIDTH;
+				*width = MAX(pix_width, view->name_width);
+				*height = h + ICON_HEIGHT;
+			}
 		}
 	}
 	else
 	{
+		int w, ow;
 		w = view->details_width;
 		ow = o_max_length.int_value == 0 ? view->name_width :
 			MIN(view->name_width, o_max_length.int_value);
@@ -1137,7 +1123,10 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
 	FilerWindow	*filer_window = view_collection->filer_window;
-	int old_num, i;
+	int old_num, i, reti;
+	int old_w = collection->item_width;
+	int old_h = collection->item_height;
+	int w, h, mw = 0, mh = 0;
 
 	old_num = collection->number_of_items;
 	for (i = 0; i < items->len; i++)
@@ -1147,11 +1136,23 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 		if (!filer_match_filter(filer_window, item))
 			continue;
 
-		add_item(view_collection, item);
+		reti = collection_insert(collection, item,
+					display_create_viewdata(filer_window, item));
+
+		calc_size(filer_window, &collection->items[reti], &w, &h); 
+		mw = MAX(mw, w);
+		mh = MAX(mh, h);
 	}
+	if (mw > old_w || mh > old_h)
+		collection_set_item_size(collection,
+					 MAX(old_w, mw),
+					 MAX(old_h, mh));
 
 	if (old_num != collection->number_of_items)
+	{
+		gtk_widget_queue_resize(GTK_WIDGET(collection));
 		view_collection_sort(view);
+	}
 }
 
 static void view_collection_update_items(ViewIface *view, GPtrArray *items)
@@ -1633,8 +1634,8 @@ static void view_collection_autosize(ViewIface *view)
 	cols = x / w;
 	cols = MAX(cols, 1);
 
-	/* This is important for init processes to use col size. */
 	collection->columns = cols;
+	gtk_widget_queue_resize(GTK_WIDGET(collection));
 
 	rows = MAX((n + cols - 1) / cols, 1);
 

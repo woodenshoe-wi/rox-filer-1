@@ -76,6 +76,7 @@ static void toolbar_home_clicked(GtkWidget *widget, FilerWindow *filer_window);
 static void toolbar_bookmarks_clicked(GtkWidget *widget,
 				      FilerWindow *filer_window);
 static void toolbar_help_clicked(GtkWidget *widget, FilerWindow *filer_window);
+static void toolbar_settings_clicked(GtkWidget *widget, FilerWindow *filer_window);
 static void toolbar_refresh_clicked(GtkWidget *widget,
 				    FilerWindow *filer_window);
 static void toolbar_size_clicked(GtkWidget *widget, FilerWindow *filer_window);
@@ -116,15 +117,22 @@ static Tool all_tools[] = {
 	 toolbar_close_clicked, DROP_NONE, FALSE,
 	 FALSE},
 	 
-	{N_("Up"), GTK_STOCK_GO_UP, N_("Change to parent directory"),
+	{N_("Up"), GTK_STOCK_GO_UP, N_("Change to parent directory\n"
+						"  Right: Open parent directory\n"
+						"  Center: Change to parent directory in real path\n"
+						"* Hint * You can also change to parent by use of hold left and right on the Icons view"),
 	 toolbar_up_clicked, DROP_TO_PARENT, TRUE,
 	 FALSE},
 	 
-	{N_("Home"), GTK_STOCK_HOME, N_("Change to home directory"),
+	{N_("Home"), GTK_STOCK_HOME, N_("Change to home directory\n"
+						"  Right: Open home directory\n"
+						"  Center: Change to first bookmark"),
 	 toolbar_home_clicked, DROP_TO_HOME, TRUE,
 	 FALSE},
 	
-	{N_("Jump"), ROX_STOCK_BOOKMARKS, N_("Bookmarks menu"),
+	{N_("Jump"), ROX_STOCK_BOOKMARKS, N_("Bookmarks menu\n"
+						"  Right: Edit Bookmarks\n"
+						"  Center: Jump to last visited directory"),
 	 toolbar_bookmarks_clicked, DROP_BOOKMARK, FALSE,
 	 TRUE},
 
@@ -132,7 +140,11 @@ static Tool all_tools[] = {
 	 toolbar_refresh_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
-	{N_("Size┼"), GTK_STOCK_ZOOM_IN, N_("Change icon size"),
+	{N_("Size┼"), GTK_STOCK_ZOOM_IN, N_("Change icon size\n"
+						"  Right: Change to smaller\n"
+						"  Center: Change to Auto size\n"
+						"  Scroll: Temporary huge zoom\n"
+						"Status: ┘Huge, ┤Large, ┐Small, ├Auto"),
 	 toolbar_size_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
@@ -140,7 +152,9 @@ static Tool all_tools[] = {
 	 toolbar_autosize_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
-	{N_("List"), ROX_STOCK_SHOW_DETAILS, N_("Show extra details"),
+	{N_("List"), ROX_STOCK_SHOW_DETAILS, N_("Show extra details\n"
+						"  Right: Rotate Icons with details\n"
+						"  Center: Return to normal Icons View"),
 	 toolbar_details_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
@@ -162,6 +176,18 @@ static Tool all_tools[] = {
 	 toolbar_select_clicked, DROP_NONE, FALSE,
 	 FALSE},
  	
+	{N_("○"), GTK_STOCK_SAVE, N_("Save Current Display Settings...\n"
+						"  Right: for parent/* \n"
+						"  Center: Clear to default settings\n"
+						"Under:\n"
+						"  ▽: No settings\n"
+						"  ▼: Own settings\n"
+						"  ▶: Parent settings\n"
+						"  ▷: Far parent settings"
+						),
+	 toolbar_settings_clicked, DROP_NONE, FALSE,
+	 FALSE},
+
 	{N_("Help"), GTK_STOCK_HELP, N_("Show ROX-Filer help"),
 	 toolbar_help_clicked, DROP_NONE, TRUE,
 	 FALSE},
@@ -277,6 +303,7 @@ void toolbar_update_toolbar(FilerWindow *filer_window)
 		filer_window->toolbar = NULL;
 		filer_window->toolbar_text = NULL;
 		filer_window->toolbar_size_text = NULL;
+		filer_window->toolbar_settings_text = NULL;
 	}
 
 	if (o_toolbar.int_value != TOOLBAR_NONE)
@@ -329,6 +356,24 @@ static void toolbar_help_clicked(GtkWidget *widget, FilerWindow *filer_window)
 		menu_rox_help(NULL, HELP_MANUAL, NULL);
 	else
 		filer_opendir(make_path(app_dir, "Help"), NULL, NULL);
+	gdk_event_free(event);
+}
+
+static void toolbar_settings_clicked(GtkWidget *widget, FilerWindow *fw)
+{
+	GdkEvent *event = get_current_event(GDK_BUTTON_RELEASE);
+	gint eb = ((GdkEventButton *) event)->button;
+
+	if (eb == 1)
+		filer_save_settings(fw, FALSE);
+	else if (eb == 2)
+	{
+		filer_clear_settings(fw);
+		display_update_hidden(fw);
+	}
+	else
+		filer_save_settings(fw, TRUE);
+
 	gdk_event_free(event);
 }
 
@@ -740,6 +785,13 @@ static gint toolbar_button_pressed(GtkButton *button,
 	return FALSE;
 }
 
+static gint toolbar_size_enter(GtkButton *button,
+				GdkEventScroll *event,
+				FilerWindow *fw)
+{
+	gtk_widget_set_has_tooltip((GtkWidget *) button, TRUE);
+	return FALSE;
+}
 static gint toolbar_button_scroll(GtkButton *button,
 				GdkEventScroll *event,
 				FilerWindow *fw)
@@ -752,6 +804,8 @@ static gint toolbar_button_scroll(GtkButton *button,
 		start = (ICON_HEIGHT + step_pix) / HUGE_HEIGHT,
 		step  = step_pix / HUGE_HEIGHT,	
 		end   = HUGE_LIMIT_F / HUGE_HEIGHT;
+
+	gtk_widget_set_has_tooltip((GtkWidget *) button, FALSE);
 
 	if (event->direction == GDK_SCROLL_UP)
 	{
@@ -851,10 +905,13 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 		if (tool->clicked == toolbar_size_clicked)
 		{
 			filer_window->toolbar_size_text = GTK_LABEL(label);
-			
 			g_signal_connect(button, "scroll_event",
 				G_CALLBACK(toolbar_button_scroll), filer_window);
+			g_signal_connect(button, "enter_notify_event",
+				G_CALLBACK(toolbar_size_enter), filer_window);
 		}
+		if (tool->clicked == toolbar_settings_clicked)
+			filer_window->toolbar_settings_text = GTK_LABEL(label);
 	}
 	else
 	{

@@ -107,13 +107,14 @@ struct _FilerWindow
 	GtkWidget	*toolbar_text;
 	GtkWidget	*scrollbar;
 	GtkLabel	*toolbar_size_text;
+	GtkLabel	*toolbar_settings_text;
 
 	gint		open_timeout;	/* Will resize and show window... */
 
 	GtkStateType	selection_state;	/* for drawing selection */
 	
 	gboolean	show_thumbs;
-	GList		*thumb_queue;		/* paths to thumbnail */
+	GQueue		*thumb_queue;		/* paths to thumbnail */
 	GtkWidget	*thumb_bar, *thumb_progress;
 	int		max_thumbs;		/* total for this batch */
 
@@ -201,7 +202,8 @@ gboolean filer_set_filter(FilerWindow *filer_window,
 void filer_set_filter_directories(FilerWindow *fwin, gboolean filter_directories);
 void filer_set_hidden(FilerWindow *fwin, gboolean hidden);
 void filer_next_selected(FilerWindow *filer_window, int dir);
-void filer_save_settings(FilerWindow *fwin);
+void filer_save_settings(FilerWindow *fwin, gboolean parent);
+void filer_clear_settings(FilerWindow *fwin);
 
 UnmountPrompt filer_get_unmount_action(const char *path);
 void filer_set_unmount_action(const char *path, UnmountPrompt action);

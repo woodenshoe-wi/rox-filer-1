@@ -517,6 +517,9 @@ static void collection_size_allocate(GtkWidget *widget,
 	if (collection->old_pos != 0 &&
 		collection->vadj->value > 0
 	){
+		if (collection->winks_left > 0)
+			collection->winks_left += MAX_WINKS - 1;
+
 		gtk_adjustment_set_value(collection->vadj,
 			CLAMP(
 				(allocation->height / collection->old_height) *
@@ -542,7 +545,7 @@ static void collection_size_allocate(GtkWidget *widget,
 	{
 		/* Viewport resets the adjustments after the alloc */
 		g_object_ref(G_OBJECT(collection));
-		g_idle_add((GSourceFunc) scroll_after_alloc, collection);
+		scroll_after_alloc(collection);
 	}
 	else if (collection->wink_on_map < 0)
 		collection->center_wink = FALSE;
@@ -1238,10 +1241,6 @@ gint collection_insert(Collection *collection, gpointer data, gpointer view)
 
 	collection->number_of_items++;
 
-	gtk_widget_queue_resize(GTK_WIDGET(collection));
-
-	collection_draw_item(collection, item, FALSE);
-
 	return item;
 }
 
@@ -1671,6 +1670,7 @@ void collection_wink_item(Collection *collection, gint item)
 
 	if (!collection->center_wink)
 		scroll_to_show(collection, item);
+
 	invert_wink(collection);
 
 	gdk_flush();
