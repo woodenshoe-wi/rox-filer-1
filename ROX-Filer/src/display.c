@@ -1071,26 +1071,26 @@ void display_update_view(FilerWindow *filer_window,
 		view->image = NULL;
 	}
 
-	if (filer_window->show_thumbs && item->base_type == TYPE_FILE /*&&
-									strcmp(item->mime_type->media_type, "image") == 0*/)
-	{
-		const guchar    *path;
-
-		path = make_path(filer_window->real_path, item->leafname);
-
-		view->image = g_fscache_lookup_full(pixmap_cache, path,
-				FSCACHE_LOOKUP_ONLY_NEW, NULL);
-	}
-
-	if (!view->image)
-		view->image = get_globicon(
-				make_path(filer_window->sym_path, item->leafname));
+	view->image = get_globicon(
+			make_path(filer_window->sym_path, item->leafname));
 
 	if (!view->image)
 	{
-		view->image = di_image(item);
-		if (view->image)
-			g_object_ref(view->image);
+		const guchar *path = make_path(filer_window->real_path, item->leafname);
+
+		view->image = get_globicon(path);
+
+		if (!view->image && filer_window->show_thumbs &&
+				item->base_type == TYPE_FILE)
+			view->image = g_fscache_lookup_full(pixmap_cache, path,
+					FSCACHE_LOOKUP_ONLY_NEW, NULL);
+
+		if (!view->image)
+		{
+			view->image = di_image(item);
+			if (view->image)
+				g_object_ref(view->image);
+		}
 	}
 
 	if (!update_name_layout) return;
