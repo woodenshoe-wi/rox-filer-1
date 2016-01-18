@@ -114,7 +114,7 @@ struct _FilerWindow
 	GtkStateType	selection_state;	/* for drawing selection */
 	
 	gboolean	show_thumbs;
-	GList		*thumb_queue;		/* paths to thumbnail */
+	GQueue		*thumb_queue;		/* paths to thumbnail */
 	GtkWidget	*thumb_bar, *thumb_progress;
 	int		max_thumbs;		/* total for this batch */
 

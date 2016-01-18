@@ -396,14 +396,14 @@ void dir_queue_recheck(Directory *dir, DirItem *item)
 	g_return_if_fail(item != NULL);
 	g_return_if_fail(item->flags & ITEM_FLAG_NEED_RESCAN_QUEUE);
 
-	dir->recheck_list = g_list_prepend(dir->recheck_list,
-			g_strdup(item->leafname));
+	g_queue_push_head(dir->recheck_list, g_strdup(item->leafname));
 	item->flags &= ~ITEM_FLAG_NEED_RESCAN_QUEUE;
 }
 
 static void free_recheck_list(Directory *dir)
 {
-	destroy_glist(&dir->recheck_list);
+	g_queue_free_full(dir->recheck_list, g_free);
+	dir->recheck_list = NULL;
 }
 
 /* If scanning state has changed then notify all filer windows */
@@ -462,17 +462,14 @@ static void dir_error_changed(Directory *dir)
 static gboolean recheck_callback(gpointer data)
 {
 	Directory *dir = (Directory *) data;
-	GList	*next;
 	guchar	*leaf;
 	
 	g_return_val_if_fail(dir != NULL, FALSE);
 	g_return_val_if_fail(dir->recheck_list != NULL, FALSE);
+	g_return_val_if_fail(!g_queue_is_empty(dir->recheck_list), FALSE);
 
 	/* Remove the last name from the list. It is slow but last items are on sight */
-	next = g_list_last(dir->recheck_list);
-	dir->recheck_list = g_list_remove_link(dir->recheck_list, next);
-	leaf = (guchar *) next->data;
-	g_list_free_1(next);
+	leaf = g_queue_pop_tail(dir->recheck_list);
 
 	/* usleep(800); */
 
@@ -480,7 +477,7 @@ static gboolean recheck_callback(gpointer data)
 
 	g_free(leaf);
 
-	if (dir->recheck_list)
+	if (!g_queue_is_empty(dir->recheck_list))
 		return TRUE;	/* Call again */
 
 	/* The recheck_list list empty. Stop scanning, unless
@@ -827,7 +824,7 @@ static void update(Directory *dir, gchar *pathname, gpointer data)
  */
 static void set_idle_callback(Directory *dir)
 {
-	if (dir->recheck_list && dir->users)
+	if (!g_queue_is_empty(dir->recheck_list) && dir->users)
 	{
 		/* Work to do, and someone's watching */
 		dir_set_scanning(dir, TRUE);
@@ -959,7 +956,7 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 	Directory *dir = (Directory *) object;
 
 	dir->known_items = g_hash_table_new(g_str_hash, g_str_equal);
-	dir->recheck_list = NULL;
+	dir->recheck_list = g_queue_new();
 	dir->idle_callback = 0;
 	dir->scanning = FALSE;
 	dir->have_scanned = FALSE;
@@ -1091,6 +1088,7 @@ static void dir_rescan(Directory *dir)
 	remove_missing(dir, names);
 
 	free_recheck_list(dir);
+	dir->recheck_list = g_queue_new();
 
 	/* For each name found, mark it as needing to be put on the rescan
 	 * list at some point in the future.

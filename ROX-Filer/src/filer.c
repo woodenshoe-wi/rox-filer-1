@@ -526,7 +526,7 @@ static void update_display(Directory *dir,
 
 			filer_create_thumbs(filer_window);
 
-			if (filer_window->thumb_queue)
+			if (!g_queue_is_empty(filer_window->thumb_queue))
 				start_thumb_scanning(filer_window);
 			break;
 		case DIR_UPDATE:
@@ -835,8 +835,7 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 		filer_window->auto_scroll = -1;
 	}
 
-	if (filer_window->thumb_queue)
-		destroy_glist(&filer_window->thumb_queue);
+	g_queue_free_full(filer_window->thumb_queue, g_free);
 
 	tooltip_show(NULL);
 
@@ -1628,7 +1627,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	filer_window->temp_item_selected = FALSE;
 	filer_window->flags = (FilerFlags) 0;
-	filer_window->thumb_queue = NULL;
+	filer_window->thumb_queue = g_queue_new();
 	filer_window->max_thumbs = 0;
 
 	filer_window->temp_filter_string = NULL;
@@ -2363,7 +2362,8 @@ void filer_cancel_thumbnails(FilerWindow *filer_window)
 {
 	gtk_widget_hide(filer_window->thumb_bar);
 
-	destroy_glist(&filer_window->thumb_queue);
+	g_queue_free_full(filer_window->thumb_queue, g_free);
+	filer_window->thumb_queue = g_queue_new();
 	filer_window->max_thumbs = 0;
 }
 
@@ -2385,7 +2385,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 		return FALSE;
 	}
 		
-	if (!filer_window->thumb_queue)
+	if (g_queue_is_empty(filer_window->thumb_queue))
 	{
 		filer_cancel_thumbnails(filer_window);
 		g_object_unref(window);
@@ -2393,14 +2393,11 @@ static gboolean filer_next_thumb_real(GObject *window)
 	}
 
 	total = filer_window->max_thumbs;
-	done = total - g_list_length(filer_window->thumb_queue);
+	done = total - g_queue_get_length(filer_window->thumb_queue);
 
-	path = (gchar *) g_list_last(filer_window->thumb_queue)->data;
-
+	path = (gchar *) g_queue_pop_tail(filer_window->thumb_queue);
 	pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
 
-	filer_window->thumb_queue = g_list_remove(filer_window->thumb_queue,
-						  path);
 	g_free(path);
 
 	gtk_progress_bar_set_fraction(
@@ -2435,12 +2432,11 @@ static void start_thumb_scanning(FilerWindow *filer_window)
 /* Set this image to be loaded some time in the future */
 void filer_create_thumb(FilerWindow *filer_window, const gchar *path)
 {
-	if (!filer_window->thumb_queue)
+	if (g_queue_is_empty(filer_window->thumb_queue))
 		filer_window->max_thumbs=0;
 	filer_window->max_thumbs++;
 
-	filer_window->thumb_queue = g_list_prepend(filer_window->thumb_queue,
-						  g_strdup(path));
+	g_queue_push_head(filer_window->thumb_queue, g_strdup(path));
 
 	if (filer_window->scanning)
 		return;			/* Will start when scan ends */
