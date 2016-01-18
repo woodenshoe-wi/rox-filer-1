@@ -468,7 +468,6 @@ static gboolean recheck_callback(gpointer data)
 	g_return_val_if_fail(dir->recheck_list != NULL, FALSE);
 	g_return_val_if_fail(!g_queue_is_empty(dir->recheck_list), FALSE);
 
-	/* Remove the last name from the list. It is slow but last items are on sight */
 	leaf = g_queue_pop_tail(dir->recheck_list);
 
 	/* usleep(800); */
