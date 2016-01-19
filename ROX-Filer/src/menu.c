@@ -117,6 +117,8 @@ static gboolean action_with_leaf(ActionFn action,
 				 const gchar *current, const gchar *new);
 static gboolean link_cb(GObject *savebox,
 			const gchar *initial, const gchar *path);
+static gboolean rename_cb(GObject *savebox,
+			const gchar *initial, const gchar *path);
 static void select_nth_item(GtkMenuShell *shell, int n);
 static void new_file_type(gchar *templ);
 static void do_send_to(gchar *templ);
@@ -1160,6 +1162,10 @@ static void savebox_show(const gchar *action, const gchar *path,
 				check_relative, FALSE, TRUE, 0);
 		gtk_widget_show(check_relative);
 	}
+	else if (callback == rename_cb)
+	{
+		gtk_window_set_default_size(GTK_WINDOW(savebox), 400, -1);
+	}
 
 	g_signal_connect(savebox, "save_to_file",
 				G_CALLBACK(save_to_file), NULL);
@@ -1187,7 +1193,7 @@ static void savebox_show(const gchar *action, const gchar *path,
 	}
 	gtk_savebox_set_icon(GTK_SAVEBOX(savebox), image->pixbuf);
 	g_object_unref(image);
-				
+
 	gtk_widget_show(savebox);
 }
 
