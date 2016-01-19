@@ -3821,7 +3821,10 @@ void filer_save_settings(FilerWindow *fwin, gboolean parent)
 
 	set_win->window=gtk_dialog_new();
 	number_of_windows++;
-	
+
+	gtk_window_set_position(GTK_WINDOW(set_win->window),
+			GTK_WIN_POS_MOUSE);
+
 	gtk_dialog_add_button(GTK_DIALOG(set_win->window),
 			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
 
