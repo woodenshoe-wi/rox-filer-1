@@ -77,6 +77,7 @@ Option o_display_inherit_options;
 static Option o_filer_change_size_num;
 Option o_vertical_order_small, o_vertical_order_large;
 Option o_xattr_show;
+static Option o_wrap_by_char;
 
 /* Static prototypes */
 static void display_details_set(FilerWindow *filer_window, DetailsType details);
@@ -109,6 +110,7 @@ void display_init()
 	option_add_int(&o_vertical_order_small, "vertical_order_small", FALSE);
 	option_add_int(&o_vertical_order_large, "vertical_order_large", FALSE);
 	option_add_int(&o_xattr_show, "xattr_show", TRUE);
+	option_add_int(&o_wrap_by_char, "wrap_by_char", FALSE);
 
 	option_add_notify(options_changed);
 }
@@ -840,7 +842,11 @@ static void options_changed(void)
 		if (o_display_show_headers.has_changed)
 			flags |= VIEW_UPDATE_HEADERS;
 
-		if (o_large_width.has_changed || o_small_width.has_changed || o_max_length.has_changed)
+		if (o_large_width.has_changed ||
+		    o_small_width.has_changed ||
+		    o_max_length.has_changed ||
+		    o_wrap_by_char.has_changed
+		)
 			flags |= VIEW_UPDATE_NAME; /* Recreate PangoLayout */
 
 		view_style_changed(filer_window->view, flags);
@@ -995,9 +1001,14 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 			wrap_width = o_large_width.int_value * PANGO_SCALE;
 	}
 
+	if (o_wrap_by_char.int_value)
+		pango_layout_set_wrap(ret, PANGO_WRAP_CHAR);
+	else {
 #ifdef USE_PANGO_WRAP_WORD_CHAR
-	pango_layout_set_wrap(ret, PANGO_WRAP_WORD_CHAR);
+		pango_layout_set_wrap(ret, PANGO_WRAP_WORD_CHAR);
 #endif
+	}
+
 	if (wrap_width != -1)
 		pango_layout_set_width(ret, wrap_width);
 
