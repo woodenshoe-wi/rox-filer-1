@@ -235,21 +235,28 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 static void draw_noimage(GdkWindow *window, GdkRectangle *rect)
 {
 	cairo_t *cr;
-	GdkRectangle drect;
-	GdkColor colour = {0, 0x9999, 0x9999, 0x9999};
+	GdkRectangle dr;
 
 	cr = gdk_cairo_create(window);
-	gdk_cairo_set_source_color(cr, &colour);
 	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
-	drect.x      = rect->x + rect->width / 3;
-	drect.width  = rect->width / 6 * 4;
-	drect.y      = rect->y + rect->height / 6;
-	drect.height = rect->height / 6 * 4;
-	gdk_cairo_rectangle(cr, &drect);
+	dr.x      = rect->x + rect->width / 6;
+	dr.width  = rect->width / 6 * 4;
+	dr.y      = rect->y + rect->height / 6;
+	dr.height = rect->height / 6 * 4;
+	gdk_cairo_rectangle(cr, &dr);
 
-	cairo_fill(cr);
+	cairo_pattern_t *linpat = cairo_pattern_create_linear (
+		dr.x + dr.width / 4, dr.y + dr.height / 4,
+		dr.x + dr.width, dr.y + dr.height);
 
+	cairo_pattern_add_color_stop_rgb (linpat, 0, 0.1, 0.1, 0.2);
+	cairo_pattern_add_color_stop_rgb (linpat, 1, 0.4, 0.4, 0.6);
+
+	cairo_set_line_width (cr, 1.1);
+
+	cairo_set_source (cr, linpat);
+	cairo_stroke(cr);
 	cairo_destroy(cr);
 }
 static void draw_label_bg(GdkWindow *window,
@@ -301,7 +308,7 @@ void draw_huge_icon(FilerWindow *filer_window,
 	gfloat	scale;
 
 	if (!image)
-		return;
+		return draw_noimage(window, area);
 
 	if (image->huge_width <= ICON_WIDTH &&
 		image->huge_height <= ICON_HEIGHT)
@@ -312,7 +319,7 @@ void draw_huge_icon(FilerWindow *filer_window,
 	width = image->huge_width * scale;
 	height = image->huge_height * scale;
 	image_x = area->x + ((area->width - width) >> 1);
-	image_y = MAX(0, area->height - height - 6);
+	image_y = area->y + MAX(0, area->height - height - 6);
 
 	draw_label_bg(window, area,
 			selected && item->label ? color : item->label);
@@ -326,13 +333,12 @@ void draw_huge_icon(FilerWindow *filer_window,
 					width, height, GDK_INTERP_BILINEAR);
 	else
 		scaled = pixbuf;
-	
 
 	gdk_pixbuf_render_to_drawable_alpha(
 			scaled,
 			window,
 			0, 0, 				/* src */
-			image_x, area->y + image_y,	/* dest */
+			image_x, image_y,	/* dest */
 			width, height,
 			GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
 			GDK_RGB_DITHER_NORMAL, 0, 0);
@@ -382,12 +388,12 @@ void draw_large_icon(GdkWindow *window,
 	GdkPixbuf *pixbuf;
 
 	if (!image)
-		return;
+		return draw_noimage(window, area);
 
 	width = MIN(image->width, ICON_WIDTH);
 	height = MIN(image->height, ICON_HEIGHT);
 	image_x = area->x + ((area->width - width) >> 1);
-	image_y = MAX(0, area->height - height - 6);
+	image_y = area->y + MAX(0, area->height - height - 6);
 
 	draw_label_bg(window, area,
 			selected && item->label ? color : item->label);
@@ -400,7 +406,7 @@ void draw_large_icon(GdkWindow *window,
 			pixbuf,
 			window,
 			0, 0, 				/* src */
-			image_x, area->y + image_y,	/* dest */
+			image_x, image_y,	/* dest */
 			width, height,
 			GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
 			GDK_RGB_DITHER_NORMAL, 0, 0);
@@ -434,12 +440,9 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 {
 	int		width, height, image_x, image_y;
 	GdkPixbuf	*pixbuf;
-	
+
 	if (!image)
-	{
-		draw_noimage(window, area);
-		return;
-	}
+		return draw_noimage(window, area);
 
 	if (!image->sm_pixbuf)
 		pixmap_make_small(image);
@@ -447,7 +450,7 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 	width = MIN(image->sm_width, small_width);
 	height = MIN(image->sm_height, small_height);
 	image_x = area->x + ((area->width - width) >> 1);
-	image_y = MAX(0, small_height - image->sm_height);
+	image_y = area->y + MAX(0, small_height - image->sm_height);
 
 	draw_label_bg(window, area,
 			selected && item->label ? color : item->label);
@@ -460,7 +463,7 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 			pixbuf,
 			window,
 			0, 0, 				/* src */
-			image_x, area->y + image_y,	/* dest */
+			image_x, image_y,	/* dest */
 			width, height,
 			GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
 			GDK_RGB_DITHER_NORMAL, 0, 0);
