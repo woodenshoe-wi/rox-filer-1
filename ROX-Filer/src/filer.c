@@ -1629,6 +1629,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->flags = (FilerFlags) 0;
 	filer_window->thumb_queue = g_queue_new();
 	filer_window->max_thumbs = 0;
+	filer_window->tried_thumbs = -1;
 
 	filer_window->temp_filter_string = NULL;
 	filer_window->regexp = NULL;
@@ -2365,6 +2366,7 @@ void filer_cancel_thumbnails(FilerWindow *filer_window)
 	g_queue_free_full(filer_window->thumb_queue, g_free);
 	filer_window->thumb_queue = g_queue_new();
 	filer_window->max_thumbs = 0;
+	filer_window->tried_thumbs = -1;
 }
 
 /* Generate the next thumb for this window. The window object is
@@ -2396,9 +2398,32 @@ static gboolean filer_next_thumb_real(GObject *window)
 	done = total - g_queue_get_length(filer_window->thumb_queue);
 
 	path = (gchar *) g_queue_pop_tail(filer_window->thumb_queue);
-	pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
 
-	g_free(path);
+	if (filer_window->max_thumbs > filer_window->tried_thumbs)
+	{
+		filer_window->tried_thumbs++;
+		MaskedPixmap *image = pixmap_try_thumb(path, TRUE);
+		if (image)
+		{
+			g_object_unref(image);
+			filer_next_thumb(window, path);
+			g_free(path);
+		}
+		else
+		{
+			g_queue_push_head(filer_window->thumb_queue, path);
+			filer_next_thumb(window, NULL);
+		}
+		return FALSE;
+	}
+	else
+	{
+		pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
+		g_free(path);
+	}
+
+	if (!GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+		gtk_widget_show_all(filer_window->thumb_bar);
 
 	gtk_progress_bar_set_fraction(
 			GTK_PROGRESS_BAR(filer_window->thumb_progress),
@@ -2420,10 +2445,10 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 
 static void start_thumb_scanning(FilerWindow *filer_window)
 {
-	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	if (filer_window->tried_thumbs != -1)
 		return;		/* Already scanning */
 
-	gtk_widget_show_all(filer_window->thumb_bar);
+	filer_window->tried_thumbs++;
 
 	g_object_ref(G_OBJECT(filer_window->window));
 	filer_next_thumb(G_OBJECT(filer_window->window), NULL);
@@ -3821,7 +3846,10 @@ void filer_save_settings(FilerWindow *fwin, gboolean parent)
 
 	set_win->window=gtk_dialog_new();
 	number_of_windows++;
-	
+
+	gtk_window_set_position(GTK_WINDOW(set_win->window),
+			GTK_WIN_POS_MOUSE);
+
 	gtk_dialog_add_button(GTK_DIALOG(set_win->window),
 			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
 
