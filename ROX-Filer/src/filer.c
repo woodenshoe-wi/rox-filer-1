@@ -1554,13 +1554,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	char		*real_path;
 	char *from_dup = NULL;
 
-	if (src_win) {
-		char *dir = g_path_get_dirname(src_win->sym_path);
-		if (strcmp(path, dir) == 0)
-			from_dup = g_path_get_basename(src_win->sym_path);
-		g_free(dir);
-	}
-
 	/* Get the real pathname of the directory and copy it */
 	real_path = pathdup(path);
 
@@ -1575,6 +1568,13 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 			gtk_window_present(GTK_WINDOW(same_dir_window->window));
 			return same_dir_window;
 		}
+	}
+
+	if (src_win) {
+		char *dir = g_path_get_dirname(src_win->sym_path);
+		if (strcmp(path, dir) == 0)
+			from_dup = g_path_get_basename(src_win->sym_path);
+		g_free(dir);
 	}
 
 	filer_window = g_new(FilerWindow, 1);
