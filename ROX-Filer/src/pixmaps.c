@@ -459,13 +459,13 @@ static void save_thumbnail(const char *pathname, GdkPixbuf *full)
 	int name_len;
 	GdkPixbuf *thumb;
 
+	if (mc_stat(pathname, &info) != 0)
+		return;
+
 	thumb = scale_pixbuf(full, PIXMAP_THUMB_SIZE, PIXMAP_THUMB_SIZE);
 
 	original_width = gdk_pixbuf_get_width(full);
 	original_height = gdk_pixbuf_get_height(full);
-
-	if (mc_stat(pathname, &info) != 0)
-		return;
 
 	swidth = g_strdup_printf("%d", original_width);
 	sheight = g_strdup_printf("%d", original_height);
