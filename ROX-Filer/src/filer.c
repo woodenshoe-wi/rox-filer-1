@@ -2437,10 +2437,23 @@ static gboolean filer_next_thumb_real(GObject *window)
  */
 static void filer_next_thumb(GObject *window, const gchar *path)
 {
+	FilerWindow *filer_window;
+
+	filer_window = g_object_get_data(window, "filer_window");
+
+	if (!filer_window)
+	{
+		g_object_unref(window);
+		return;
+	}
+
 	if (path)
 		dir_force_update_path(path);
 
-	g_idle_add((GSourceFunc) filer_next_thumb_real, window);
+	if (filer_window->max_thumbs > filer_window->tried_thumbs)
+		g_idle_add((GSourceFunc) filer_next_thumb_real, window);
+	else
+		g_idle_add_full(G_PRIORITY_LOW, (GSourceFunc) filer_next_thumb_real, window, NULL);
 }
 
 static void start_thumb_scanning(FilerWindow *filer_window)
