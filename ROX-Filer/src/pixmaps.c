@@ -95,6 +95,8 @@ struct _ChildThumbnail {
 	gchar	 *path;
 	GFunc	 callback;
 	gpointer data;
+	pid_t	 child;
+	guint	 timeout;
 };
 
 static const char *stocks[] = {
@@ -286,6 +288,12 @@ gint pixmap_check_and_load_thumb(const gchar *path)
 	return -1;
 }
 
+static int thumb_prog_timeout(ChildThumbnail *info)
+{
+	info->timeout = 0;
+	kill(info->child, 9);
+	return FALSE;
+}
 /* Load image 'path' in the background and insert into pixmap_cache.
  * Call callback(data, path) when done (path is NULL => error).
  * If the image is already uptodate, or being created already, calls the
@@ -348,6 +356,7 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 	info->path = g_strdup(path);
 	info->callback = callback;
 	info->data = data;
+	info->timeout = 0;
 
 	if (thumb_prog)
 	{
@@ -383,6 +392,9 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 		}
 
 		g_free(thumb_prog);
+		info->child = child;
+		info->timeout = g_timeout_add_seconds(20,
+				(GSourceFunc) thumb_prog_timeout, info);
 		on_child_death(child, (CallbackFn) thumbnail_done, info);
 	}
 	else
@@ -632,6 +644,9 @@ static void create_thumbnail(const gchar *path, MIME_type *type)
 static void thumbnail_done(ChildThumbnail *info)
 {
 	GdkPixbuf *thumb;
+
+	if (info->timeout)
+		g_source_remove(info->timeout);
 
 	thumb = get_thumbnail_for(info->path);
 
