@@ -260,6 +260,32 @@ void pixmap_make_small(MaskedPixmap *mp)
 	mp->sm_height = gdk_pixbuf_get_height(mp->sm_pixbuf);
 }
 
+/* -1:not thumb target 0:not created 1:created and loaded */
+gint pixmap_check_and_load_thumb(const gchar *path)
+{
+	MaskedPixmap *image = pixmap_try_thumb(path, TRUE);
+	if (image)
+	{
+		g_object_unref(image);
+		return 1;
+	}
+
+	MIME_type *type = type_from_path(path);
+	if (type)
+	{
+		gchar *thumb_prog = NULL;
+		if (strcmp(type->media_type, "image") == 0 ||
+				(thumb_prog = thumbnail_program(type)))
+		{
+			g_free(thumb_prog);
+			return 0;
+		}
+	}
+
+	g_fscache_insert(pixmap_cache, path, NULL, TRUE);
+	return -1;
+}
+
 /* Load image 'path' in the background and insert into pixmap_cache.
  * Call callback(data, path) when done (path is NULL => error).
  * If the image is already uptodate, or being created already, calls the

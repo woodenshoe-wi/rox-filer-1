@@ -2394,26 +2394,26 @@ static gboolean filer_next_thumb_real(GObject *window)
 		return FALSE;
 	}
 
-	total = filer_window->max_thumbs;
-	done = total - g_queue_get_length(filer_window->thumb_queue);
-
 	path = (gchar *) g_queue_pop_tail(filer_window->thumb_queue);
 
 	if (filer_window->max_thumbs > filer_window->tried_thumbs)
 	{
 		filer_window->tried_thumbs++;
-		MaskedPixmap *image = pixmap_try_thumb(path, TRUE);
-		if (image)
+
+		switch (pixmap_check_and_load_thumb(path))
 		{
-			g_object_unref(image);
-			filer_next_thumb(window, path);
-			g_free(path);
+			case 1:
+				filer_next_thumb(window, path);
+				g_free(path);
+				return FALSE;
+			case 0:
+				g_queue_push_head(filer_window->thumb_queue, path);
+				break;
+			case -1:
+				g_free(path);
 		}
-		else
-		{
-			g_queue_push_head(filer_window->thumb_queue, path);
-			filer_next_thumb(window, NULL);
-		}
+
+		filer_next_thumb(window, NULL);
 		return FALSE;
 	}
 	else
@@ -2424,6 +2424,9 @@ static gboolean filer_next_thumb_real(GObject *window)
 
 	if (!GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
 		gtk_widget_show_all(filer_window->thumb_bar);
+
+	total = filer_window->max_thumbs;
+	done = total - g_queue_get_length(filer_window->thumb_queue);
 
 	gtk_progress_bar_set_fraction(
 			GTK_PROGRESS_BAR(filer_window->thumb_progress),
