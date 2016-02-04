@@ -95,6 +95,8 @@ struct _ChildThumbnail {
 	gchar	 *path;
 	GFunc	 callback;
 	gpointer data;
+	pid_t	 child;
+	guint	 timeout;
 };
 
 static const char *stocks[] = {
@@ -115,8 +117,8 @@ static MaskedPixmap *image_from_desktop_file(const char *path);
 static MaskedPixmap *get_bad_image(void);
 static GdkPixbuf *scale_pixbuf_up(GdkPixbuf *src, int max_w, int max_h);
 static GdkPixbuf *get_thumbnail_for(const char *path);
-static void thumbnail_child_done(ChildThumbnail *info);
-static void child_create_thumbnail(const gchar *path, MIME_type *type);
+static void thumbnail_done(ChildThumbnail *info);
+static void create_thumbnail(const gchar *path, MIME_type *type);
 static GList *thumbs_purge_cache(Option *option, xmlNode *node, guchar *label);
 static gchar *thumbnail_path(const gchar *path);
 static gchar *thumbnail_program(MIME_type *type);
@@ -260,6 +262,38 @@ void pixmap_make_small(MaskedPixmap *mp)
 	mp->sm_height = gdk_pixbuf_get_height(mp->sm_pixbuf);
 }
 
+/* -1:not thumb target 0:not created 1:created and loaded */
+gint pixmap_check_and_load_thumb(const gchar *path)
+{
+	MaskedPixmap *image = pixmap_try_thumb(path, TRUE);
+	if (image)
+	{
+		g_object_unref(image);
+		return 1;
+	}
+
+	MIME_type *type = type_from_path(path);
+	if (type)
+	{
+		gchar *thumb_prog = NULL;
+		if (strcmp(type->media_type, "image") == 0 ||
+				(thumb_prog = thumbnail_program(type)))
+		{
+			g_free(thumb_prog);
+			return 0;
+		}
+	}
+
+	g_fscache_insert(pixmap_cache, path, NULL, TRUE);
+	return -1;
+}
+
+static int thumb_prog_timeout(ChildThumbnail *info)
+{
+	info->timeout = 0;
+	kill(info->child, 9);
+	return FALSE;
+}
 /* Load image 'path' in the background and insert into pixmap_cache.
  * Call callback(data, path) when done (path is NULL => error).
  * If the image is already uptodate, or being created already, calls the
@@ -318,51 +352,56 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 		return;		/* Don't know how to handle this type */
 	}
 
-	child = fork();
-
-	if (child == -1)
-	{
-		g_free(thumb_prog);
-		delayed_error("fork(): %s", g_strerror(errno));
-		callback(data, NULL);
-		return;
-	}
-
-	if (child == 0)
-	{
-		/* We are the child process.  (We are sloppy with freeing
-		 memory, but since we go away very quickly, that's ok.) */
-		if (thumb_prog)
-		{
-			DirItem *item;
-			
-			base = g_path_get_basename(thumb_prog);
-			item = diritem_new(base);
-			g_free(base);
-
-			diritem_restat(thumb_prog, item, NULL);
-			if (item->flags & ITEM_FLAG_APPDIR)
-				thumb_prog = g_strconcat(thumb_prog, "/AppRun",
-						       NULL);
-
-			execl(thumb_prog, thumb_prog, path,
-			      thumbnail_path(path),
-			      g_strdup_printf("%d", PIXMAP_THUMB_SIZE),
-			      NULL);
-			_exit(1);
-		}
-
-		child_create_thumbnail(path, type);
-		_exit(0);
-	}
-
-	g_free(thumb_prog);
-
 	info = g_new(ChildThumbnail, 1);
 	info->path = g_strdup(path);
 	info->callback = callback;
 	info->data = data;
-	on_child_death(child, (CallbackFn) thumbnail_child_done, info);
+	info->timeout = 0;
+
+	if (thumb_prog)
+	{
+		child = fork();
+		if (child == -1)
+		{
+			g_free(thumb_prog);
+			delayed_error("fork(): %s", g_strerror(errno));
+			callback(data, NULL);
+			return;
+		}
+
+		if (child == 0)
+		{
+			/* We are the child process.  (We are sloppy with freeing
+			 memory, but since we go away very quickly, that's ok.) */
+			DirItem *item;
+
+			base = g_path_get_basename(thumb_prog);
+			item = diritem_new(base);
+			g_free(base);
+			diritem_restat(thumb_prog, item, NULL);
+			if (item->flags & ITEM_FLAG_APPDIR)
+				thumb_prog = g_strconcat(thumb_prog, "/AppRun",
+							   NULL);
+
+			execl(thumb_prog, thumb_prog, path,
+					thumbnail_path(path),
+					g_strdup_printf("%d", PIXMAP_THUMB_SIZE),
+					NULL);
+
+			_exit(1);
+		}
+
+		g_free(thumb_prog);
+		info->child = child;
+		info->timeout = g_timeout_add_seconds(20,
+				(GSourceFunc) thumb_prog_timeout, info);
+		on_child_death(child, (CallbackFn) thumbnail_done, info);
+	}
+	else
+	{
+		create_thumbnail(path, type);
+		thumbnail_done(info);
+	}
 }
 
 /*
@@ -458,13 +497,13 @@ static void save_thumbnail(const char *pathname, GdkPixbuf *full)
 	int name_len;
 	GdkPixbuf *thumb;
 
+	if (mc_stat(pathname, &info) != 0)
+		return;
+
 	thumb = scale_pixbuf(full, PIXMAP_THUMB_SIZE, PIXMAP_THUMB_SIZE);
 
 	original_width = gdk_pixbuf_get_width(full);
 	original_height = gdk_pixbuf_get_height(full);
-
-	if (mc_stat(pathname, &info) != 0)
-		return;
 
 	swidth = g_strdup_printf("%d", original_width);
 	sheight = g_strdup_printf("%d", original_height);
@@ -516,6 +555,7 @@ static void save_thumbnail(const char *pathname, GdkPixbuf *full)
 		g_free(final);
 	}
 
+	g_object_unref(thumb);
 	g_string_free(to, TRUE);
 	g_free(swidth);
 	g_free(sheight);
@@ -580,10 +620,10 @@ static gchar *thumbnail_program(MIME_type *type)
 	return path;
 }
 
-/* Called in a subprocess. Load path and create the thumbnail
+/* Load path and create the thumbnail
  * file. Parent will notice when we die.
  */
-static void child_create_thumbnail(const gchar *path, MIME_type *type)
+static void create_thumbnail(const gchar *path, MIME_type *type)
 {
 	GdkPixbuf *image=NULL;
 
@@ -595,15 +635,18 @@ static void child_create_thumbnail(const gchar *path, MIME_type *type)
 			PIXMAP_THUMB_SIZE, PIXMAP_THUMB_SIZE, TRUE, NULL);
 
 	if (image)
+	{
 		save_thumbnail(path, image);
-
-	/* (no need to unref, as we're about to exit) */
+		g_object_unref(image);
+	}
 }
 
-/* Called when the child process exits */
-static void thumbnail_child_done(ChildThumbnail *info)
+static void thumbnail_done(ChildThumbnail *info)
 {
 	GdkPixbuf *thumb;
+
+	if (info->timeout)
+		g_source_remove(info->timeout);
 
 	thumb = get_thumbnail_for(info->path);
 

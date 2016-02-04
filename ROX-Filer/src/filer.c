@@ -1554,13 +1554,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	char		*real_path;
 	char *from_dup = NULL;
 
-	if (src_win) {
-		char *dir = g_path_get_dirname(src_win->sym_path);
-		if (strcmp(path, dir) == 0)
-			from_dup = g_path_get_basename(src_win->sym_path);
-		g_free(dir);
-	}
-
 	/* Get the real pathname of the directory and copy it */
 	real_path = pathdup(path);
 
@@ -1575,6 +1568,13 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 			gtk_window_present(GTK_WINDOW(same_dir_window->window));
 			return same_dir_window;
 		}
+	}
+
+	if (src_win) {
+		char *dir = g_path_get_dirname(src_win->sym_path);
+		if (strcmp(path, dir) == 0)
+			from_dup = g_path_get_basename(src_win->sym_path);
+		g_free(dir);
 	}
 
 	filer_window = g_new(FilerWindow, 1);
@@ -2394,26 +2394,26 @@ static gboolean filer_next_thumb_real(GObject *window)
 		return FALSE;
 	}
 
-	total = filer_window->max_thumbs;
-	done = total - g_queue_get_length(filer_window->thumb_queue);
-
 	path = (gchar *) g_queue_pop_tail(filer_window->thumb_queue);
 
 	if (filer_window->max_thumbs > filer_window->tried_thumbs)
 	{
 		filer_window->tried_thumbs++;
-		MaskedPixmap *image = pixmap_try_thumb(path, TRUE);
-		if (image)
+
+		switch (pixmap_check_and_load_thumb(path))
 		{
-			g_object_unref(image);
-			filer_next_thumb(window, path);
-			g_free(path);
+			case 1:
+				filer_next_thumb(window, path);
+				g_free(path);
+				return FALSE;
+			case 0:
+				g_queue_push_head(filer_window->thumb_queue, path);
+				break;
+			case -1:
+				g_free(path);
 		}
-		else
-		{
-			g_queue_push_head(filer_window->thumb_queue, path);
-			filer_next_thumb(window, NULL);
-		}
+
+		filer_next_thumb(window, NULL);
 		return FALSE;
 	}
 	else
@@ -2424,6 +2424,9 @@ static gboolean filer_next_thumb_real(GObject *window)
 
 	if (!GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
 		gtk_widget_show_all(filer_window->thumb_bar);
+
+	total = filer_window->max_thumbs;
+	done = total - g_queue_get_length(filer_window->thumb_queue);
 
 	gtk_progress_bar_set_fraction(
 			GTK_PROGRESS_BAR(filer_window->thumb_progress),
@@ -2437,10 +2440,23 @@ static gboolean filer_next_thumb_real(GObject *window)
  */
 static void filer_next_thumb(GObject *window, const gchar *path)
 {
+	FilerWindow *filer_window;
+
+	filer_window = g_object_get_data(window, "filer_window");
+
+	if (!filer_window)
+	{
+		g_object_unref(window);
+		return;
+	}
+
 	if (path)
 		dir_force_update_path(path);
 
-	g_idle_add((GSourceFunc) filer_next_thumb_real, window);
+	if (filer_window->max_thumbs > filer_window->tried_thumbs)
+		g_idle_add((GSourceFunc) filer_next_thumb_real, window);
+	else
+		g_idle_add_full(G_PRIORITY_LOW, (GSourceFunc) filer_next_thumb_real, window, NULL);
 }
 
 static void start_thumb_scanning(FilerWindow *filer_window)
