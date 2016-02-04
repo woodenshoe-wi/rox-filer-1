@@ -1554,9 +1554,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	char		*real_path;
 	char *from_dup = NULL;
 
-	/* Get the real pathname of the directory and copy it */
-	real_path = pathdup(path);
-
 	if (o_unique_filer_windows.int_value && !spring_in_progress)
 	{
 		FilerWindow	*same_dir_window;
@@ -1569,6 +1566,9 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 			return same_dir_window;
 		}
 	}
+
+	/* Get the real pathname of the directory and copy it */
+	real_path = pathdup(path);
 
 	if (src_win) {
 		char *dir = g_path_get_dirname(src_win->sym_path);
