@@ -22,10 +22,9 @@ extern MaskedPixmap *im_dirs;
 extern GtkIconSize mount_icon_size;
 
 /* If making the huge size larger, be sure to update SMALL_IMAGE_THRESHOLD! */
-#define HUGE_LIMIT_F 512.0
+#define HUGE_LIMIT_F 1024.0
 
-#define HUGE_WIDTH 128
-#define HUGE_HEIGHT 128
+#define HUGE_SIZE 128
 
 #define ICON_HEIGHT 52
 #define ICON_WIDTH 48
@@ -35,6 +34,7 @@ extern GtkIconSize mount_icon_size;
 
 extern int small_height; /* window font size */
 extern int small_width; /* SMALL_WIDTH * small_height / SMALL_WIDTH */
+extern int thumb_size;
 
 typedef struct _MaskedPixmapClass MaskedPixmapClass;
 
@@ -54,11 +54,8 @@ struct _MaskedPixmap
 {
 	GObject		object;
 
-	GdkPixbuf	*src_pixbuf;	/* Limited to 'huge' size */
-
-	/* If huge_pixbuf is NULL then call pixmap_make_huge() */
-	GdkPixbuf	*huge_pixbuf;
-	int		huge_width, huge_height;
+	GdkPixbuf	*src_pixbuf;
+	int huge_width, huge_height;
 
 	GdkPixbuf	*pixbuf;	/* Normal size image, always valid */
 	int		width, height;

@@ -47,6 +47,9 @@
 indicator'>If this is on then files which have one or more extended attributes set will have an emblem added to indicate this.</toggle>
           </vbox>
         </hbox>
+
+		<numentry name='huge_size' label='Huge Icons size:' unit='pixels' min='96' max='1024' width='4'>
+			Default Huge Icons size.</numentry>
       </frame>
       <frame label='Icon View'>
         <hbox>
@@ -72,7 +75,8 @@ indicator'>If this is on then files which have one or more extended attributes s
         </hbox>
 	<spacer/>
 	<hbox>
-          <numentry name='display_large_width' label='Large Icons (Max width):' unit='pixels' min='0' max='2000' width='4'>Text wider than this is broken onto two lines in Large Icons mode. In Huge Icons mode, text is wrapped when 50% wider than this.</numentry>
+		<numentry name='display_large_width' label='Large Icons (Max width):' unit='pixels' min='0' max='2000' width='4'>
+			Text wider than this is broken onto two lines in Large Icons mode.</numentry>
 	  <spacer/>
 			<numentry name='display_max_length' label='(Wrapped, Details):' unit='pixels' min='0' max='2000' width='4'>Maximum length for Large Icons mode and Details.</numentry>
         </hbox>
@@ -137,6 +141,9 @@ indicator'>If this is on then files which have one or more extended attributes s
         <thumbs-purge-cache/>
 	<spacer/>
         <launch uri="http://www.kerofin.demon.co.uk/2005/interfaces/Thumbs" label="Manage thumbnails" appname="Thumbs"/>
+	<spacer/>
+		<toggle name='large_thumbs' label='Large Thumbnails (256)'>Store thumbs cache as 128 -> 256px images.</toggle>
+		<toggle name='large_huge_thumbs' label='more more'>Store thumbs cache as 512px images.</toggle>
       </frame>
     </section>
   </section>

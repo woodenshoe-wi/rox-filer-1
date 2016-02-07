@@ -35,6 +35,7 @@ extern Option o_small_width;
 extern Option o_max_length;
 extern Option o_vertical_order_small, o_vertical_order_large;
 extern Option o_xattr_show;
+extern int huge_size;
 
 /* Prototypes */
 void display_init(void);

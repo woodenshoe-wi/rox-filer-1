@@ -403,7 +403,7 @@ static GtkIconInfo *mime_type_lookup_icon_info(GtkIconTheme *theme,
 		MIME_type *type)
 {
 	char *type_name = g_strconcat(type->media_type, "-", type->subtype, NULL);
-	GtkIconInfo *full = gtk_icon_theme_lookup_icon(theme, type_name, HUGE_HEIGHT, 0);
+	GtkIconInfo *full = gtk_icon_theme_lookup_icon(theme, type_name, thumb_size, 0);
 
 	g_free(type_name);
 	if (!full)
@@ -414,14 +414,14 @@ static GtkIconInfo *mime_type_lookup_icon_info(GtkIconTheme *theme,
 		else
 			type_name = g_strconcat("gnome-mime-", type->media_type,
 					"-", type->subtype, NULL);
-		full = gtk_icon_theme_lookup_icon(theme, type_name, HUGE_HEIGHT, 0);
+		full = gtk_icon_theme_lookup_icon(theme, type_name, thumb_size, 0);
 		g_free(type_name);
 	}
 	if (!full)
 	{
 		/* Try for a media type */
 		type_name = g_strconcat(type->media_type, "-x-generic", NULL);
-		full = gtk_icon_theme_lookup_icon(theme, type_name, HUGE_HEIGHT, 0);
+		full = gtk_icon_theme_lookup_icon(theme, type_name, thumb_size, 0);
 		g_free(type_name);
 	}
 	if (!full)
@@ -429,7 +429,7 @@ static GtkIconInfo *mime_type_lookup_icon_info(GtkIconTheme *theme,
 		/* Ugly hack... try for a GNOME default media icon */
 		type_name = g_strconcat("gnome-mime-", type->media_type, NULL);
 
-		full = gtk_icon_theme_lookup_icon(theme, type_name, HUGE_HEIGHT, 0);
+		full = gtk_icon_theme_lookup_icon(theme, type_name, thumb_size, 0);
 		g_free(type_name);
 	}
 	return full;
