@@ -27,10 +27,7 @@
  */
 
 #define PIXMAP_PURGE_TIME 1200
-#define PIXMAP_SHORT_PURGE_TIME 120
 #define PIXMAP_THUMB_SIZE  128
-#define PIXMAP_LARGE_THUMB_SIZE 256
-#define PIXMAP_LARGE_HUGE_THUMB_SIZE 512
 #define PIXMAP_THUMB_TOO_OLD_TIME  5
 
 #include <stdlib.h>
@@ -94,8 +91,8 @@ int thumb_size = PIXMAP_THUMB_SIZE;
 
 gchar *thumb_dir = "normal";
 
-static Option o_large_thumbs;
-static Option o_large_huge_thumbs;
+static Option o_thumb_file_size;
+static Option o_purge_time;
 
 typedef struct _ChildThumbnail ChildThumbnail;
 
@@ -137,38 +134,32 @@ static GdkPixbuf *extract_tiff_thumbnail(const gchar *path);
  ****************************************************************/
 
 static void options_changed(){
-	if (o_large_thumbs.has_changed || o_large_huge_thumbs.has_changed)
+	if (o_thumb_file_size.has_changed)
 	{
-		if (o_large_thumbs.int_value)
-		{
-			if (o_large_huge_thumbs.int_value)
-			{
-				thumb_dir = "huge";
-				thumb_size = PIXMAP_LARGE_HUGE_THUMB_SIZE;
-			}
-			else
-			{
-				thumb_dir = "large";
-				thumb_size = PIXMAP_LARGE_THUMB_SIZE;
-			}
-		}
-		else
-		{
+		switch (thumb_size = o_thumb_file_size.int_value) {
+		case 512:
+			thumb_dir = "huge";
+			break;
+		case 256:
+			thumb_dir = "large";
+			break;
+		case 128:
 			thumb_dir = "normal";
-			thumb_size = PIXMAP_THUMB_SIZE;
+			break;
+		default:
+			thumb_dir = "fail";
 		}
-
 		g_fscache_purge(pixmap_cache, 0);
 	}
-
 }
+
 void pixmaps_init(void)
 {
 	GtkIconFactory *factory;
 	int i;
 
-	option_add_int(&o_large_thumbs, "large_thumbs", FALSE);
-	option_add_int(&o_large_huge_thumbs, "large_huge_thumbs", FALSE);
+	option_add_int(&o_thumb_file_size, "thumb_file_size", PIXMAP_THUMB_SIZE);
+	option_add_int(&o_purge_time, "purge_time", PIXMAP_PURGE_TIME);
 	option_add_notify(options_changed);
 
 	gtk_widget_push_colormap(gdk_rgb_get_colormap());
@@ -176,7 +167,7 @@ void pixmaps_init(void)
 	pixmap_cache = g_fscache_new((GFSLoadFunc) image_from_file, NULL, NULL);
 	desktop_icon_cache = g_fscache_new((GFSLoadFunc) image_from_desktop_file, NULL, NULL);
 
-	g_timeout_add(10000, purge, NULL);
+	g_timeout_add(6000, purge, NULL);
 
 	factory = gtk_icon_factory_new();
 	for (i = 0; i < G_N_ELEMENTS(stocks); i++)
@@ -878,9 +869,10 @@ static MaskedPixmap *get_bad_image(void)
 /* Called now and then to clear out old pixmaps */
 static gint purge(gpointer data)
 {
-	g_fscache_purge(pixmap_cache, PIXMAP_PURGE_TIME);
+	g_fscache_purge(pixmap_cache, o_purge_time.int_value);
 
-	return TRUE;
+	g_timeout_add(MIN(60000, o_purge_time.int_value * 300 + 2000), purge, NULL);
+	return FALSE;
 }
 
 static gpointer parent_class;

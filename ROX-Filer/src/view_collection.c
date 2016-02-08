@@ -950,8 +950,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 						view->image->huge_height <= ICON_HEIGHT)
 						scale = 1.0;
 					else
-						scale *= (huge_size - 0.001) / MAX(view->image->huge_width, view->image->huge_height);
-						//-0.001 is to avert 1px up from no image sizes
+						scale *= (gfloat) huge_size / MAX(view->image->huge_width, view->image->huge_height);
 
 					pix_width = view->image->huge_width * scale;
 					pix_height = view->image->huge_height * scale;
