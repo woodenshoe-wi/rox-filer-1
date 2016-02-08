@@ -151,6 +151,9 @@ static void options_changed(){
 		}
 		g_fscache_purge(pixmap_cache, 0);
 	}
+
+	if (o_purge_time.has_changed)
+		g_fscache_purge(pixmap_cache, o_purge_time.int_value);
 }
 
 void pixmaps_init(void)
