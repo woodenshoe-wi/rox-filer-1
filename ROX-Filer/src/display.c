@@ -58,8 +58,6 @@
 #include "xtypes.h"
 #include "usericons.h"
 
-#define HUGE_WRAP (1.5 * o_large_width.int_value)
-
 /* Options bits */
 static Option o_display_caps_first;
 static Option o_display_dirs_first;
@@ -78,6 +76,8 @@ static Option o_filer_change_size_num;
 Option o_vertical_order_small, o_vertical_order_large;
 Option o_xattr_show;
 static Option o_wrap_by_char;
+static Option o_huge_size;
+int huge_size = HUGE_SIZE;
 
 /* Static prototypes */
 static void display_details_set(FilerWindow *filer_window, DetailsType details);
@@ -111,6 +111,7 @@ void display_init()
 	option_add_int(&o_vertical_order_large, "vertical_order_large", FALSE);
 	option_add_int(&o_xattr_show, "xattr_show", TRUE);
 	option_add_int(&o_wrap_by_char, "wrap_by_char", FALSE);
+	option_add_int(&o_huge_size, "huge_size", HUGE_SIZE);
 
 	option_add_notify(options_changed);
 }
@@ -314,7 +315,8 @@ void draw_huge_icon(FilerWindow *filer_window,
 		image->huge_height <= ICON_HEIGHT)
 		scale = 1.0;
 	else
-		scale = filer_window->icon_scale;
+		scale = filer_window->icon_scale /
+			(MAX(image->huge_width, image->huge_height) / (gfloat) huge_size);
 
 	width = image->huge_width * scale;
 	height = image->huge_height * scale;
@@ -325,8 +327,8 @@ void draw_huge_icon(FilerWindow *filer_window,
 			selected && item->label ? color : item->label);
 
 	pixbuf = selected
-			? create_spotlight_pixbuf(image->huge_pixbuf, color)
-			: image->huge_pixbuf;
+			? create_spotlight_pixbuf(image->src_pixbuf, color)
+			: image->src_pixbuf;
 
 	if (scale != 1.0)
 		scaled = gdk_pixbuf_scale_simple(pixbuf,
@@ -832,27 +834,33 @@ void display_set_actual_size(FilerWindow *filer_window, gboolean force_resize)
 static void options_changed(void)
 {
 	GList		*next;
+	int flags = 0;
+
+	huge_size = o_huge_size.int_value;
+
+	if (o_display_show_headers.has_changed)
+		flags |= VIEW_UPDATE_HEADERS;
+
+	if (o_large_width.has_changed ||
+		o_small_width.has_changed ||
+		o_max_length.has_changed ||
+		o_wrap_by_char.has_changed ||
+		o_huge_size.has_changed
+	)
+		flags |= VIEW_UPDATE_NAME; /* Recreate PangoLayout */
 
 	for (next = all_filer_windows; next; next = next->next)
 	{
 		FilerWindow *filer_window = (FilerWindow *) next->data;
-		int flags = 0;
 
 		if (o_display_dirs_first.has_changed ||
 		    o_display_caps_first.has_changed)
 			view_sort(VIEW(filer_window->view));
 
-		if (o_display_show_headers.has_changed)
-			flags |= VIEW_UPDATE_HEADERS;
-
-		if (o_large_width.has_changed ||
-		    o_small_width.has_changed ||
-		    o_max_length.has_changed ||
-		    o_wrap_by_char.has_changed
-		)
-			flags |= VIEW_UPDATE_NAME; /* Recreate PangoLayout */
-
 		view_style_changed(filer_window->view, flags);
+
+		if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
+			view_autosize(filer_window->view);
 	}
 }
 
@@ -996,7 +1004,7 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 	if (fw->details_type == DETAILS_NONE)
 	{
 		if (style == HUGE_ICONS)
-			wrap_width = HUGE_WRAP * PANGO_SCALE;
+			wrap_width = MAX(huge_size, o_large_width.int_value) * PANGO_SCALE;
 			/* Since this function is heavy, this is skepped.
 			wrap_width = HUGE_WRAP * filer_window->icon_scale * PANGO_SCALE;
 			*/

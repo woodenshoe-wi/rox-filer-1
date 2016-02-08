@@ -87,6 +87,12 @@ GtkIconSize mount_icon_size = -1;
 
 int small_height = 0;
 int small_width = 0;
+int thumb_size = PIXMAP_THUMB_SIZE;
+
+gchar *thumb_dir = "normal";
+
+static Option o_thumb_file_size;
+static Option o_purge_time;
 
 typedef struct _ChildThumbnail ChildThumbnail;
 
@@ -115,7 +121,6 @@ static gint purge(gpointer data);
 static MaskedPixmap *image_from_file(const char *path);
 static MaskedPixmap *image_from_desktop_file(const char *path);
 static MaskedPixmap *get_bad_image(void);
-static GdkPixbuf *scale_pixbuf_up(GdkPixbuf *src, int max_w, int max_h);
 static GdkPixbuf *get_thumbnail_for(const char *path);
 static void thumbnail_done(ChildThumbnail *info);
 static void create_thumbnail(const gchar *path, MIME_type *type);
@@ -128,17 +133,44 @@ static GdkPixbuf *extract_tiff_thumbnail(const gchar *path);
  *			EXTERNAL INTERFACE			*
  ****************************************************************/
 
+static void options_changed(){
+	if (o_thumb_file_size.has_changed)
+	{
+		switch (thumb_size = o_thumb_file_size.int_value) {
+		case 512:
+			thumb_dir = "huge";
+			break;
+		case 256:
+			thumb_dir = "large";
+			break;
+		case 128:
+			thumb_dir = "normal";
+			break;
+		default:
+			thumb_dir = "fail";
+		}
+		g_fscache_purge(pixmap_cache, 0);
+	}
+
+	if (o_purge_time.has_changed)
+		g_fscache_purge(pixmap_cache, o_purge_time.int_value);
+}
+
 void pixmaps_init(void)
 {
 	GtkIconFactory *factory;
 	int i;
-	
+
+	option_add_int(&o_thumb_file_size, "thumb_file_size", PIXMAP_THUMB_SIZE);
+	option_add_int(&o_purge_time, "purge_time", PIXMAP_PURGE_TIME);
+	option_add_notify(options_changed);
+
 	gtk_widget_push_colormap(gdk_rgb_get_colormap());
 
 	pixmap_cache = g_fscache_new((GFSLoadFunc) image_from_file, NULL, NULL);
 	desktop_icon_cache = g_fscache_new((GFSLoadFunc) image_from_desktop_file, NULL, NULL);
 
-	g_timeout_add(10000, purge, NULL);
+	g_timeout_add(6000, purge, NULL);
 
 	factory = gtk_icon_factory_new();
 	for (i = 0; i < G_N_ELEMENTS(stocks); i++)
@@ -217,29 +249,6 @@ static MaskedPixmap *mp_from_stock(const char *stock_id, int size)
 	g_object_unref(pixbuf);
 
 	return retval;
-}
-
-void pixmap_make_huge(MaskedPixmap *mp)
-{
-	if (mp->huge_pixbuf)
-		return;
-
-	g_return_if_fail(mp->src_pixbuf != NULL);
-
-	/* Limit to small size now, otherwise they get scaled up in mixed mode.
-	 * Also looked ugly.
-	 */
-	mp->huge_pixbuf = scale_pixbuf_up(mp->src_pixbuf,
-					  small_width, small_height);
-
-	if (!mp->huge_pixbuf)
-	{
-		mp->huge_pixbuf = mp->src_pixbuf;
-		g_object_ref(mp->huge_pixbuf);
-	}
-
-	mp->huge_width = gdk_pixbuf_get_width(mp->huge_pixbuf);
-	mp->huge_height = gdk_pixbuf_get_height(mp->huge_pixbuf);
 }
 
 void pixmap_make_small(MaskedPixmap *mp)
@@ -358,21 +367,21 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 	info->data = data;
 	info->timeout = 0;
 
-	if (thumb_prog)
+	child = fork();
+	if (child == -1)
 	{
-		child = fork();
-		if (child == -1)
-		{
-			g_free(thumb_prog);
-			delayed_error("fork(): %s", g_strerror(errno));
-			callback(data, NULL);
-			return;
-		}
+		g_free(thumb_prog);
+		delayed_error("fork(): %s", g_strerror(errno));
+		callback(data, NULL);
+		return;
+	}
 
-		if (child == 0)
+	if (child == 0)
+	{
+		/* We are the child process.  (We are sloppy with freeing
+		   memory, but since we go away very quickly, that's ok.) */
+		if (thumb_prog)
 		{
-			/* We are the child process.  (We are sloppy with freeing
-			 memory, but since we go away very quickly, that's ok.) */
 			DirItem *item;
 
 			base = g_path_get_basename(thumb_prog);
@@ -381,27 +390,25 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 			diritem_restat(thumb_prog, item, NULL);
 			if (item->flags & ITEM_FLAG_APPDIR)
 				thumb_prog = g_strconcat(thumb_prog, "/AppRun",
-							   NULL);
+						NULL);
 
 			execl(thumb_prog, thumb_prog, path,
 					thumbnail_path(path),
-					g_strdup_printf("%d", PIXMAP_THUMB_SIZE),
+					g_strdup_printf("%d", thumb_size),
 					NULL);
 
 			_exit(1);
 		}
 
-		g_free(thumb_prog);
-		info->child = child;
-		info->timeout = g_timeout_add_seconds(20,
-				(GSourceFunc) thumb_prog_timeout, info);
-		on_child_death(child, (CallbackFn) thumbnail_done, info);
-	}
-	else
-	{
 		create_thumbnail(path, type);
-		thumbnail_done(info);
+		_exit(0);
 	}
+
+	g_free(thumb_prog);
+	info->child = child;
+	info->timeout = g_timeout_add_seconds(14,
+			(GSourceFunc) thumb_prog_timeout, info);
+	on_child_death(child, (CallbackFn) thumbnail_done, info);
 }
 
 /*
@@ -453,13 +460,13 @@ MaskedPixmap *pixmap_try_thumb(const gchar *path, gboolean can_load)
 		}
 		g_free(dir);
 
-		if (mc_stat(make_path(home_dir, ".cache/thumbnails/normal"),
+		if (mc_stat(make_path(make_path(home_dir, ".cache/thumbnails"), thumb_dir),
 			    &info2) == 0 &&
 			    info1.st_dev == info2.st_dev &&
 			    info1.st_ino == info2.st_ino)
 		{
 			pixbuf = rox_pixbuf_new_from_file_at_scale(path,
-					PIXMAP_THUMB_SIZE, PIXMAP_THUMB_SIZE,
+					thumb_size, thumb_size,
 								   TRUE, NULL);
 			if (!pixbuf)
 			{
@@ -500,7 +507,7 @@ static void save_thumbnail(const char *pathname, GdkPixbuf *full)
 	if (mc_stat(pathname, &info) != 0)
 		return;
 
-	thumb = scale_pixbuf(full, PIXMAP_THUMB_SIZE, PIXMAP_THUMB_SIZE);
+	thumb = scale_pixbuf(full, thumb_size, thumb_size);
 
 	original_width = gdk_pixbuf_get_width(full);
 	original_height = gdk_pixbuf_get_height(full);
@@ -520,9 +527,12 @@ static void save_thumbnail(const char *pathname, GdkPixbuf *full)
 	to = g_string_new(home_dir);
 	g_string_append(to, "/.cache");
 	mkdir(to->str, 0700);
-	g_string_append(to, "/thumbnails");
+	g_string_append(to, "/thumbnails/");
 	mkdir(to->str, 0700);
-	g_string_append(to, "/normal/");
+
+	g_string_append(to, thumb_dir);
+	g_string_append(to, "/");
+
 	mkdir(to->str, 0700);
 	g_string_append(to, md5);
 	name_len = to->len + 4; /* Truncate to this length when renaming */
@@ -578,9 +588,12 @@ static gchar *thumbnail_path(const char *path)
 	to = g_string_new(home_dir);
 	g_string_append(to, "/.cache");
 	mkdir(to->str, 0700);
-	g_string_append(to, "/thumbnails");
+	g_string_append(to, "/thumbnails/");
 	mkdir(to->str, 0700);
-	g_string_append(to, "/normal/");
+
+	g_string_append(to, thumb_dir);
+	g_string_append(to, "/");
+
 	mkdir(to->str, 0700);
 	g_string_append(to, md5);
 	g_string_append(to, ".png");
@@ -632,7 +645,7 @@ static void create_thumbnail(const gchar *path, MIME_type *type)
 
 	if(!image)
             image = rox_pixbuf_new_from_file_at_scale(path,
-			PIXMAP_THUMB_SIZE, PIXMAP_THUMB_SIZE, TRUE, NULL);
+			thumb_size, thumb_size, TRUE, NULL);
 
 	if (image)
 	{
@@ -686,9 +699,10 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 	        uri = g_strconcat("file://", path, NULL);
 	md5 = md5_hash(uri);
 	g_free(uri);
-	
-	thumb_path = g_strdup_printf("%s/.cache/thumbnails/normal/%s.png",
-					home_dir, md5);
+
+	thumb_path = g_strdup_printf(
+			"%s/.cache/thumbnails/%s/%s.png" ,
+			home_dir, thumb_dir, md5);
 	g_free(md5);
 
 	thumb = gdk_pixbuf_new_from_file(thumb_path, NULL);
@@ -792,7 +806,7 @@ static MaskedPixmap *image_from_desktop_file(const char *path)
 		/* SVG reader is very noisy, so redirect stderr to stdout */
 		tmp_fd = dup(2);
 		dup2(1, 2);
-		pixbuf = theme_load_icon(icon, HUGE_WIDTH, 0, NULL);
+		pixbuf = theme_load_icon(icon, thumb_size, 0, NULL);
 		dup2(tmp_fd, 2);
 		close(tmp_fd);
 
@@ -840,34 +854,6 @@ GdkPixbuf *scale_pixbuf(GdkPixbuf *src, int max_w, int max_h)
 	}
 }
 
-/* Scale src up to fit in max_w, max_h and return the new pixbuf.
- * If src is that size or bigger, then ref it and return that.
- */
-static GdkPixbuf *scale_pixbuf_up(GdkPixbuf *src, int max_w, int max_h)
-{
-	int	w, h;
-
-	w = gdk_pixbuf_get_width(src);
-	h = gdk_pixbuf_get_height(src);
-
-	if (w == 0 || h == 0 || w >= max_w || h >= max_h)
-	{
-		g_object_ref(src);
-		return src;
-	}
-	else
-	{
-		float scale_x = max_w / ((float) w);
-		float scale_y = max_h / ((float) h);
-		float scale = MIN(scale_x, scale_y);
-		
-		return gdk_pixbuf_scale_simple(src,
-						w * scale,
-						h * scale,
-						GDK_INTERP_BILINEAR);
-	}
-}
-
 /* Return a pointer to the (static) bad image. The ref counter will ensure
  * that the image is never freed.
  */
@@ -886,9 +872,10 @@ static MaskedPixmap *get_bad_image(void)
 /* Called now and then to clear out old pixmaps */
 static gint purge(gpointer data)
 {
-	g_fscache_purge(pixmap_cache, PIXMAP_PURGE_TIME);
+	g_fscache_purge(pixmap_cache, o_purge_time.int_value);
 
-	return TRUE;
+	g_timeout_add(MIN(60000, o_purge_time.int_value * 300 + 2000), purge, NULL);
+	return FALSE;
 }
 
 static gpointer parent_class;
@@ -903,11 +890,6 @@ static void masked_pixmap_finialize(GObject *object)
 		mp->src_pixbuf = NULL;
 	}
 
-	if (mp->huge_pixbuf)
-	{
-		g_object_unref(mp->huge_pixbuf);
-		mp->huge_pixbuf = NULL;
-	}
 	if (mp->pixbuf)
 	{
 		g_object_unref(mp->pixbuf);
@@ -938,7 +920,6 @@ static void masked_pixmap_init(GTypeInstance *object, gpointer gclass)
 
 	mp->src_pixbuf = NULL;
 
-	mp->huge_pixbuf = NULL;
 	mp->huge_width = -1;
 	mp->huge_height = -1;
 
@@ -977,22 +958,22 @@ static GType masked_pixmap_get_type(void)
 	return type;
 }
 
-MaskedPixmap *masked_pixmap_new(GdkPixbuf *full_size)
+MaskedPixmap *masked_pixmap_new(GdkPixbuf *src)
 {
 	MaskedPixmap *mp;
-	GdkPixbuf	*src_pixbuf, *normal_pixbuf;
+	GdkPixbuf	*normal_pixbuf;
 
-	g_return_val_if_fail(full_size != NULL, NULL);
+	g_return_val_if_fail(src != NULL, NULL);
 
-	src_pixbuf = scale_pixbuf(full_size, HUGE_WIDTH, HUGE_HEIGHT);
-	g_return_val_if_fail(src_pixbuf != NULL, NULL);
-
-	normal_pixbuf = scale_pixbuf(src_pixbuf, ICON_WIDTH, ICON_HEIGHT);
+	normal_pixbuf = scale_pixbuf(src, ICON_WIDTH, ICON_HEIGHT);
 	g_return_val_if_fail(normal_pixbuf != NULL, NULL);
 
 	mp = g_object_new(masked_pixmap_get_type(), NULL);
 
-	mp->src_pixbuf = src_pixbuf;
+	g_object_ref(src);
+	mp->src_pixbuf = src;
+	mp->huge_width = gdk_pixbuf_get_width(src);
+	mp->huge_height = gdk_pixbuf_get_height(src);
 
 	mp->pixbuf = normal_pixbuf;
 	mp->width = gdk_pixbuf_get_width(normal_pixbuf);
@@ -1018,7 +999,7 @@ static void load_default_pixmaps(void)
 	pixbuf = gtk_icon_theme_load_icon(
  		gtk_icon_theme_get_default(),
  		"rox",
- 		HUGE_WIDTH,
+ 		thumb_size,
  		0,
  		NULL
  		);
@@ -1053,7 +1034,7 @@ static void purge_disk_cache(GtkWidget *button, gpointer data)
 
 	g_fscache_purge(pixmap_cache, 0);
 
-	path = g_strconcat(home_dir, "/.cache/thumbnails/normal/", NULL);
+	path = g_strconcat(home_dir, "/.cache/thumbnails/", thumb_dir, "/", NULL);
 
 	dir = opendir(path);
 	if (!dir)

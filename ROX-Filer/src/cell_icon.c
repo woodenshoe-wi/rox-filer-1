@@ -228,9 +228,6 @@ static DisplayStyle get_style(GtkCellRenderer *cell)
 		else
 			size = HUGE_ICONS;
 	}
-	if (size == HUGE_ICONS && view_item->image &&
-	    !view_item->image->huge_pixbuf)
-		pixmap_make_huge(view_item->image);
 
 	return size;
 }
@@ -281,14 +278,15 @@ static void cell_icon_get_size(GtkCellRenderer *cell,
 				if (image->huge_width <= ICON_WIDTH &&
 					image->huge_height <= ICON_HEIGHT)
 						scale = 1.0;
+				else
+					scale *= (gfloat) huge_size / MAX(image->huge_width, image->huge_height);
 
 				w = image->huge_width * scale;
 				h = image->huge_height * scale;
 			}
 			else
 			{
-				w = HUGE_WIDTH * scale;
-				h = HUGE_HEIGHT * scale;
+				w = h = huge_size * scale;
 			}
 			break;
 		default:
@@ -346,8 +344,6 @@ static void cell_icon_render(GtkCellRenderer    *cell,
 					view_item->image, selected, color);
 			break;
 		case HUGE_ICONS:
-			if (!di_image(item)->huge_pixbuf)
-				pixmap_make_huge(di_image(item));
 			draw_huge_icon(icon->view_details->filer_window,
 					window, widget->style, cell_area, item,
 					view_item->image, selected, color);

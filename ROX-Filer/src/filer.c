@@ -1554,9 +1554,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	char		*real_path;
 	char *from_dup = NULL;
 
-	/* Get the real pathname of the directory and copy it */
-	real_path = pathdup(path);
-
 	if (o_unique_filer_windows.int_value && !spring_in_progress)
 	{
 		FilerWindow	*same_dir_window;
@@ -1569,6 +1566,9 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 			return same_dir_window;
 		}
 	}
+
+	/* Get the real pathname of the directory and copy it */
+	real_path = pathdup(path);
 
 	if (src_win) {
 		char *dir = g_path_get_dirname(src_win->sym_path);
@@ -2389,6 +2389,10 @@ static gboolean filer_next_thumb_real(GObject *window)
 		
 	if (g_queue_is_empty(filer_window->thumb_queue))
 	{
+//		view_style_changed(filer_window->view, 0);
+//		if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
+//			view_autosize(filer_window->view);
+
 		filer_cancel_thumbnails(filer_window);
 		g_object_unref(window);
 		return FALSE;
@@ -2455,6 +2459,7 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 
 	if (filer_window->max_thumbs > filer_window->tried_thumbs)
 		g_idle_add((GSourceFunc) filer_next_thumb_real, window);
+//		filer_next_thumb_real(window);
 	else
 		g_idle_add_full(G_PRIORITY_LOW, (GSourceFunc) filer_next_thumb_real, window, NULL);
 }

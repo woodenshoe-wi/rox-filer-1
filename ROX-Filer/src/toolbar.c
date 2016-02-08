@@ -798,11 +798,11 @@ static gint toolbar_button_scroll(GtkButton *button,
 	DisplayStyle ds = fw->display_style;
 	DisplayStyle *dsw = &(fw->display_style_wanted);
 	gfloat *sc = &(fw->icon_scale);
-	static const gfloat
+	gfloat
 		step_pix = (gfloat) ICON_HEIGHT - SMALL_WIDTH,
-		start = (ICON_HEIGHT + step_pix) / HUGE_HEIGHT,
-		step  = step_pix / HUGE_HEIGHT,	
-		end   = HUGE_LIMIT_F / HUGE_HEIGHT;
+		start = (ICON_HEIGHT + step_pix) / huge_size,
+		step  = step_pix / huge_size,	
+		end   = HUGE_LIMIT_F / huge_size;
 
 	gtk_widget_set_has_tooltip((GtkWidget *) button, FALSE);
 
