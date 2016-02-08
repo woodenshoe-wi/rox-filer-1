@@ -142,16 +142,18 @@ indicator'>If this is on then files which have one or more extended attributes s
 	<spacer/>
         <launch uri="http://www.kerofin.demon.co.uk/2005/interfaces/Thumbs" label="Manage thumbnails" appname="Thumbs"/>
 	<spacer/>
-	<vbox>
+	<hbox>
 		<menu name='thumb_file_size' label='Cache File Size:'>
 			<item label='Normal (128px)' value='128'/>
 			<item label='Large (256px)' value='256'/>
 			<item label='Huge (512px)' value='512'/>
 		</menu>
-		<spacer/>
-		<numentry name='purge_time' label='Purge Memory Cache Time:' unit='sec' min='1' max='999999' width='6'>
+	</hbox>
+	<spacer/>
+	<hbox>
+		<numentry name='purge_time' label='Purge Time for Memory Cache:' unit='sec' min='1' max='999999' width='6'>
 			Purge Time for Memory cache.</numentry>
-	</vbox>
+	</hbox>
 
       </frame>
     </section>
