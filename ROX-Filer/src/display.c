@@ -226,7 +226,7 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 				NULL,
 				scaled,
 				0, 0, /* src */
-				*x - 1, y + dy + 3, /* dest */
+				*x - 1, y + dy + 1, /* dest */
 				-1, -1,
 				GDK_RGB_DITHER_NORMAL, 0, 0);
 
