@@ -873,6 +873,7 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 	mode_t	m = item->mode;
 	guchar 	*buf = NULL;
 	gboolean scanned = item->base_type != TYPE_UNKNOWN;
+	gboolean vertical = filer_window->display_style == HUGE_ICONS;
 
 	if (scanned && item->lstat_errno)
 		buf = g_strdup_printf(_("lstat(2) failed: %s"),
@@ -894,25 +895,42 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 		ctime = pretty_time(&item->ctime);
 		mtime = pretty_time(&item->mtime);
 		atime = pretty_time(&item->atime);
-		
-		buf = g_strdup_printf("a[%s] c[%s] m[%s]", atime, ctime, mtime);
+		if (vertical)
+			buf = g_strdup_printf("a[%s]\nc[%s]\nm[%s]", atime, ctime, mtime);
+		else
+			buf = g_strdup_printf("a[%s] c[%s] m[%s]", atime, ctime, mtime);
 		g_free(ctime);
 		g_free(mtime);
 		g_free(atime);
 	}
 	else if (filer_window->details_type == DETAILS_PERMISSIONS)
 	{
-		if (!scanned)
-			return g_strdup("---,---,---/--"
+		if (!scanned) {
+			if (vertical)
+				return g_strdup("---,---,---/--"
 #ifdef S_ISVTX
 					"-"
 #endif
 					" 12345678 12345678");
+			else
+				return g_strdup("---,---,---/--"
+#ifdef S_ISVTX
+					"-"
+#endif
+					"\n 12345678 12345678");
+		}
 
-		buf = g_strdup_printf("%s %-8.8s %-8.8s",
-				pretty_permissions(m),
-				user_name(item->uid),
-				group_name(item->gid));
+		if (vertical)
+			buf = g_strdup_printf("%s\n%-8.8s %-8.8s",
+					pretty_permissions(m),
+					user_name(item->uid),
+					group_name(item->gid));
+		else
+			buf = g_strdup_printf("%s %-8.8s %-8.8s",
+					pretty_permissions(m),
+					user_name(item->uid),
+					group_name(item->gid));
+
 	}
 	else
 	{
@@ -1001,27 +1019,27 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 		pango_attr_list_unref(list);
 	}
 
-	if (fw->details_type == DETAILS_NONE)
-	{
-		if (style == HUGE_ICONS)
-			wrap_width = MAX(huge_size, o_large_width.int_value) * PANGO_SCALE;
-			/* Since this function is heavy, this is skepped.
-			wrap_width = HUGE_WRAP * filer_window->icon_scale * PANGO_SCALE;
-			*/
-		else if (style == LARGE_ICONS)
-			wrap_width = o_large_width.int_value * PANGO_SCALE;
-	}
+	if (style == HUGE_ICONS)
+		wrap_width = MAX(huge_size, o_large_width.int_value) * PANGO_SCALE;
+		/* Since this function is heavy, this is skepped.
+		wrap_width = HUGE_WRAP * filer_window->icon_scale * PANGO_SCALE;
+		*/
 
-	if (o_wrap_by_char.int_value)
-		pango_layout_set_wrap(ret, PANGO_WRAP_CHAR);
-	else {
-#ifdef USE_PANGO_WRAP_WORD_CHAR
-		pango_layout_set_wrap(ret, PANGO_WRAP_WORD_CHAR);
-#endif
-	}
+	if (fw->details_type == DETAILS_NONE && style == LARGE_ICONS)
+		wrap_width = o_large_width.int_value * PANGO_SCALE;
 
 	if (wrap_width != -1)
+	{
+		if (o_wrap_by_char.int_value)
+			pango_layout_set_wrap(ret, PANGO_WRAP_CHAR);
+		else {
+#ifdef USE_PANGO_WRAP_WORD_CHAR
+			pango_layout_set_wrap(ret, PANGO_WRAP_WORD_CHAR);
+#endif
+		}
+
 		pango_layout_set_width(ret, wrap_width);
+	}
 
 	return ret;
 }
@@ -1119,7 +1137,8 @@ void display_update_view(FilerWindow *filer_window,
 
 	basic &= !(item->flags & ITEM_FLAG_RECENT);
 	basic &= (filer_window->display_style == SMALL_ICONS ||
-				filer_window->details_type != DETAILS_NONE);
+				(filer_window->details_type != DETAILS_NONE &&
+				 filer_window->display_style != HUGE_ICONS));
 
 	if (basic)
 	{
