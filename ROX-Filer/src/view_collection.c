@@ -500,7 +500,7 @@ static void huge_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.height = MIN(view->name_height, area->height - template->icon.height - 1);
 
 	template->leafname.x = area->x + MAX((col_width - template->leafname.width) >> 1, 3);
-	template->icon.x = area->x + ((col_width - template->icon.width) >> 1) + 2;
+	template->icon.x = area->x + ((col_width - template->icon.width) >> 1) + 1;
 
 	template->icon.y = area->y + (area->height - template->leafname.height - template->icon.height) / 2 + 1;
 	template->leafname.y = template->icon.y + template->icon.height;
@@ -601,7 +601,7 @@ static void huge_full_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.height = MIN(view->name_height,
 			area->height - template->icon.height - view->details_height - 1);
 
-	template->icon.x = area->x + (col_width - template->icon.width) / 2 + 2;
+	template->icon.x = area->x + (col_width - template->icon.width) / 2 + 1;
 	template->icon.y = area->y +
 		(area->height - view->details_height - template->leafname.height - template->icon.height);
 
