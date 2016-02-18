@@ -7,7 +7,13 @@
         <radio label='Resize when changing the display style' value='0'>Changing the size of the icons or which details are displayed will resize the window for you.</radio>
         <radio label='Always resize' value='1'>The filer will resize windows whenever it seems useful (that is, when changing directory or display style).</radio>
       </radio-group>
-      <numentry name='filer_size_limit' label='Largest window size:' unit='%' min='1' max='100' width='3'>The largest size, as a percentage of the screen size, that the auto-resizer will resize a window to.</numentry>
+	<hbox>
+		<numentry name='filer_size_limit' label='Largest window size:' unit='%' min='1' max='100' width='3'>
+			The largest size, as a percentage of the screen size, that the auto-resizer will resize a window to.</numentry>
+		<spacer/>
+		<numentry name='filer_width_limit' label='Largest window width:' unit='%' min='0' max='100' width='3'>
+			The largest width, as a percentage of the screen size, that the auto-resizer will resize a window to.</numentry>
+	</hbox>
     </frame>
     <frame label='Window behaviour'>
       <hbox>

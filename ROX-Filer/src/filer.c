@@ -181,6 +181,7 @@ static Option o_short_flag_names;
 static Option o_filer_view_type;
 Option o_filer_auto_resize, o_unique_filer_windows;
 Option o_filer_size_limit;
+Option o_filer_width_limit;
 Option o_view_alpha;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
@@ -194,6 +195,7 @@ void filer_init(void)
 	gchar *dpyhost, *tmp;
   
 	option_add_int(&o_filer_size_limit, "filer_size_limit", 60);
+	option_add_int(&o_filer_width_limit, "filer_width_limit", 0);
 	option_add_int(&o_filer_auto_resize, "filer_auto_resize",
 							RESIZE_ALWAYS);
 	option_add_int(&o_unique_filer_windows, "filer_unique_windows", 0);

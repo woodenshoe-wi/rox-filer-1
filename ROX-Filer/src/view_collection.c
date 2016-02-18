@@ -1582,7 +1582,9 @@ static void view_collection_autosize(ViewIface *view)
 			small_height + 4;
 	n = MAX(n, 2);
 
-	max_x = (o_filer_size_limit.int_value * monitor_width) / 100;
+	max_x = ((o_filer_width_limit.int_value == 0 ?
+			 o_filer_size_limit.int_value :
+			 o_filer_width_limit.int_value) * monitor_width) / 100;
 	max_y = (o_filer_size_limit.int_value * monitor_height) / 100;
 
 	if (filer_window->toolbar)
