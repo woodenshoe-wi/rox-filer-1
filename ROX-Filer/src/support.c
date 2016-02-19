@@ -573,7 +573,7 @@ char *pretty_time(const time_t *time)
 	if (tms == NULL)
 		return g_strdup("(invalid time)");
 
-        if (strftime(time_buf, sizeof(time_buf), TIME_FORMAT, tms) == 0)
+        if (strftime(time_buf, sizeof(time_buf), COMPACT_TIME_FORMAT, tms) == 0)
 		time_buf[0]= 0;
 
 	return to_utf8(time_buf);
