@@ -141,7 +141,7 @@ static Tool all_tools[] = {
 	
 	{N_("Size┼"), GTK_STOCK_ZOOM_IN, N_("Change icon size\n"
 						"  Right: Change to smaller\n"
-						"  Centre: Change to Auto size\n"
+						"  Centre: Change to Auto Size\n"
 						"  Scroll: Temporary huge zoom\n"
 						"Status: ┘Huge, ┤Large, ┐Small, ├Auto"),
 	 toolbar_size_clicked, DROP_NONE, TRUE,
