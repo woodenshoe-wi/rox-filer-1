@@ -23,6 +23,11 @@ struct _ViewCollection {
 	FilerWindow *filer_window;	/* Used for styles, etc */
 
 	int	cursor_base;		/* Cursor when minibuffer opened */
+
+	GQueue		*thumb_path_queue;
+	GQueue		*thumb_view_queue;
+	GQueue		*thumb_area_queue;
+	gint		thumb_func;
 };
 
 #endif /* __VIEW_COLLECTION_H__ */

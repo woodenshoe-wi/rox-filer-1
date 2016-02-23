@@ -157,7 +157,7 @@ indicator'>If this is on then files which have one or more extended attributes s
 	</hbox>
 	<spacer/>
 	<hbox>
-		<numentry name='purge_time' label='Purge Time for Memory Cache:' unit='sec' min='1' max='999999' width='6'>
+		<numentry name='purge_time' label='Purge Time for Memory Cache:' unit='sec' min='0' max='999999' width='6'>
 			Purge Time for Memory cache.</numentry>
 	</hbox>
 

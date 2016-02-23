@@ -210,7 +210,7 @@ static GtkWidget *make_vbox(const guchar *path, GObject *window)
 	xmlNode 	*about = NULL;
 	gchar		*help_dir, *base;
 	GtkWidget	*hbox, *name, *label;
-	MaskedPixmap    *thumb;
+	GdkPixbuf    *thumb;
 
 	g_return_val_if_fail(path[0] == '/', NULL);
 	
@@ -254,7 +254,7 @@ static GtkWidget *make_vbox(const guchar *path, GObject *window)
 	if(thumb)
 	{
 		gtk_box_pack_start(GTK_BOX(hbox),
-				   gtk_image_new_from_pixbuf(thumb->src_pixbuf),
+				   gtk_image_new_from_pixbuf(thumb),
 				   FALSE, FALSE, 4);
 		g_object_unref(thumb);
 	}

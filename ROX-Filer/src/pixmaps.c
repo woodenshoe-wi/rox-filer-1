@@ -56,6 +56,7 @@
 #include "type.h"
 
 GFSCache *pixmap_cache = NULL;
+GFSCache *thumb_cache = NULL;
 GFSCache *desktop_icon_cache = NULL;
 
 static const char * bad_xpm[] = {
@@ -149,11 +150,11 @@ static void options_changed(){
 		default:
 			thumb_dir = "fail";
 		}
-		g_fscache_purge(pixmap_cache, 0);
+		g_fscache_purge(thumb_cache, 0);
 	}
 
 	if (o_purge_time.has_changed)
-		g_fscache_purge(pixmap_cache, o_purge_time.int_value);
+		g_fscache_purge(thumb_cache, o_purge_time.int_value);
 }
 
 void pixmaps_init(void)
@@ -168,6 +169,7 @@ void pixmaps_init(void)
 	gtk_widget_push_colormap(gdk_rgb_get_colormap());
 
 	pixmap_cache = g_fscache_new((GFSLoadFunc) image_from_file, NULL, NULL);
+	thumb_cache = g_fscache_new((GFSLoadFunc) image_from_file, NULL, NULL);
 	desktop_icon_cache = g_fscache_new((GFSLoadFunc) image_from_desktop_file, NULL, NULL);
 
 	g_timeout_add(6000, purge, NULL);
@@ -274,7 +276,8 @@ void pixmap_make_small(MaskedPixmap *mp)
 /* -1:not thumb target 0:not created 1:created and loaded */
 gint pixmap_check_and_load_thumb(const gchar *path)
 {
-	MaskedPixmap *image = pixmap_try_thumb(path, TRUE);
+	GdkPixbuf *image = pixmap_try_thumb(path, TRUE);
+
 	if (image)
 	{
 		g_object_unref(image);
@@ -297,6 +300,33 @@ gint pixmap_check_and_load_thumb(const gchar *path)
 	return -1;
 }
 
+
+GdkPixbuf *pixmap_load_thumb(const gchar *path)
+{
+	GdkPixbuf *ret = NULL;
+	gboolean found = FALSE;
+	MaskedPixmap *pixmap;
+
+	pixmap = g_fscache_lookup_full(pixmap_cache,
+			path, FSCACHE_LOOKUP_ONLY_NEW, &found);
+
+	if (found && !pixmap)
+		return NULL;
+
+	if (pixmap)
+		g_object_unref(pixmap);
+
+	if (o_purge_time.int_value > 0)
+		ret = g_fscache_lookup_full(thumb_cache,
+				path, FSCACHE_LOOKUP_ONLY_NEW, &found);
+
+	if (!found && !ret)
+		ret = pixmap_try_thumb(path, TRUE);
+
+	return ret;
+}
+
+
 static int thumb_prog_timeout(ChildThumbnail *info)
 {
 	info->timeout = 0;
@@ -311,7 +341,7 @@ static int thumb_prog_timeout(ChildThumbnail *info)
 void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 {
 	gboolean	found;
-	MaskedPixmap	*image;
+	GdkPixbuf	*image;
 	pid_t		child;
 	ChildThumbnail	*info;
 	MIME_type       *type;
@@ -328,7 +358,7 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 	}
 
 	/* Is it currently being created? */
-	image = g_fscache_lookup_full(pixmap_cache, path,
+	image = g_fscache_lookup_full(thumb_cache, path,
 					FSCACHE_LOOKUP_ONLY_NEW, &found);
 
 	if (found)
@@ -350,7 +380,7 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 	/* Add an entry, set to NULL, so no-one else tries to load this
 	 * image.
 	 */
-	g_fscache_insert(pixmap_cache, path, NULL, TRUE);
+	g_fscache_insert(thumb_cache, path, NULL, TRUE);
 
 	thumb_prog = thumbnail_program(type);
 
@@ -416,13 +446,13 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
  * can_load flags is set this includes loading from the cache, otherwise
  * only if already in memory
  */
-MaskedPixmap *pixmap_try_thumb(const gchar *path, gboolean can_load)
+GdkPixbuf *pixmap_try_thumb(const gchar *path, gboolean can_load)
 {
-	gboolean	found;
-	MaskedPixmap	*image;
-	GdkPixbuf	*pixbuf;
-  
-	image = g_fscache_lookup_full(pixmap_cache, path,
+	gboolean  found;
+	GdkPixbuf *image;
+	GdkPixbuf *pixbuf;
+
+	image = g_fscache_lookup_full(thumb_cache, path,
 					FSCACHE_LOOKUP_ONLY_NEW, &found);
 
 	if (found)
@@ -477,12 +507,10 @@ MaskedPixmap *pixmap_try_thumb(const gchar *path, gboolean can_load)
 
 	if (pixbuf)
 	{
-		MaskedPixmap *image;
+		if (o_purge_time.int_value > 0)
+			g_fscache_insert(thumb_cache, path, pixbuf, TRUE);
 
-		image = masked_pixmap_new(pixbuf);
-		g_object_unref(pixbuf);
-		g_fscache_insert(pixmap_cache, path, image, TRUE);
-		return image;
+		return pixbuf;
 	}
 
 	return NULL;
@@ -665,13 +693,8 @@ static void thumbnail_done(ChildThumbnail *info)
 
 	if (thumb)
 	{
-		MaskedPixmap *image;
-
-		image = masked_pixmap_new(thumb);
-		g_object_unref(thumb);
-
-		g_fscache_insert(pixmap_cache, info->path, image, FALSE);
-		g_object_unref(image);
+		if (o_purge_time.int_value > 0)
+			g_fscache_insert(thumb_cache, info->path, thumb, FALSE);
 
 		info->callback(info->data, info->path);
 	}
@@ -872,7 +895,7 @@ static MaskedPixmap *get_bad_image(void)
 /* Called now and then to clear out old pixmaps */
 static gint purge(gpointer data)
 {
-	g_fscache_purge(pixmap_cache, o_purge_time.int_value);
+	g_fscache_purge(thumb_cache, o_purge_time.int_value);
 
 	g_timeout_add(MIN(60000, o_purge_time.int_value * 300 + 2000), purge, NULL);
 	return FALSE;
@@ -1032,7 +1055,7 @@ static void purge_disk_cache(GtkWidget *button, gpointer data)
 	DIR *dir;
 	struct dirent *ent;
 
-	g_fscache_purge(pixmap_cache, 0);
+	g_fscache_purge(thumb_cache, 0);
 
 	path = g_strconcat(home_dir, "/.cache/thumbnails/", thumb_dir, "/", NULL);
 

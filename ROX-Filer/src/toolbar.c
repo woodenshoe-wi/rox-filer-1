@@ -825,8 +825,10 @@ static gint toolbar_button_scroll(GtkButton *button,
 		if (ds == HUGE_ICONS)
 		{
 			*sc -= step;
-			if (*sc < start)
+			if (*sc < start) {
+				*sc += step;
 				*dsw = LARGE_ICONS;
+			}
 		}
 		else if (ds == LARGE_ICONS)
 			*dsw = SMALL_ICONS;

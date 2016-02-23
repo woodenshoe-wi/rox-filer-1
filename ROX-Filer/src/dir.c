@@ -699,10 +699,11 @@ static void delayed_notify(Directory *dir)
 	if (dir->notify_active)
 		return;
 	g_object_ref(dir);
-/*	1500 is too long, but  
- *	I don't know what wills happen. So I can't delete this line.
- *	g_timeout_add(1500, notify_timeout, dir); */
-	g_timeout_add(100, notify_timeout, dir);
+
+	if (dir->notify_time < 100)
+		dir->notify_time += 3;
+
+	g_timeout_add(dir->notify_time, notify_timeout, dir);
 	dir->notify_active = TRUE;
 }
 
@@ -963,6 +964,7 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 	dir->users = NULL;
 	dir->needs_update = TRUE;
 	dir->notify_active = FALSE;
+	dir->notify_time = 1;
 	dir->pathname = NULL;
 	dir->error = NULL;
 	dir->rescan_timeout = -1;

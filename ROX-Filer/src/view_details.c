@@ -1146,6 +1146,11 @@ static void view_details_style_changed(ViewIface *view, int flags)
 			g_object_unref(G_OBJECT(item->image));
 			item->image = NULL;
 		}
+		if (item->thumb)
+		{
+			g_object_unref(G_OBJECT(item->thumb));
+			item->thumb = NULL;
+		}
 		gtk_tree_model_row_changed(model, path, &iter);
 		gtk_tree_path_next(path);
 	}
@@ -1257,6 +1262,8 @@ static void view_details_add_items(ViewIface *view, GPtrArray *new_items)
 		vitem = g_new(ViewItem, 1);
 		vitem->item = item;
 		vitem->image = NULL;
+		vitem->di_image = FALSE;
+		vitem->thumb = NULL;
 		if (!g_utf8_validate(leafname, -1, NULL))
 			vitem->utf8_name = to_utf8(leafname);
 		else
@@ -1349,6 +1356,12 @@ static void view_details_update_items(ViewIface *view, GPtrArray *items)
 			{
 				g_object_unref(G_OBJECT(view_item->image));
 				view_item->image = NULL;
+				view_item->di_image = FALSE;
+			}
+			if (view_item->thumb)
+			{
+				g_object_unref(G_OBJECT(view_item->thumb));
+				view_item->thumb = NULL;
 			}
 			path = gtk_tree_path_new();
 			gtk_tree_path_append_index(path, j);
@@ -1915,7 +1928,12 @@ static void free_view_item(ViewItem *view_item)
 {
 	if (view_item->image)
 		g_object_unref(G_OBJECT(view_item->image));
+
 	g_free(view_item->utf8_name);
+
+	if (view_item->thumb)
+		g_object_unref(G_OBJECT(view_item->thumb));
+
 	g_free(view_item);
 }
 
