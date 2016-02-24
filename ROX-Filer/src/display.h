@@ -24,7 +24,6 @@ struct _ViewData
 	int	details_height;
 
 	MaskedPixmap *image;		/* Image; not thumbnail */
-	gboolean di_image;
 	GdkPixbuf *thumb;
 };
 

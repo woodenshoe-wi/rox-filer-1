@@ -27,6 +27,7 @@ struct _ViewCollection {
 	GQueue		*thumb_path_queue;
 	GQueue		*thumb_view_queue;
 	GQueue		*thumb_area_queue;
+	GQueue		*thumb_item_queue;
 	gint		thumb_func;
 };
 

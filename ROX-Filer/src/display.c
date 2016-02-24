@@ -260,6 +260,7 @@ static void draw_noimage(GdkWindow *window, GdkRectangle *rect)
 	cairo_stroke(cr);
 	cairo_destroy(cr);
 }
+
 static void draw_label_bg(GdkWindow *window,
 			GdkRectangle *rect,
 			GdkColor *colour)
@@ -737,7 +738,6 @@ ViewData *display_create_viewdata(FilerWindow *filer_window, DirItem *item)
 	view->details = NULL;
 	view->image = NULL;
 	view->thumb = NULL;
-	view->di_image = FALSE;
 
 	display_update_view(filer_window, item, view, TRUE);
 
@@ -1033,33 +1033,35 @@ void display_update_view(FilerWindow *filer_window,
 		}
 	}
 
-	if (view->image)
-	{
-		g_object_unref(view->image);
-		view->image = NULL;
-	}
+	if (item->base_type != TYPE_UNKNOWN) {
+		if (view->image)
+		{
+			g_object_unref(view->image);
+			view->image = NULL;
+		}
 
-	view->image = get_globicon(
-			make_path(filer_window->sym_path, item->leafname));
-
-	if (!view->image)
-	{
-		const guchar *path = make_path(filer_window->real_path, item->leafname);
-
-		view->image = get_globicon(path);
-
-		//.DirIcon
-		if (!view->image && filer_window->show_thumbs &&
-				item->base_type == TYPE_FILE)
-			view->image = g_fscache_lookup_full(pixmap_cache, path,
-					FSCACHE_LOOKUP_ONLY_NEW, NULL);
+		view->image = get_globicon(
+				make_path(filer_window->sym_path, item->leafname));
 
 		if (!view->image)
 		{
-			view->image = di_image(item);
-			if (view->image) {
-				g_object_ref(view->image);
-				view->di_image = TRUE;
+			const guchar *path = make_path(filer_window->real_path, item->leafname);
+
+			view->image = get_globicon(path);
+
+			//.DirIcon
+			if (!view->image && filer_window->show_thumbs &&
+					item->base_type == TYPE_FILE)
+				view->image = g_fscache_lookup_full(pixmap_cache, path,
+						FSCACHE_LOOKUP_ONLY_NEW, NULL);
+
+			if (!view->image &&
+				(item->base_type != TYPE_FILE || !filer_window->show_thumbs))
+			{
+				view->image = di_image(item);
+				if (view->image) {
+					g_object_ref(view->image);
+				}
 			}
 		}
 	}

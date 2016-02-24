@@ -448,7 +448,7 @@ static void draw_item(GtkWidget *widget,
 
 static gboolean next_thumb(ViewCollection *vc)
 {
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		if (g_queue_is_empty(vc->thumb_path_queue))
 		{
@@ -460,15 +460,21 @@ static gboolean next_thumb(ViewCollection *vc)
 			ViewData *view = (ViewData *) g_queue_pop_tail(vc->thumb_view_queue);
 			GdkRectangle *area =
 				(GdkRectangle *) g_queue_pop_tail(vc->thumb_area_queue);
+			DirItem *item = (DirItem *) g_queue_pop_tail(vc->thumb_item_queue);
 
-			if (!view->thumb) {
-					view->thumb = pixmap_load_thumb(path);
-				if (view->thumb) {
+			if (!view->thumb && !view->image) {
+				view->thumb = pixmap_load_thumb(path);
+
+				if (!view->thumb)
+					view->image = di_image(item);
+				if (view->image)
+					g_object_ref(view->image);
+
+				if (view->thumb || view->image) {
 					gdk_window_invalidate_rect(
 							GTK_WIDGET(vc->collection)->window, area, FALSE);
 				}
 			}
-
 			g_free(path);
 			g_free(area);
 		}
@@ -494,6 +500,8 @@ static void clear_thumb_func(ViewCollection *vc)
 		vc->thumb_view_queue = NULL;
 		g_queue_free_full(vc->thumb_area_queue, g_free);
 		vc->thumb_area_queue = NULL;
+		g_queue_free(vc->thumb_item_queue);
+		vc->thumb_item_queue = NULL;
 	}
 }
 static void reset_thumb_func(ViewCollection *vc)
@@ -502,6 +510,7 @@ static void reset_thumb_func(ViewCollection *vc)
 	vc->thumb_path_queue = g_queue_new();
 	vc->thumb_view_queue = g_queue_new();
 	vc->thumb_area_queue = g_queue_new();
+	vc->thumb_item_queue = g_queue_new();
 }
 
 /* A template contains the locations of the three rectangles (for the icon,
@@ -518,31 +527,38 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 
 	if (view->thumb &&
 		(!filer_window->show_thumbs ||
-		(item->base_type == TYPE_FILE && !view->di_image) ||
+		(item->base_type == TYPE_FILE && view->image) ||
 		(item->base_type != TYPE_FILE && item->base_type != TYPE_UNKNOWN))
 	) {
 		g_clear_object(&(view->thumb));
 	}
 
-	if (filer_window->show_thumbs && !view->thumb &&
+	if (filer_window->show_thumbs && !view->thumb && !view->image &&
 		(item->base_type == TYPE_UNKNOWN || //for response time
-		 (item->base_type == TYPE_FILE && view->di_image))
-	) {
+		 item->base_type == TYPE_FILE))
+	{
 		if (item->base_type == TYPE_UNKNOWN || style != HUGE_ICONS)
 		{
-			g_queue_push_head(view_collection->thumb_path_queue,
-					pathdup(make_path(filer_window->real_path, item->leafname)));
-			g_queue_push_head(view_collection->thumb_view_queue, view);
-
-			GdkRectangle *carea = g_memdup(area, sizeof(GdkRectangle));
-			g_queue_push_head(view_collection->thumb_area_queue, carea);
-
-			if (!view_collection->thumb_func)
+			if (g_queue_index(view_collection->thumb_view_queue, view) == -1)
 			{
-				g_object_ref(view_collection);
-				view_collection->thumb_func = g_idle_add_full(
-						G_PRIORITY_HIGH_IDLE + 30, //G_PRIORITY_DEFAULT_IDLE
-						(GSourceFunc) next_thumb, view_collection, NULL);
+				gchar *path = pathdup(
+						make_path(filer_window->real_path, item->leafname));
+				g_queue_push_head(view_collection->thumb_path_queue, path);
+
+				g_queue_push_head(view_collection->thumb_view_queue, view);
+
+				GdkRectangle *carea = g_memdup(area, sizeof(GdkRectangle));
+				g_queue_push_head(view_collection->thumb_area_queue, carea);
+
+				g_queue_push_head(view_collection->thumb_item_queue, item);
+
+				if (!view_collection->thumb_func)
+				{
+					g_object_ref(view_collection);
+					view_collection->thumb_func = g_idle_add_full(
+							G_PRIORITY_HIGH_IDLE + 20, //G_PRIORITY_DEFAULT_IDLE
+							(GSourceFunc) next_thumb, view_collection, NULL);
+				}
 			}
 		}
 		else
@@ -550,6 +566,10 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 			gchar *path = pathdup(
 					make_path(filer_window->real_path, item->leafname));
 			view->thumb = pixmap_load_thumb(path);
+			if (!view->thumb)
+				view->image = di_image(item);
+			if (view->image)
+				g_object_ref(view->image);
 			g_free(path);
 		}
 	}
@@ -1218,7 +1238,9 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 	}
 
 	collection_set_item_size(col, width, height);
-	
+
+	reset_thumb_func(view_collection);
+
 	gtk_widget_queue_draw(GTK_WIDGET(view_collection));
 }
 
