@@ -331,7 +331,7 @@ void draw_huge_icon(
 		scaled = image;
 
 	image_x = area->x + ((area->width - width) >> 1);
-	image_y = area->y + MAX(0, area->height - height - 6);
+	image_y = area->y + MAX(0, (area->height - height) / 2);
 
 	draw_label_bg(window, area,
 			selected && item->label ? color : item->label);
@@ -403,23 +403,26 @@ void draw_huge_icon(
 	else
 	{
 		image_x += width / 19;
+
+		int emb_y = MIN(image_y, area->y + area->height * 1 / 3);
+
 		if (item->flags & ITEM_FLAG_MOUNT_POINT)
 		{
 			const char *mp = item->flags & ITEM_FLAG_MOUNTED
 						? ROX_STOCK_MOUNTED
 						: ROX_STOCK_MOUNT;
 			draw_emblem_on_icon(window, style, mp,
-						&image_x, area->y + height / 19, NULL);
+						&image_x, emb_y + height / 19, NULL);
 		}
 		if (item->flags & ITEM_FLAG_SYMLINK)
 		{
 			draw_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
-						&image_x, area->y + height / 19, NULL);
+						&image_x, emb_y + height / 19, NULL);
 		}
 		if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 		{
 			draw_emblem_on_icon(window, style, ROX_STOCK_XATTR,
-						&image_x, area->y + height / 19, item->label);
+						&image_x, emb_y + height / 19, item->label);
 		}
 	}
 }
