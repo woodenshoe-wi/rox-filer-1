@@ -8,6 +8,7 @@
 
 #define PRETTY_SIZE_LIMIT 10000
 #define TIME_FORMAT "%T %d %b %Y"
+#define COMPACT_TIME_FORMAT "%T %d%b%y"
 
 #include <glib-object.h>
 

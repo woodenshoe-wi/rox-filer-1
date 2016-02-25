@@ -181,6 +181,7 @@ static Option o_short_flag_names;
 static Option o_filer_view_type;
 Option o_filer_auto_resize, o_unique_filer_windows;
 Option o_filer_size_limit;
+Option o_filer_width_limit;
 Option o_view_alpha;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
@@ -194,6 +195,7 @@ void filer_init(void)
 	gchar *dpyhost, *tmp;
   
 	option_add_int(&o_filer_size_limit, "filer_size_limit", 60);
+	option_add_int(&o_filer_width_limit, "filer_width_limit", 0);
 	option_add_int(&o_filer_auto_resize, "filer_auto_resize",
 							RESIZE_ALWAYS);
 	option_add_int(&o_unique_filer_windows, "filer_unique_windows", 0);
@@ -524,10 +526,10 @@ static void update_display(Directory *dir,
 						filer_window->auto_select);
 			null_g_free(&filer_window->auto_select);
 
+//			g_idle_add_full(G_PRIORITY_LOW, (GSourceFunc) filer_create_thumbs, filer_window, NULL);
+//			g_idle_add((GSourceFunc) filer_create_thumbs, filer_window);
 			filer_create_thumbs(filer_window);
 
-			if (!g_queue_is_empty(filer_window->thumb_queue))
-				start_thumb_scanning(filer_window);
 			break;
 		case DIR_UPDATE:
 			view_update_items(view, items);
@@ -2408,6 +2410,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 		{
 			case 1:
 				filer_next_thumb(window, path);
+//				filer_next_thumb(window, NULL);
 				g_free(path);
 				return FALSE;
 			case 0:
@@ -2457,10 +2460,10 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 	if (path)
 		dir_force_update_path(path);
 
-	if (filer_window->max_thumbs > filer_window->tried_thumbs)
-		g_idle_add((GSourceFunc) filer_next_thumb_real, window);
+//	if (filer_window->max_thumbs > filer_window->tried_thumbs)
+//		g_idle_add((GSourceFunc) filer_next_thumb_real, window);
 //		filer_next_thumb_real(window);
-	else
+//	else
 		g_idle_add_full(G_PRIORITY_LOW, (GSourceFunc) filer_next_thumb_real, window, NULL);
 }
 
@@ -2478,8 +2481,11 @@ static void start_thumb_scanning(FilerWindow *filer_window)
 /* Set this image to be loaded some time in the future */
 void filer_create_thumb(FilerWindow *filer_window, const gchar *path)
 {
-	if (g_queue_is_empty(filer_window->thumb_queue))
+	if (g_queue_is_empty(filer_window->thumb_queue)) {
 		filer_window->max_thumbs=0;
+		filer_window->tried_thumbs = -1;
+	}
+
 	filer_window->max_thumbs++;
 
 	g_queue_push_head(filer_window->thumb_queue, g_strdup(path));
@@ -2516,9 +2522,9 @@ void filer_create_thumbs(FilerWindow *filer_window)
 		   continue;*/
 
 		path = make_path(filer_window->real_path, item->leafname);
-
 		pixmap = g_fscache_lookup_full(pixmap_cache, path,
 				FSCACHE_LOOKUP_ONLY_NEW, &found);
+
 		if (pixmap)
 			g_object_unref(pixmap);
 
@@ -2534,6 +2540,9 @@ void filer_create_thumbs(FilerWindow *filer_window)
 		if (!found)
 			filer_create_thumb(filer_window, path);
 	}
+
+	if (!g_queue_is_empty(filer_window->thumb_queue))
+		start_thumb_scanning(filer_window);
 }
 
 static void filer_options_changed(void)

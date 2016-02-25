@@ -7,7 +7,13 @@
         <radio label='Resize when changing the display style' value='0'>Changing the size of the icons or which details are displayed will resize the window for you.</radio>
         <radio label='Always resize' value='1'>The filer will resize windows whenever it seems useful (that is, when changing directory or display style).</radio>
       </radio-group>
-      <numentry name='filer_size_limit' label='Largest window size:' unit='%' min='1' max='100' width='3'>The largest size, as a percentage of the screen size, that the auto-resizer will resize a window to.</numentry>
+	<hbox>
+		<numentry name='filer_size_limit' label='Largest window size:' unit='%' min='1' max='100' width='3'>
+			The largest size, as a percentage of the screen size, that the auto-resizer will resize a window to.</numentry>
+		<spacer/>
+		<numentry name='filer_width_limit' label='Largest window width:' unit='%' min='0' max='100' width='3'>
+			The largest width, as a percentage of the screen size, that the auto-resizer will resize a window to.</numentry>
+	</hbox>
     </frame>
     <frame label='Window behaviour'>
       <hbox>
@@ -151,7 +157,7 @@ indicator'>If this is on then files which have one or more extended attributes s
 	</hbox>
 	<spacer/>
 	<hbox>
-		<numentry name='purge_time' label='Purge Time for Memory Cache:' unit='sec' min='1' max='999999' width='6'>
+		<numentry name='purge_time' label='Purge Time for Memory Cache:' unit='sec' min='0' max='999999' width='6'>
 			Purge Time for Memory cache.</numentry>
 	</hbox>
 

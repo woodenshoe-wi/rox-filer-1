@@ -65,6 +65,7 @@ struct _Directory
 	struct stat	stat_info;	/* Internal use */
 
 	gboolean	notify_active;	/* Notify timeout is running */
+	int			notify_time;	/* Time of Notify timeout */
 	gint		idle_callback;	/* Idle callback ID */
 
 	GHashTable 	*known_items;	/* What our users know about */

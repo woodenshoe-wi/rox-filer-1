@@ -23,7 +23,8 @@ struct _ViewData
 	int	details_width;
 	int	details_height;
 
-	MaskedPixmap *image;		/* Image; possibly thumbnail */
+	MaskedPixmap *image;		/* Image; not thumbnail */
+	GdkPixbuf *thumb;
 };
 
 extern Option o_display_inherit_options, o_display_sort_by;
@@ -63,7 +64,7 @@ void draw_large_icon(GdkWindow *window,
 		     GtkStyle *style,
 		     GdkRectangle *area,
 		     DirItem  *item,
-		     MaskedPixmap *image,
+		     GdkPixbuf *image,
 		     gboolean selected,
 		     GdkColor *color);
 gboolean display_is_truncated(FilerWindow *filer_window, int i);
@@ -76,15 +77,19 @@ void display_update_view(FilerWindow *filer_window,
 			 gboolean update_name_layout);
 PangoLayout *make_layout(FilerWindow *fw, DirItem *item);
 void display_update_views(FilerWindow *filer_window);
-void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
-		     DirItem  *item, MaskedPixmap *image, gboolean selected,
-		     GdkColor *color);
-void draw_huge_icon(FilerWindow *filer_window,
+void draw_small_icon(GdkWindow *window,
+					GtkStyle *style,
+					GdkRectangle *area,
+					DirItem  *item,
+					GdkPixbuf *image,
+					gboolean selected,
+					GdkColor *color);
+void draw_huge_icon(
 					GdkWindow *window,
 					GtkStyle *style,
 					GdkRectangle *area,
 					DirItem *item,
-					MaskedPixmap *image,
+					GdkPixbuf *image,
 					gboolean selected,
 					GdkColor *color);
 void display_set_actual_size(FilerWindow *filer_window, gboolean force_resize);
