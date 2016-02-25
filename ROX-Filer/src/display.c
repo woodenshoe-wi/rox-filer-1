@@ -258,6 +258,8 @@ static void draw_noimage(GdkWindow *window, GdkRectangle *rect)
 
 	cairo_set_source (cr, linpat);
 	cairo_stroke(cr);
+
+	cairo_pattern_destroy(linpat);
 	cairo_destroy(cr);
 }
 
