@@ -699,7 +699,10 @@ static void thumbnail_done(ChildThumbnail *info)
 		info->callback(info->data, info->path);
 	}
 	else
+	{
+		g_fscache_insert(pixmap_cache, info->path, NULL, TRUE);
 		info->callback(info->data, NULL);
+	}
 
 	g_free(info->path);
 	g_free(info);
