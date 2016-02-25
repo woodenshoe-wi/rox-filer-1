@@ -799,8 +799,8 @@ static gint toolbar_button_scroll(GtkButton *button,
 	DisplayStyle *dsw = &(fw->display_style_wanted);
 	gfloat *sc = &(fw->icon_scale);
 	gfloat
-		step_pix = (gfloat) ICON_HEIGHT - SMALL_WIDTH,
-		start = (ICON_HEIGHT + step_pix) / huge_size,
+		step_pix = MAX((huge_size - ICON_HEIGHT) / 4.0, ICON_HEIGHT - SMALL_WIDTH),
+		start = (ICON_HEIGHT + step_pix - 1) / huge_size,
 		step  = step_pix / huge_size,	
 		end   = HUGE_LIMIT_F / huge_size;
 
