@@ -203,21 +203,22 @@ static DisplayStyle get_style(GtkCellRenderer *cell)
 
 		if (filer_window->show_thumbs && item->base_type == TYPE_FILE)
 		{
-			const guchar    *path;
-
-			path = make_path(filer_window->real_path,
-					 item->leafname);
-
-			view_item->image = g_fscache_lookup_full(pixmap_cache,
-					path, FSCACHE_LOOKUP_ONLY_NEW, NULL);
+			if (!view_item->thumb) {
+				gchar *path = pathdup(
+						make_path(filer_window->real_path, item->leafname));
+				view_item->thumb = pixmap_load_thumb(path);
+				g_free(path);
+			}
 		}
-		if (!view_item->image)
+		else
+			g_clear_object(&(view_item->thumb));
+
+
+		if (!view_item->thumb && !view_item->image)
 		{
 			view_item->image = di_image(item);
-			if (view_item->image) {
+			if (view_item->image)
 				g_object_ref(view_item->image);
-				view_item->di_image = TRUE;
-			}
 		}
 	}
 	
@@ -225,10 +226,7 @@ static DisplayStyle get_style(GtkCellRenderer *cell)
 
 	if (size == AUTO_SIZE_ICONS)
 	{
-		if (!view_item->image || view_item->di_image)
-			size = SMALL_ICONS;
-		else
-			size = HUGE_ICONS;
+		size = SMALL_ICONS;
 	}
 
 	return size;
@@ -246,11 +244,13 @@ static void cell_icon_get_size(GtkCellRenderer *cell,
 	DisplayStyle size;
 	int w, h;
 
+	ViewItem *view_item = ((CellIcon *) cell)->item;
+
 	FilerWindow *fw = ((CellIcon *) cell)->view_details->filer_window;
 	gfloat scale = fw->icon_scale;
 
 	size = get_style(cell);
-	image = ((CellIcon *) cell)->item->image;
+	image = view_item->image;
 
 	if (x_offset)
 		*x_offset = 0;
@@ -276,21 +276,29 @@ static void cell_icon_get_size(GtkCellRenderer *cell,
 			}
 			break;
 		case HUGE_ICONS:
-			if (!fw->show_thumbs && image)
+			if (view_item->thumb)
 			{
-				if (image->huge_width <= ICON_WIDTH &&
-					image->huge_height <= ICON_HEIGHT)
-						scale = 1.0;
-				else
-					scale *= (gfloat) huge_size / MAX(image->huge_width, image->huge_height);
-
-				w = image->huge_width * scale;
-				h = image->huge_height * scale;
+				w = gdk_pixbuf_get_width(view_item->thumb);
+				h = gdk_pixbuf_get_height(view_item->thumb);
+			}
+			else if (image)
+			{
+				w = image->huge_width;
+				h = image->huge_height;
 			}
 			else
-			{
-				w = h = huge_size * scale;
-			}
+				w = h = huge_size;
+
+
+			if (!view_item->thumb &&
+					w <= ICON_WIDTH &&
+					h <= ICON_HEIGHT)
+				scale = 1.0;
+			else
+				scale *= (gfloat) huge_size / MAX(w, h);
+
+			w *= scale;
+			h *= scale;
 			break;
 		default:
 			w = 2;
@@ -314,7 +322,7 @@ static void cell_icon_render(GtkCellRenderer    *cell,
 {
 	CellIcon *icon = (CellIcon *) cell;
 	ViewItem *view_item = icon->item;
-	DirItem *item;
+	DirItem *item = view_item->item;
 	DisplayStyle size;
 	gboolean selected = (flags & GTK_CELL_RENDERER_SELECTED) != 0;
 	GdkColor *color;
@@ -323,31 +331,15 @@ static void cell_icon_render(GtkCellRenderer    *cell,
 	g_return_if_fail(view_item != NULL);
 
 	MaskedPixmap *image = view_item->image;
+	GdkPixbuf *sendi = view_item->thumb;
 
-	if (!image)
+	if (!image && !sendi)
 		return;
 
-	item = view_item->item;
 	size = get_style(cell);
 	color = &widget->style->base[fw->selection_state];
 
 	/* Draw the icon */
-
-	GdkPixbuf *sendi = view_item->thumb;
-
-	if (fw->show_thumbs && !view_item->thumb &&
-		item->base_type == TYPE_FILE && view_item->di_image
-	) {
-		gchar *path = pathdup(
-				make_path(fw->real_path, item->leafname));
-
-
-		view_item->thumb = pixmap_load_thumb(path);
-		sendi = view_item->thumb;
-		g_free(path);
-
-	}
-
 	GdkRectangle area = *cell_area;
 
 	if (!sendi)
@@ -356,8 +348,11 @@ static void cell_icon_render(GtkCellRenderer    *cell,
 		switch (size) {
 		case SMALL_ICONS:
 		{
-			area.width = MIN(area.width, SMALL_WIDTH);
+			area.width = MIN(area.width, small_width);
 			area.x = cell_area->x + cell_area->width - area.width;
+
+			area.height = MIN(area.height, small_height);
+			area.y = cell_area->y + (cell_area->height - area.height) / 2;
 
 			if (!image->sm_pixbuf)
 				pixmap_make_small(image);

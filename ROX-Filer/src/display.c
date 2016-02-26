@@ -161,7 +161,8 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 }
 
 static void draw_mini_emblem_on_icon(GdkWindow *window,
-		GtkStyle *style, const char *stock_id, int *x, int y, GdkColor *color)
+		GtkStyle *style, const char *stock_id,
+		int *x, int y, int areah, GdkColor *color)
 {
 	GtkIconSet *icon_set;
 	static GdkPixbuf  *pixbuf, *ctemp, *scaled = NULL;
@@ -203,9 +204,9 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 			g_object_unref(ctemp);
 		}
 
-		dy = small_height * 1 / 5;
-		tsize = small_height * 4 / 5;
-		dy += small_height - (dy + tsize);
+		dy = areah * 1 / 5;
+		tsize = areah * 4 / 5;
+		dy += areah - (dy + tsize);
 		gtk_icon_size_lookup(mount_icon_size, &w, &h);
 		if (h < tsize)
 		{
@@ -226,7 +227,7 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 				NULL,
 				scaled,
 				0, 0, /* src */
-				*x - 1, y + dy + 1, /* dest */
+				*x - 1, y + dy + 2, /* dest */
 				-1, -1,
 				GDK_RGB_DITHER_NORMAL, 0, 0);
 
@@ -309,7 +310,7 @@ void draw_huge_icon(
 			gboolean selected,
 			GdkColor *color
 ) {
-	int       image_x, image_y, width, height;
+	int       image_x, image_y, width, height, mw, mh;
 	GdkPixbuf *pixbuf, *scaled = NULL;
 	gfloat    scale;
 
@@ -355,8 +356,9 @@ void draw_huge_icon(
 	if (selected)
 		g_object_unref(pixbuf);
 
+	gtk_icon_size_lookup(mount_icon_size, &mw, &mh);
 
-	if (area->width <= small_width && area->height <= small_height)
+	if (area->width < mw * 3 && area->height < mh * 3)
 	{
 		image_x -= (small_width - width) / 2;
 
@@ -366,17 +368,17 @@ void draw_huge_icon(
 						? ROX_STOCK_MOUNTED
 						: ROX_STOCK_MOUNT;
 			draw_mini_emblem_on_icon(window, style, mp,
-						&image_x, area->y, NULL);
+						&image_x, area->y, area->height, NULL);
 		}
 		if (item->flags & ITEM_FLAG_SYMLINK)
 		{
 			draw_mini_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
-						&image_x, area->y, NULL);
+						&image_x, area->y, area->height, NULL);
 		}
 		if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 		{
 			draw_mini_emblem_on_icon(window, style, ROX_STOCK_XATTR,
-						&image_x, area->y, item->label);
+						&image_x, area->y, area->height, item->label);
 		}
 	}
 	else if (area->width <= ICON_WIDTH && area->height <= ICON_HEIGHT)
@@ -699,33 +701,40 @@ void display_change_size(FilerWindow *filer_window, gboolean bigger)
 
 	g_return_if_fail(filer_window != NULL);
 
-	switch (filer_window->display_style)
-	{
-		case LARGE_ICONS:
-			new = bigger ? HUGE_ICONS : SMALL_ICONS;
-			break;
-		case HUGE_ICONS:
-			if (!bigger)
-				new = LARGE_ICONS;
-			else if (filer_window->icon_scale != 1.0)
-			{
-				/* icon scale skiped this */
-				filer_window->display_style_wanted = AUTO_SIZE_ICONS;
-				new = HUGE_ICONS;
-			}
-			else
-				return;
-			break;
-		default:
-			if (bigger)
-				new = LARGE_ICONS;
-			else if (filer_window->icon_scale != 1.0)
-				/* icon scale skiped this */
-				filer_window->display_style_wanted = AUTO_SIZE_ICONS;
-			else
-				return;
-			break;
-	}
+	if (filer_window->view_type == VIEW_TYPE_DETAILS &&
+		filer_window->display_style_wanted == AUTO_SIZE_ICONS
+		)
+		new = bigger ? LARGE_ICONS : SMALL_ICONS;
+	else
+		switch (filer_window->display_style)
+		{
+			case LARGE_ICONS:
+				new = bigger ? HUGE_ICONS : SMALL_ICONS;
+				break;
+			case HUGE_ICONS:
+				if (!bigger)
+					new = LARGE_ICONS;
+				else if (filer_window->icon_scale != 1.0)
+				{
+					/* icon scale skiped this */
+					filer_window->display_style_wanted = AUTO_SIZE_ICONS;
+					new = HUGE_ICONS;
+				}
+				else
+					return;
+				break;
+			default:
+				if (bigger)
+					new = LARGE_ICONS;
+				else if (filer_window->icon_scale != 1.0)
+					/* icon scale skiped this */
+					filer_window->display_style_wanted = AUTO_SIZE_ICONS;
+				else if (filer_window->display_style_wanted == AUTO_SIZE_ICONS)
+					new = SMALL_ICONS;
+				else
+					return;
+				break;
+		}
 
 	/* scale is just temporary */
 	filer_window->icon_scale = 1.0;

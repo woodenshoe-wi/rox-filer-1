@@ -15,7 +15,6 @@ typedef struct _ViewItem ViewItem;
 struct _ViewItem {
 	DirItem *item;
 	MaskedPixmap *image;
-	gboolean di_image;
 	GdkPixbuf *thumb;
 	int	old_pos;	/* Used while sorting */
 	gchar   *utf8_name;	/* NULL => leafname is valid */
