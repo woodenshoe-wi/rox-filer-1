@@ -756,7 +756,7 @@ static void huge_full_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.x = area->x + MAX((col_width - view->name_width) / 2, 3);
 	template->leafname.y = template->icon.y + template->icon.height;
 
-	if (!image)
+	if (((DirItem *) colitem->data)->base_type == TYPE_UNKNOWN)
 		return;		/* Not scanned yet */
 
 	template->details.x = area->x + (col_width - view->details_width) / 2;
@@ -790,7 +790,7 @@ static void large_full_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.width = MIN(max_text_width, view->name_width);
 	template->leafname.height = view->name_height;
 
-	if (!image)
+	if (((DirItem *) colitem->data)->base_type == TYPE_UNKNOWN)
 		return;		/* Not scanned yet */
 
 	template->details.x = template->leafname.x;
@@ -807,7 +807,7 @@ static void small_full_template(GdkRectangle *area, CollectionItem *colitem,
 
 	small_template(&temparea, colitem, view_collection, template);
 
-	if (!view->image)
+	if (((DirItem *) colitem->data)->base_type == TYPE_UNKNOWN)
 		return;		/* Not scanned yet */
 
 	template->icon.x = area->x + 2;
