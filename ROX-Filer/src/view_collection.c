@@ -725,17 +725,27 @@ static void huge_full_template(GdkRectangle *area, CollectionItem *colitem,
 	gfloat adjust, scale = view_collection->filer_window->icon_scale;
 	int	col_width = view_collection->collection->item_width;
 
-	if (image)
+	if (image || view->thumb)
 	{
-		if (image->huge_width <= ICON_WIDTH &&
-			image->huge_height <= ICON_HEIGHT)
+		int width, height;
+
+		if (view->thumb)
+		{
+			width = gdk_pixbuf_get_width(view->thumb);
+			height = gdk_pixbuf_get_height(view->thumb);
+		} else {
+			width = image->huge_width;
+			height = image->huge_height;
+		}
+
+		if (width <= ICON_WIDTH &&
+			height <= ICON_HEIGHT)
 			adjust = scale = 1.0;
 		else
-			adjust = (gfloat) huge_size /
-				MAX(image->huge_width, image->huge_height);
+			adjust = (gfloat) huge_size / MAX(width, height);
 
-		template->icon.width = image->huge_width * scale * adjust;
-		template->icon.height = image->huge_height * scale * adjust;
+		template->icon.width = width * scale * adjust;
+		template->icon.height = height * scale * adjust;
 	}
 	else
 	{

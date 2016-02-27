@@ -261,6 +261,7 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">" N_("Home Directory"),	"<Ctrl>Home", home_directory, 0, "<StockItem>", GTK_STOCK_HOME},
 {">" N_("Show Bookmarks"),	"<Ctrl>B", show_bookmarks, 0, "<StockItem>", ROX_STOCK_BOOKMARKS},
 {">" N_("Show Log"),		NULL, show_log, 0, "<StockItem>", GTK_STOCK_INFO},
+{">" N_("Follow Symbolic Links"),	NULL, follow_symlinks, 0, NULL},
 {">" N_("Resize Window"),	"<Ctrl>E", resize, 0, NULL},
 /* {">" N_("New, As User..."),	NULL, new_user, 0, NULL}, */
 
@@ -270,12 +271,10 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">" N_("Shell Command..."),	"<Shift>exclam", mini_buffer, MINI_SHELL, NULL},
 {">" N_("Terminal Here"),	"grave", xterm_here, FALSE, NULL},
 {">" N_("Switch to Terminal"),	NULL, xterm_here, TRUE, NULL},
-{N_("Follow Sym Links"),	NULL, follow_symlinks, 0, NULL},
 {N_("Help"),			NULL, NULL, 0, "<Branch>"},
 {">" N_("About ROX-Filer..."),	NULL, menu_rox_help, HELP_ABOUT, NULL},
 {">" N_("Show Help Files"),	"F1", menu_rox_help, HELP_DIR, "<StockItem>", GTK_STOCK_HELP},
 {">" N_("Manual"),		NULL, menu_rox_help, HELP_MANUAL, NULL},
-{"",				NULL, NULL, 0, "<Separator>"},
 {N_("Customise Dir Menu..."),	NULL, customise_directory_menu, 0, NULL},
 };
 
@@ -330,7 +329,7 @@ gboolean ensure_filer_menu(void)
 #endif
 
 	GET_SMENU_ITEM(filer_new_menu, "filer", "New");
-	GET_SMENU_ITEM(item, "filer", "Follow Sym Links");
+	GET_SSMENU_ITEM(item, "filer", "Window", "Follow Symbolic Links");
 	filer_follow_sym = GTK_BIN(item)->child;
 
 	/* File '' label... */

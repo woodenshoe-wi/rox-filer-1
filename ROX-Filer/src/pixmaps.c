@@ -26,7 +26,7 @@
  * this period of time (seconds).
  */
 
-#define PIXMAP_PURGE_TIME 1200
+#define PIXMAP_PURGE_TIME 60 * 60 * 4
 #define PIXMAP_THUMB_SIZE  128
 #define PIXMAP_THUMB_TOO_OLD_TIME  5
 
@@ -118,7 +118,8 @@ static const char *stocks[] = {
 /* Static prototypes */
 
 static void load_default_pixmaps(void);
-static gint purge(gpointer data);
+static gint purge_pixmaps(gpointer data);
+static gint purge_thumbs(gpointer data);
 static MaskedPixmap *image_from_file(const char *path);
 static MaskedPixmap *image_from_desktop_file(const char *path);
 static MaskedPixmap *get_bad_image(void);
@@ -172,7 +173,8 @@ void pixmaps_init(void)
 	thumb_cache = g_fscache_new((GFSLoadFunc) image_from_file, NULL, NULL);
 	desktop_icon_cache = g_fscache_new((GFSLoadFunc) image_from_desktop_file, NULL, NULL);
 
-	g_timeout_add(6000, purge, NULL);
+	g_timeout_add(6000, purge_thumbs, NULL);
+	g_timeout_add(PIXMAP_PURGE_TIME / 2 * 1000, purge_pixmaps, NULL);
 
 	factory = gtk_icon_factory_new();
 	for (i = 0; i < G_N_ELEMENTS(stocks); i++)
@@ -898,11 +900,16 @@ static MaskedPixmap *get_bad_image(void)
 }
 
 /* Called now and then to clear out old pixmaps */
-static gint purge(gpointer data)
+static gint purge_pixmaps(gpointer data)
+{
+	g_fscache_purge(pixmap_cache, PIXMAP_PURGE_TIME);
+	return TRUE;
+}
+static gint purge_thumbs(gpointer data)
 {
 	g_fscache_purge(thumb_cache, o_purge_time.int_value);
 
-	g_timeout_add(MIN(60000, o_purge_time.int_value * 300 + 2000), purge, NULL);
+	g_timeout_add(MIN(60000, o_purge_time.int_value * 300 + 2000), purge_thumbs, NULL);
 	return FALSE;
 }
 
