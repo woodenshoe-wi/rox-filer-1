@@ -696,6 +696,8 @@ static void thumbnail_done(ChildThumbnail *info)
 		if (o_purge_time.int_value > 0)
 			g_fscache_insert(thumb_cache, info->path, thumb, FALSE);
 
+		g_object_unref(thumb);
+
 		info->callback(info->data, info->path);
 	}
 	else

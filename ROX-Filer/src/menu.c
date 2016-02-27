@@ -1396,6 +1396,34 @@ void menu_show_options(gpointer data, guint action, GtkWidget *widget)
 	}
 }
 
+static gchar *add_seqnum(const gchar *base) {
+	gchar *ret = NULL;
+	gboolean pass;
+
+	/* check exists names */
+	for (int i = 1; i <= 9999; i++) {
+		pass = TRUE;
+
+		g_free(ret);
+		ret = g_strdup_printf(i == 1 ? "%s" : "%s%d", base, i);
+
+		DirItem  *item;
+		ViewIter iter;
+		view_get_iter(window_with_focus->view, &iter, 0);
+		while ((item = iter.next(&iter)))
+			if (strcmp(item->leafname, ret) == 0)
+			{
+				pass = FALSE;
+				break;
+			}
+
+		if (pass)
+			break;
+
+	}
+	return ret;
+}
+
 static gboolean new_directory_cb(GObject *savebox,
 				 const gchar *initial, const gchar *path)
 {
@@ -1422,10 +1450,14 @@ static void new_directory(gpointer data, guint action, GtkWidget *widget)
 {
 	g_return_if_fail(window_with_focus != NULL);
 
+	gchar *leaf = add_seqnum(_("NewDir"));
+
 	savebox_show(_("Create"),
-		make_path(window_with_focus->sym_path, _("NewDir")),
+		make_path(window_with_focus->sym_path, leaf),
 		type_to_icon(inode_directory), new_directory_cb,
 		GDK_ACTION_COPY);
+
+	g_free(leaf);
 }
 
 static gboolean new_file_cb(GObject *savebox,
@@ -1462,11 +1494,15 @@ static gboolean new_file_cb(GObject *savebox,
 static void new_file(gpointer data, guint action, GtkWidget *widget)
 {
 	g_return_if_fail(window_with_focus != NULL);
-	
+
+	gchar *leaf = add_seqnum(_("NewFile"));
+
 	savebox_show(_("Create"),
-		make_path(window_with_focus->sym_path, _("NewFile")),
+		make_path(window_with_focus->sym_path, leaf),
 		type_to_icon(text_plain),
 		new_file_cb, GDK_ACTION_COPY);
+
+	g_free(leaf);
 }
 
 static gboolean new_file_type_cb(GObject *savebox,
@@ -1526,7 +1562,7 @@ static void new_file_type(gchar *templ)
 	gchar *base;
 
 	g_return_if_fail(window_with_focus != NULL);
-	
+
 	base = g_path_get_basename(templ);
 	leaf = base;
 	type = type_get_type(templ);
