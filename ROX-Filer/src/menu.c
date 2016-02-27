@@ -1401,11 +1401,11 @@ static gchar *add_seqnum(const gchar *base) {
 	gboolean pass;
 
 	/* check exists names */
-	for (int i = 0; i <= 9999; i++) {
+	for (int i = 1; i <= 9999; i++) {
 		pass = TRUE;
 
 		g_free(ret);
-		ret = g_strdup_printf(i == 0 ? "%s" : "%s%d", base, i);
+		ret = g_strdup_printf(i == 1 ? "%s" : "%s%d", base, i);
 
 		DirItem  *item;
 		ViewIter iter;
