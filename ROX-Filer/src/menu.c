@@ -1398,9 +1398,10 @@ void menu_show_options(gpointer data, guint action, GtkWidget *widget)
 static gchar *add_seqnum(const gchar *base) {
 	gchar *ret = NULL;
 	gboolean pass;
+	int i;
 
 	/* check exists names */
-	for (int i = 1; i <= 9999; i++) {
+	for (i = 1; i <= 9999; i++) {
 		pass = TRUE;
 
 		g_free(ret);

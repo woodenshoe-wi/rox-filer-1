@@ -448,7 +448,9 @@ static void draw_item(GtkWidget *widget,
 
 static gboolean next_thumb(ViewCollection *vc)
 {
-	for (int i = 0; i < 3; i++)
+	int i;
+
+	for (i = 0; i < 3; i++)
 	{
 		if (g_queue_is_empty(vc->thumb_path_queue))
 		{
