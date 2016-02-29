@@ -1091,7 +1091,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 	ViewData	*view = (ViewData *) colitem->view_data;
 	gfloat scale = filer_window->icon_scale;
 
-	int pix_width, pix_height, h;
+	int pix_width = 0, pix_height = 0, h;
 
 	if (style != SMALL_ICONS)
 	{

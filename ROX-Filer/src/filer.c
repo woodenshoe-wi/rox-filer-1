@@ -3796,7 +3796,7 @@ static void settings_response(GtkWidget *window, gint response,
 	if (response==GTK_RESPONSE_OK || response==GTK_RESPONSE_NO)
 	{
 		GList *next;
-		gchar *parent;
+		gchar *parent = NULL;
 		int len;
 
 		if (set_win->parent) {
