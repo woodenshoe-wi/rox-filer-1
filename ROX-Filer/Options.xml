@@ -54,7 +54,7 @@ indicator'>If this is on then files which have one or more extended attributes s
           </vbox>
         </hbox>
 
-		<numentry name='huge_size' label='Huge Icons size:' unit='pixels' min='96' max='1024' width='4'>
+		<numentry name='huge_size' label='Huge Icons size:' unit='pixels' min='64' max='1024' width='4'>
 			Default Huge Icons size.</numentry>
       </frame>
       <frame label='Icon View'>
@@ -150,6 +150,7 @@ indicator'>If this is on then files which have one or more extended attributes s
 	<spacer/>
 	<hbox>
 		<menu name='thumb_file_size' label='Cache File Size:'>
+			<item label='Small (64px)' value='64'/>
 			<item label='Normal (128px)' value='128'/>
 			<item label='Large (256px)' value='256'/>
 			<item label='Huge (512px)' value='512'/>

@@ -148,6 +148,9 @@ static void options_changed(){
 		case 128:
 			thumb_dir = "normal";
 			break;
+		case 64:
+			thumb_dir = "small";
+			break;
 		default:
 			thumb_dir = "fail";
 		}
