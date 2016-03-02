@@ -209,7 +209,7 @@ void filer_init(void)
 	option_add_int(&o_right_gap, "right_gap", 32);
 	option_add_int(&o_bottom_gap, "bottom_gap", 32);
 	option_add_int(&o_auto_move, "auto_move", FALSE);
-	option_add_int(&o_fast_font_calc, "fast_font_calc", FALSE);
+	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
 
 	option_add_notify(filer_options_changed);
 
