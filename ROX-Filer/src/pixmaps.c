@@ -130,6 +130,7 @@ static GList *thumbs_purge_cache(Option *option, xmlNode *node, guchar *label);
 static gchar *thumbnail_path(const gchar *path);
 static gchar *thumbnail_program(MIME_type *type);
 static GdkPixbuf *extract_tiff_thumbnail(const gchar *path);
+static void make_dir_thumb(const gchar *path, GdkPixbuf *filethumb);
 
 /****************************************************************
  *			EXTERNAL INTERFACE			*
@@ -285,6 +286,7 @@ gint pixmap_check_and_load_thumb(const gchar *path)
 
 	if (image)
 	{
+		make_dir_thumb(path, image);
 		g_object_unref(image);
 		return 1;
 	}
@@ -457,21 +459,23 @@ GdkPixbuf *pixmap_try_thumb(const gchar *path, gboolean can_load)
 	GdkPixbuf *image;
 	GdkPixbuf *pixbuf;
 
-	image = g_fscache_lookup_full(thumb_cache, path,
-					FSCACHE_LOOKUP_ONLY_NEW, &found);
+	if (o_purge_time.int_value > 0) {
+		image = g_fscache_lookup_full(thumb_cache, path,
+						FSCACHE_LOOKUP_ONLY_NEW, &found);
 
-	if (found)
-	{
-		/* Thumbnail is known, or being created */
-		if (image)
-			return image;
+		if (found)
+		{
+			/* Thumbnail is known, or being created */
+			if (image)
+				return image;
+		}
 	}
 
 	if(!can_load)
 		return NULL;
-	
+
 	pixbuf = get_thumbnail_for(path);
-	
+
 	if (!pixbuf)
 	{
 		struct stat info1, info2;
@@ -687,6 +691,51 @@ static void create_thumbnail(const gchar *path, MIME_type *type)
 	}
 }
 
+static char *make_thumb_path(const char *path)
+{
+	char *thumb_path, *md5, *uri;
+
+	uri = g_filename_to_uri(path, NULL, NULL);
+	if (!uri)
+	        uri = g_strconcat("file://", path, NULL);
+	md5 = md5_hash(uri);
+	g_free(uri);
+
+	thumb_path = g_strdup_printf(
+			"%s/.cache/thumbnails/%s/%s.png" ,
+			home_dir, thumb_dir, md5);
+	g_free(md5);
+
+	return thumb_path;
+}
+
+static void make_dir_thumb(const gchar *path, GdkPixbuf *filethumb)
+{
+	gchar *dir = g_path_get_dirname(path);
+
+	GdkPixbuf *image = pixmap_try_thumb(dir, TRUE);
+	if (image)
+	{
+		g_object_unref(image);
+	}
+	else
+	{
+		char *dir_thumb_path = make_thumb_path(dir);
+		char *thumb_path = make_thumb_path(path);
+		char *rel_path = get_relative_path(dir_thumb_path, thumb_path);
+
+		unlink(dir_thumb_path);
+		if (symlink(rel_path, dir_thumb_path) == 0)
+			if (o_purge_time.int_value > 0)
+				g_fscache_insert(thumb_cache, dir, filethumb, FALSE);
+
+		g_free(rel_path);
+		g_free(thumb_path);
+		g_free(dir_thumb_path);
+	}
+	g_free(dir);
+}
+
 static void thumbnail_done(ChildThumbnail *info)
 {
 	GdkPixbuf *thumb;
@@ -701,8 +750,9 @@ static void thumbnail_done(ChildThumbnail *info)
 		if (o_purge_time.int_value > 0)
 			g_fscache_insert(thumb_cache, info->path, thumb, FALSE);
 
-		g_object_unref(thumb);
+		make_dir_thumb(info->path, thumb);
 
+		g_object_unref(thumb);
 		info->callback(info->data, info->path);
 	}
 	else
@@ -721,22 +771,13 @@ static void thumbnail_done(ChildThumbnail *info)
 static GdkPixbuf *get_thumbnail_for(const char *pathname)
 {
 	GdkPixbuf *thumb = NULL;
-	char *thumb_path, *md5, *uri, *path;
+	char *thumb_path, *path, *pic_path = NULL;
 	const char *ssize, *smtime;
 	struct stat info;
 	time_t ttime, now;
 
 	path = pathdup(pathname);
-	uri = g_filename_to_uri(path, NULL, NULL);
-	if(!uri)
-	        uri = g_strconcat("file://", path, NULL);
-	md5 = md5_hash(uri);
-	g_free(uri);
-
-	thumb_path = g_strdup_printf(
-			"%s/.cache/thumbnails/%s/%s.png" ,
-			home_dir, thumb_dir, md5);
-	g_free(md5);
+	thumb_path = make_thumb_path(path);
 
 	thumb = gdk_pixbuf_new_from_file(thumb_path, NULL);
 	if (!thumb)
@@ -749,8 +790,11 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 	smtime = gdk_pixbuf_get_option(thumb, "tEXt::Thumb::MTime");
 	if (!smtime)
 		goto err;
-	
-	if (mc_stat(path, &info) != 0)
+
+	pic_path = g_filename_from_uri(
+			gdk_pixbuf_get_option(thumb, "tEXt::Thumb::URI"), NULL, NULL);
+
+	if (mc_stat(pic_path, &info) != 0)
 		goto err;
 
 	ttime=(time_t) atol(smtime);
@@ -763,10 +807,13 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 
 	goto out;
 err:
-	if (thumb)
+	if (thumb) {
 		g_object_unref(thumb);
+		unlink(thumb_path);
+	}
 	thumb = NULL;
 out:
+	g_free(pic_path);
 	g_free(path);
 	g_free(thumb_path);
 	return thumb;

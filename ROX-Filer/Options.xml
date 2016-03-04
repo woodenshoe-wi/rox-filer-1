@@ -134,7 +134,10 @@ indicator'>If this is on then files which have one or more extended attributes s
     <section title='Thumbnails'>
       <frame label='Thumbnails'>
         <label help='1'>When thumbnails are turned on, each image file in a directory is loaded and a small thumbnail of it is shown.</label>
-         <toggle name='display_show_thumbs' label='Show image thumbnails'>This is the default setting for new windows. Use the Display menu to turn thumbnails on and off for individual windows.</toggle>
+		<toggle name='display_show_thumbs' label='Show image thumbnails'>
+			This is the default setting for new windows. Use the Display menu to turn thumbnails on and off for individual windows.</toggle>
+		<toggle name='display_show_dir_thumbs' label='Show image thumbnails on directory'>
+			If there is a previously created thumbnail in directory, the thumbnail even shows on directory instead of a dir icon in the Icons View.</toggle>
 	 <spacer/>
          <launch uri="http://www.kerofin.demon.co.uk/2005/interfaces/VideoThumbnail" label="Video thumbnails" appname="VideoThumbnail"/>
       </frame>

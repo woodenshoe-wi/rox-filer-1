@@ -484,8 +484,8 @@ static void update_display(Directory *dir,
 			toolbar_update_info(filer_window);
 			break;
 		case DIR_END_SCAN:
-			g_free(filer_window->dir_color);
-			filer_window->dir_color = xlabel_get(filer_window->sym_path);
+			g_free(filer_window->dir_colour);
+			filer_window->dir_colour = xlabel_get(filer_window->sym_path);
 
 			if (filer_window->dir_icon)
 				g_object_unref(filer_window->dir_icon);
@@ -855,7 +855,7 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 	if (filer_window->dir_icon)
 		g_object_unref(filer_window->dir_icon);
 
-	g_free(filer_window->dir_color);
+	g_free(filer_window->dir_colour);
 	g_free(filer_window->auto_select);
 	g_free(filer_window->real_path);
 	g_free(filer_window->sym_path);
@@ -1605,7 +1605,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->scrollbar = NULL;
 	filer_window->auto_scroll = -1;
 	filer_window->window_id = NULL;
-	filer_window->dir_color = NULL;
+	filer_window->dir_colour = NULL;
 	filer_window->configured = 0;
 	filer_window->last_width = -1;
 	filer_window->last_height = -1;

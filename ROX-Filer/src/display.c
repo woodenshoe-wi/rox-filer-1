@@ -69,6 +69,7 @@ Option o_small_width;
 Option o_max_length;
 Option o_display_show_hidden;
 Option o_display_show_thumbs;
+Option o_display_show_dir_thumbs;
 Option o_display_show_headers;
 Option o_display_show_full_type;
 Option o_display_inherit_options;
@@ -102,6 +103,7 @@ void display_init()
 	option_add_int(&o_max_length, "display_max_length", 0);
 	option_add_int(&o_display_show_hidden, "display_show_hidden", FALSE);
 	option_add_int(&o_display_show_thumbs, "display_show_thumbs", FALSE);
+	option_add_int(&o_display_show_dir_thumbs, "display_show_dir_thumbs", FALSE);
 	option_add_int(&o_display_show_headers, "display_show_headers", TRUE);
 	option_add_int(&o_display_show_full_type, "display_show_full_type", FALSE);
 	option_add_int(&o_display_inherit_options,
@@ -119,7 +121,7 @@ void display_init()
 void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 				const char *stock_id,
 				int *x, int y,
-				GdkColor *color)
+				GdkColor *colour)
 {
 	GtkIconSet *icon_set;
 	GdkPixbuf  *pixbuf, *ctemp;
@@ -142,9 +144,9 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 		g_object_ref(pixbuf);
 	}
 
-	if (color)
+	if (colour)
 	{
-		pixbuf = create_spotlight_pixbuf(ctemp = pixbuf, color);
+		pixbuf = create_spotlight_pixbuf(ctemp = pixbuf, colour);
 		g_object_unref(ctemp);
 	}
 
@@ -162,18 +164,18 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 
 static void draw_mini_emblem_on_icon(GdkWindow *window,
 		GtkStyle *style, const char *stock_id,
-		int *x, int y, int areah, GdkColor *color)
+		int *x, int y, int areah, GdkColor *colour)
 {
 	GtkIconSet *icon_set;
 	static GdkPixbuf  *pixbuf, *ctemp, *scaled = NULL;
 	static char *bs_id = NULL;
 	static int w, h, tsize, dy, dx;
-	static gboolean colored = FALSE;
+	static gboolean coloured = FALSE;
 
 	/* there are full of sym emblem */
-	if (!bs_id || strcmp(bs_id, stock_id) != 0 || colored)
+	if (!bs_id || strcmp(bs_id, stock_id) != 0 || coloured)
 	{
-		colored = color != NULL;
+		coloured = colour != NULL;
 
 		g_free(bs_id);
 		bs_id = g_strdup(stock_id);
@@ -198,9 +200,9 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 			g_object_ref(pixbuf);
 		}
 
-		if (color)
+		if (colour)
 		{
-			pixbuf = create_spotlight_pixbuf(ctemp = pixbuf, color);
+			pixbuf = create_spotlight_pixbuf(ctemp = pixbuf, colour);
 			g_object_unref(ctemp);
 		}
 
@@ -248,16 +250,16 @@ static void draw_noimage(GdkWindow *window, GdkRectangle *rect)
 	dr.height = rect->height / 6 * 4;
 	gdk_cairo_rectangle(cr, &dr);
 
-	cairo_pattern_t *linpat = cairo_pattern_create_linear (
+	cairo_pattern_t *linpat = cairo_pattern_create_linear(
 		dr.x + dr.width / 4, dr.y + dr.height / 4,
 		dr.x + dr.width, dr.y + dr.height);
 
-	cairo_pattern_add_color_stop_rgb (linpat, 0, 0.1, 0.1, 0.2);
-	cairo_pattern_add_color_stop_rgb (linpat, 1, 0.4, 0.4, 0.6);
+	cairo_pattern_add_color_stop_rgb(linpat, 0, 0.1, 0.1, 0.2);
+	cairo_pattern_add_color_stop_rgb(linpat, 1, 0.4, 0.4, 0.6);
 
-	cairo_set_line_width (cr, 1.1);
+	cairo_set_line_width(cr, 1.1);
 
-	cairo_set_source (cr, linpat);
+	cairo_set_source(cr, linpat);
 	cairo_stroke(cr);
 
 	cairo_pattern_destroy(linpat);
@@ -308,7 +310,7 @@ void draw_huge_icon(
 			DirItem  *item,
 			GdkPixbuf *image,
 			gboolean selected,
-			GdkColor *color
+			GdkColor *colour
 ) {
 	int       image_x, image_y, width, height, mw, mh;
 	GdkPixbuf *pixbuf, *scaled = NULL;
@@ -335,10 +337,10 @@ void draw_huge_icon(
 	image_y = area->y + MAX(0, (area->height - height) / 2);
 
 	draw_label_bg(window, area,
-			selected && item->label ? color : item->label);
+			selected && item->label ? colour : item->label);
 
 	 pixbuf = selected
-			? create_spotlight_pixbuf(scaled, color)
+			? create_spotlight_pixbuf(scaled, colour)
 			: scaled;
 
 	gdk_pixbuf_render_to_drawable_alpha(
@@ -787,13 +789,18 @@ static void options_changed(void)
 		o_small_width.has_changed ||
 		o_max_length.has_changed ||
 		o_wrap_by_char.has_changed ||
-		o_huge_size.has_changed
+		o_huge_size.has_changed ||
+		o_display_show_thumbs.has_changed ||
+		o_display_show_dir_thumbs.has_changed
 	)
 		flags |= VIEW_UPDATE_NAME; /* Recreate PangoLayout */
 
 	for (next = all_filer_windows; next; next = next->next)
 	{
 		FilerWindow *filer_window = (FilerWindow *) next->data;
+
+		if (o_display_show_thumbs.has_changed)
+			filer_set_title(filer_window);
 
 		if (o_display_dirs_first.has_changed ||
 		    o_display_caps_first.has_changed)
@@ -1070,7 +1077,10 @@ void display_update_view(FilerWindow *filer_window,
 						FSCACHE_LOOKUP_ONLY_NEW, NULL);
 
 			if (!view->image &&
-				(item->base_type != TYPE_FILE || !filer_window->show_thumbs))
+				((item->base_type != TYPE_FILE &&
+					(item->base_type != TYPE_DIRECTORY ||
+					 o_display_show_dir_thumbs.int_value != 1)) ||
+				 !filer_window->show_thumbs))
 			{
 				view->image = di_image(item);
 				if (view->image) {
