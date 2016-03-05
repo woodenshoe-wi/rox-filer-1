@@ -373,6 +373,9 @@ xterm -e wget $1</entry>
 		<toggle name='fast_font_calc' label='Fast width calculating'>
 			If this option is on, in Small Icons mode, calculation of width of strings will be fast and irresponsible.
 		</toggle>
+		<toggle name='recreate_dir_thumbs' label='Re-pick sub dir thumbs on the occasion of the re-creating file thumbs'>
+			Normally this is not necessary. This exists in the purpose when dir thumbnail makings are failed e.g. because of the difference in versions. Also this dosen't pick correct thumbs and causes freeze. If it pick a wrong thumb, re-creating of sub dir thumbs wills solve it.
+		</toggle>
     </frame>
     <frame label='Drag and drop'>
       <toggle name='dnd_no_hostnames' label="Don't use hostnames">Some older applications don't support XDND fully and may need to have this option turned on. Use this if dragging files to an application shows a + sign on the pointer but the drop doesn't work.</toggle>

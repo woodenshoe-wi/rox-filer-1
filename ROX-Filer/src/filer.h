@@ -197,6 +197,7 @@ gint filer_key_press_event(GtkWidget *widget, GdkEventKey *event,
 			   FilerWindow *filer_window);
 void filer_set_autoscroll(FilerWindow *filer_window, gboolean auto_scroll);
 void filer_refresh(FilerWindow *filer_window);
+void filer_refresh_thumbs(FilerWindow *filer_window);
 
 gboolean filer_match_filter(FilerWindow *filer_window, DirItem *item);
 gboolean filer_set_filter(FilerWindow *filer_window,

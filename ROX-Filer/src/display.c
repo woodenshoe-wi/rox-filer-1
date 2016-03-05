@@ -1054,22 +1054,22 @@ void display_update_view(FilerWindow *filer_window,
 		}
 	}
 
-	if (item->base_type != TYPE_UNKNOWN) {
-		if (view->image)
-		{
-			g_object_unref(view->image);
-			view->image = NULL;
-		}
+	if (view->image)
+	{
+		g_object_unref(view->image);
+		view->image = NULL;
+	}
 
-		view->image = get_globicon(
-				make_path(filer_window->sym_path, item->leafname));
+	view->image = get_globicon(
+			make_path(filer_window->sym_path, item->leafname));
 
-		if (!view->image)
-		{
-			const guchar *path = make_path(filer_window->real_path, item->leafname);
+	if (!view->image)
+	{
+		const guchar *path = make_path(filer_window->real_path, item->leafname);
 
-			view->image = get_globicon(path);
+		view->image = get_globicon(path);
 
+		if (item->base_type != TYPE_UNKNOWN) {
 			//.DirIcon
 			if (!view->image && filer_window->show_thumbs &&
 					item->base_type == TYPE_FILE)

@@ -691,7 +691,7 @@ static void create_thumbnail(const gchar *path, MIME_type *type)
 	}
 }
 
-static char *make_thumb_path(const char *path)
+char *pixmap_make_thumb_path(const char *path)
 {
 	char *thumb_path, *md5, *uri;
 
@@ -706,7 +706,7 @@ static char *make_thumb_path(const char *path)
 			home_dir, thumb_dir, md5);
 	g_free(md5);
 
-	return thumb_path;
+	return thumb_path; /* This return is used unlink! Be carefull */
 }
 
 static void make_dir_thumb(const gchar *path, GdkPixbuf *filethumb)
@@ -720,11 +720,12 @@ static void make_dir_thumb(const gchar *path, GdkPixbuf *filethumb)
 	}
 	else
 	{
-		char *dir_thumb_path = make_thumb_path(dir);
-		char *thumb_path = make_thumb_path(path);
+		char *dir_thumb_path = pixmap_make_thumb_path(dir);
+		unlink(dir_thumb_path); //////////////////////////
+
+		char *thumb_path = pixmap_make_thumb_path(path);
 		char *rel_path = get_relative_path(dir_thumb_path, thumb_path);
 
-		unlink(dir_thumb_path);
 		if (symlink(rel_path, dir_thumb_path) == 0)
 			if (o_purge_time.int_value > 0)
 				g_fscache_insert(thumb_cache, dir, filethumb, FALSE);
@@ -777,7 +778,7 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 	time_t ttime, now;
 
 	path = pathdup(pathname);
-	thumb_path = make_thumb_path(path);
+	thumb_path = pixmap_make_thumb_path(path);
 
 	thumb = gdk_pixbuf_new_from_file(thumb_path, NULL);
 	if (!thumb)

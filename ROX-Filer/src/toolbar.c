@@ -135,7 +135,8 @@ static Tool all_tools[] = {
 	 toolbar_bookmarks_clicked, DROP_BOOKMARK, FALSE,
 	 TRUE},
 
-	{N_("Scan"), GTK_STOCK_REFRESH, N_("Rescan directory contents"),
+	{N_("Scan"), GTK_STOCK_REFRESH, N_("Rescan directory contents\n"
+						"  Centre: Delete/re-create thumb cache"),
 	 toolbar_refresh_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
@@ -383,6 +384,9 @@ static void toolbar_refresh_clicked(GtkWidget *widget,
 
 	event = get_current_event(GDK_BUTTON_RELEASE);
 	if (event->type == GDK_BUTTON_RELEASE &&
+			((GdkEventButton *) event)->button == 2)
+		filer_refresh_thumbs(filer_window);
+	else if (event->type == GDK_BUTTON_RELEASE &&
 			((GdkEventButton *) event)->button != 1)
 	{
 		filer_opendir(filer_window->sym_path, filer_window, NULL);
