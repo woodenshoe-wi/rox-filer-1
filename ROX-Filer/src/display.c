@@ -1077,7 +1077,7 @@ void display_update_view(FilerWindow *filer_window,
 						FSCACHE_LOOKUP_ONLY_NEW, NULL);
 
 			if (!view->image &&
-					(item->_image ||
+					(item->flags & ITEM_FLAG_APPDIR ||
 					 !filer_window->show_thumbs ||
 					 (item->base_type != TYPE_FILE &&
 					  (item->base_type != TYPE_DIRECTORY ||
