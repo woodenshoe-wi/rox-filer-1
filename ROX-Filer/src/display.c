@@ -754,6 +754,7 @@ ViewData *display_create_viewdata(FilerWindow *filer_window, DirItem *item)
 	view->details = NULL;
 	view->image = NULL;
 	view->thumb = NULL;
+	view->base_type = TYPE_UNKNOWN;
 
 	display_update_view(filer_window, item, view, TRUE);
 
@@ -1005,6 +1006,8 @@ void display_update_view(FilerWindow *filer_window,
 	char	*str;
 	static PangoFontDescription *monospace = NULL;
 	gboolean basic = o_fast_font_calc.int_value;
+
+	view->base_type = item->base_type;
 
 	if (filer_window->details_type != DETAILS_NONE)
 	{

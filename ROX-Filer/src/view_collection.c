@@ -578,8 +578,8 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 	DirItem      *item = (DirItem *) colitem->data;
 
 	if (filer_window->show_thumbs && !view->thumb && !view->image &&
-		(item->base_type == TYPE_FILE ||
-		 (item->base_type == TYPE_DIRECTORY &&
+		(view->base_type == TYPE_FILE ||
+		 (view->base_type == TYPE_DIRECTORY &&
 		  o_display_show_dir_thumbs.int_value == 1)))
 	{
 		//delay loading in scroll is not good,
