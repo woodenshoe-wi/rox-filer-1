@@ -2411,8 +2411,8 @@ static gboolean filer_next_thumb_real(GObject *window)
 		switch (pixmap_check_and_load_thumb(path))
 		{
 			case 1:
-				filer_next_thumb(window, path);
-//				filer_next_thumb(window, NULL);
+				//this process is now only checking
+				filer_next_thumb(window, NULL);
 				g_free(path);
 				return FALSE;
 			case 0:
@@ -3175,39 +3175,54 @@ void filer_refresh(FilerWindow *filer_window)
 }
 
 
-static void make_dir_thumb_link(gchar *path, gchar *thumb_path)
+static void make_dir_thumb_link(FilerWindow *fw, gchar *path, gchar *thumb_path)
 {
 	//this is quick-and-dirty work
 	struct dirent **entlist;
 	//alpha sort is not equal to rox's sort. Even not checks current settings.
 	int n = scandir(path, &entlist, 0, alphasort);
 	if (n < 0) return;
-	int i = 0;
-	for (; i < MIN(n, 99); i++) {
-		struct dirent *ent = entlist[i];
-
-		if (ent->d_name[0] == '.' && (ent->d_name[1] == '\0'
-			|| (ent->d_name[1] == '.' && ent->d_name[2] == '\0')))
-			continue;
-
-		const gchar *subpath = make_path(path, ent->d_name);
-		struct stat	info;
-		if (mc_lstat(subpath, &info) == -1 ||
-			mode_to_base_type(info.st_mode) != TYPE_FILE)
-			continue;
-
-		GdkPixbuf *image = pixmap_try_thumb(subpath, TRUE);
-		if (image)
+	int stage = 0;
+	for (; stage < 2; stage++)
+	{
+		int i = 0;
+		for (; i < n; i++)
 		{
-			char *sub_thumb_path = pixmap_make_thumb_path(subpath);
-			char *rel_path = get_relative_path(thumb_path, sub_thumb_path);
+			struct dirent *ent = entlist[i];
 
-			symlink(rel_path, thumb_path);
+			if (ent->d_name[0] == '.' && (ent->d_name[1] == '\0'
+				|| (ent->d_name[1] == '.' && ent->d_name[2] == '\0')))
+				continue;
 
-			g_object_unref(image);
-			g_free(rel_path);
-			g_free(sub_thumb_path);
-			break;
+			const gchar *subpath = make_path(path, ent->d_name);
+			struct stat	info;
+			if (mc_lstat(subpath, &info) == -1 ||
+				mode_to_base_type(info.st_mode) != TYPE_FILE)
+				continue;
+
+			if (stage > 0)
+			{
+				filer_create_thumb(fw, subpath);
+				continue;
+			}
+
+			GdkPixbuf *image = pixmap_try_thumb(subpath, TRUE);
+			if (image)
+			{
+				char *sub_thumb_path = pixmap_make_thumb_path(subpath);
+				char *rel_path = get_relative_path(thumb_path, sub_thumb_path);
+
+				if (symlink(rel_path, thumb_path) == 0)
+					dir_force_update_path(path);
+				//even the symlink fails this loop wills break.
+
+				g_object_unref(image);
+				g_free(rel_path);
+				g_free(sub_thumb_path);
+
+				stage = 2;
+				break;
+			}
 		}
 	}
 
@@ -3220,6 +3235,9 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 	ViewIter iter;
 	DirItem *item;
 
+	if (!g_queue_is_empty(filer_window->thumb_queue))
+		return;
+
 	set_scanning_display(filer_window, TRUE);
 
 	view_get_iter(filer_window->view, &iter, 0);
@@ -3230,7 +3248,8 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 				 item->base_type != TYPE_DIRECTORY))
 			 continue;
 
-		guchar *path = g_strdup(make_path(filer_window->real_path, item->leafname));
+		guchar *path = g_strdup(
+				make_path(filer_window->real_path, item->leafname));
 
 		g_fscache_remove(pixmap_cache, path);
 		g_fscache_remove(thumb_cache, path);
@@ -3238,15 +3257,20 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 		char *thumb_path = pixmap_make_thumb_path(path);
 		unlink(thumb_path); ///////////////////////////
 
+		dir_force_update_path(path);
+
 		if (item->base_type == TYPE_DIRECTORY)
-			make_dir_thumb_link(path, thumb_path);
+			make_dir_thumb_link(filer_window, path, thumb_path);
+		else
+			filer_create_thumb(filer_window, path);
 
 		g_free(thumb_path);
 		g_free(path);
 	}
 
 	set_scanning_display(filer_window, FALSE);
-	filer_change_to(filer_window, filer_window->sym_path, NULL);
+	if (!g_queue_is_empty(filer_window->thumb_queue))
+		start_thumb_scanning(filer_window);
 }
 
 static inline gboolean is_hidden(const char *dir, DirItem *item)

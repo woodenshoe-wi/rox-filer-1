@@ -727,8 +727,7 @@ static void make_dir_thumb(const gchar *path, GdkPixbuf *filethumb)
 		char *rel_path = get_relative_path(dir_thumb_path, thumb_path);
 
 		if (symlink(rel_path, dir_thumb_path) == 0)
-			if (o_purge_time.int_value > 0)
-				g_fscache_insert(thumb_cache, dir, filethumb, FALSE);
+			dir_force_update_path(dir);
 
 		g_free(rel_path);
 		g_free(thumb_path);

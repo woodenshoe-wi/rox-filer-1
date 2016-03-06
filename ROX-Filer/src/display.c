@@ -1054,11 +1054,11 @@ void display_update_view(FilerWindow *filer_window,
 		}
 	}
 
+	if (view->thumb && !update_name_layout)
+		g_clear_object(&view->thumb);
+
 	if (view->image)
-	{
-		g_object_unref(view->image);
-		view->image = NULL;
-	}
+		g_clear_object(&view->image);
 
 	view->image = get_globicon(
 			make_path(filer_window->sym_path, item->leafname));

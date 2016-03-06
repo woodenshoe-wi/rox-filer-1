@@ -510,18 +510,18 @@ static gboolean next_thumb(ViewCollection *vc)
 					view->image = di_image(item);
 				if (view->image)
 					g_object_ref(view->image);
-
-				if (view->thumb || view->image) {
-					gdk_window_invalidate_rect(
-							GTK_WIDGET(vc->collection)->window, area, FALSE);
-				}
 			}
+
+			if (view->thumb || view->image) {
+				gdk_window_invalidate_rect(
+						GTK_WIDGET(vc->collection)->window, area, FALSE);
+			}
+
 			g_free(path);
 			g_free(area);
 		}
 	}
 
-//	gdk_window_process_updates(GTK_WIDGET(vc->collection)->window, FALSE);
 	return TRUE;
 }
 
@@ -566,47 +566,32 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 	ViewData     *view = (ViewData *) colitem->view_data;
 	DirItem      *item = (DirItem *) colitem->data;
 
-	if (view->thumb &&
-		(!filer_window->show_thumbs ||
-		(item->base_type == TYPE_FILE && view->image) ||
-		(item->base_type == TYPE_DIRECTORY &&
-		 (view->image || o_display_show_dir_thumbs.int_value != 1)) ||
-		(item->base_type != TYPE_FILE &&
-		 item->base_type != TYPE_DIRECTORY &&
-		 item->base_type != TYPE_UNKNOWN))
-	) {
-		g_clear_object(&(view->thumb));
-	}
-
 	if (filer_window->show_thumbs && !view->thumb && !view->image &&
-		((item->base_type == TYPE_UNKNOWN &&
-		  filer_window->sort_type == SORT_NAME) || //for response time
-		 item->base_type == TYPE_FILE ||
+		(item->base_type == TYPE_FILE ||
 		 (item->base_type == TYPE_DIRECTORY &&
 		  o_display_show_dir_thumbs.int_value == 1)))
 	{
-		if (item->base_type == TYPE_UNKNOWN || style != HUGE_ICONS)
+		//delay loading in scroll is not good,
+		//because half of view is blank and also too blink. 
+		if (view_collection->collection->vadj->value == 0 || style != HUGE_ICONS)
 		{
-			if (g_queue_index(view_collection->thumb_view_queue, view) == -1)
+			gchar *path = pathdup(
+					make_path(filer_window->real_path, item->leafname));
+			g_queue_push_head(view_collection->thumb_path_queue, path);
+
+			g_queue_push_head(view_collection->thumb_view_queue, view);
+
+			GdkRectangle *carea = g_memdup(area, sizeof(GdkRectangle));
+			g_queue_push_head(view_collection->thumb_area_queue, carea);
+
+			g_queue_push_head(view_collection->thumb_item_queue, item);
+
+			if (!view_collection->thumb_func)
 			{
-				gchar *path = pathdup(
-						make_path(filer_window->real_path, item->leafname));
-				g_queue_push_head(view_collection->thumb_path_queue, path);
-
-				g_queue_push_head(view_collection->thumb_view_queue, view);
-
-				GdkRectangle *carea = g_memdup(area, sizeof(GdkRectangle));
-				g_queue_push_head(view_collection->thumb_area_queue, carea);
-
-				g_queue_push_head(view_collection->thumb_item_queue, item);
-
-				if (!view_collection->thumb_func)
-				{
-					g_object_ref(view_collection);
-					view_collection->thumb_func = g_idle_add_full(
-							G_PRIORITY_HIGH_IDLE + 20, //G_PRIORITY_DEFAULT_IDLE
-							(GSourceFunc) next_thumb, view_collection, NULL);
-				}
+				g_object_ref(view_collection);
+				view_collection->thumb_func = g_idle_add_full(
+						G_PRIORITY_HIGH_IDLE + 20, //G_PRIORITY_DEFAULT_IDLE
+						(GSourceFunc) next_thumb, view_collection, NULL);
 			}
 		}
 		else
@@ -1260,14 +1245,13 @@ static void update_item(ViewCollection *view_collection, int i)
 	FilerWindow *filer_window = view_collection->filer_window;
 
 	g_return_if_fail(i >= 0 && i < collection->number_of_items);
-	
 	colitem = &collection->items[i];
 
 	display_update_view(filer_window,
 			(DirItem *) colitem->data,
 			(ViewData *) colitem->view_data,
 			FALSE);
-	
+
 	calc_size(filer_window, colitem, &w, &h); 
 	if (w > old_w || h > old_h)
 		collection_set_item_size(collection,
