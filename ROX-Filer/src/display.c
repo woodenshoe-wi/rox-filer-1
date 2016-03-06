@@ -790,11 +790,12 @@ static void options_changed(void)
 		o_small_width.has_changed ||
 		o_max_length.has_changed ||
 		o_wrap_by_char.has_changed ||
-		o_huge_size.has_changed ||
-		o_display_show_thumbs.has_changed ||
-		o_display_show_dir_thumbs.has_changed
+		o_huge_size.has_changed
 	)
 		flags |= VIEW_UPDATE_NAME; /* Recreate PangoLayout */
+
+	if (o_display_show_dir_thumbs.has_changed)
+		flags |= VIEW_UPDATE_VIEWDATA;
 
 	for (next = all_filer_windows; next; next = next->next)
 	{
