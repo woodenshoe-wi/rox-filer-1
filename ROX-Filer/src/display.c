@@ -360,10 +360,10 @@ void draw_huge_icon(
 
 	gtk_icon_size_lookup(mount_icon_size, &mw, &mh);
 
+	image_x = area->x;
+
 	if (area->width < mw * 3 && area->height < mh * 3)
 	{
-		image_x -= (small_width - width) / 2;
-
 		if (item->flags & ITEM_FLAG_MOUNT_POINT)
 		{
 			const char *mp = item->flags & ITEM_FLAG_MOUNTED
@@ -1054,14 +1054,18 @@ void display_update_view(FilerWindow *filer_window,
 		}
 	}
 
-	if (view->thumb && !update_name_layout)
-		g_clear_object(&view->thumb);
+	if (!update_name_layout)
+	{
+		if (view->thumb)
+			g_clear_object(&view->thumb);
 
-	if (view->image)
-		g_clear_object(&view->image);
+		if (view->image)
+			g_clear_object(&view->image);
+	}
 
-	view->image = get_globicon(
-			make_path(filer_window->sym_path, item->leafname));
+	if (!view->image)
+		view->image = get_globicon(
+				make_path(filer_window->sym_path, item->leafname));
 
 	if (!view->image)
 	{
