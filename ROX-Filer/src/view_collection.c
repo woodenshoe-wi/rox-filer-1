@@ -77,14 +77,10 @@ static void draw_item(GtkWidget *widget,
 static void fill_template(GdkRectangle *area, CollectionItem *item,
 			ViewCollection *view_collection, Template *template);
 static void huge_template(GdkRectangle *area, CollectionItem *colitem,
-			   ViewCollection *view_collection, Template *template);
+			   ViewCollection *view_collection, Template *template, gboolean full);
 static void large_template(GdkRectangle *area, CollectionItem *colitem,
-			   ViewCollection *view_collection, Template *template);
+			   ViewCollection *view_collection, Template *template, gboolean full);
 static void small_template(GdkRectangle *area, CollectionItem *colitem,
-			   ViewCollection *view_collection, Template *template);
-static void huge_full_template(GdkRectangle *area, CollectionItem *colitem,
-			   ViewCollection *view_collection, Template *template);
-static void large_full_template(GdkRectangle *area, CollectionItem *colitem,
 			   ViewCollection *view_collection, Template *template);
 static void small_full_template(GdkRectangle *area, CollectionItem *colitem,
 			   ViewCollection *view_collection, Template *template);
@@ -270,7 +266,7 @@ static gboolean transparent_expose(GtkWidget *widget,
 			ViewCollection *view)
 {
 	cairo_t *cr = gdk_cairo_create(widget->window);
-	GdkColor *fg = view->filer_window->dir_color;
+	GdkColor *fg = view->filer_window->dir_colour;
 	GdkRectangle *rects;
 	int i, n_rects;
 	static const float p = 65535.0;
@@ -289,9 +285,9 @@ static gboolean transparent_expose(GtkWidget *widget,
 			fg->red / p,
 			fg->green / p,
 			fg->blue / p,
-			(100 - o_view_alpha.int_value) / 100.0);
+			//(100 - o_view_alpha.int_value) / 100.0);
+			1);
 	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-	cairo_set_tolerance(cr, 0.1);
 
 	gdk_region_get_rectangles(event->region, &rects, &n_rects);
 	for (i = 0; i < n_rects; i++)
@@ -367,6 +363,54 @@ static void view_collection_init(GTypeInstance *object, gpointer gclass)
 			GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
 }
 
+static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
+{
+	GdkWindow *window = widget->window;
+	cairo_t *cr = gdk_cairo_create(window);
+	int size = MIN(MAX(MAX(
+					rect->width, rect->height) / 9,
+				small_height / 2),
+			small_height * 3 / 4);
+	int right = rect->x + rect->width;
+	int mid = rect->y + rect->height / 2;
+
+	cairo_set_antialias(cr, CAIRO_ANTIALIAS_GOOD);
+
+	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+	cairo_move_to(cr, right, mid - size);
+	cairo_line_to(cr, right, mid + size);
+	cairo_line_to(cr, right - size, mid);
+	cairo_line_to(cr, right, mid - size);
+	cairo_fill_preserve(cr);
+
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+	static const float p = 65535.0;
+	GdkColor *base = &widget->style->base[GTK_STATE_NORMAL];
+	cairo_set_source_rgba(cr,
+			base->red / p,
+			base->green / p,
+			base->blue / p,
+			(100 - o_view_alpha.int_value) / 100.0);
+	cairo_fill(cr);
+
+	size -= 1.1;
+
+	GdkColor colour = *base;
+	colour = *type_get_colour(item, &colour);
+	gdk_cairo_set_source_color(cr, &colour);
+	cairo_set_line_width(cr, 0.9);
+	cairo_move_to(cr, right, mid + size);
+	cairo_line_to(cr, right - size, mid);
+	cairo_line_to(cr, right, mid - size);
+	size -= 2.1;
+	cairo_move_to(cr, right, mid + size);
+	cairo_line_to(cr, right - size, mid);
+	cairo_line_to(cr, right, mid - size);
+	cairo_stroke(cr);
+
+	cairo_destroy(cr);
+}
 
 static void draw_item(GtkWidget *widget,
 			CollectionItem *colitem,
@@ -380,7 +424,7 @@ static void draw_item(GtkWidget *widget,
 	ViewCollection	*view_collection = (ViewCollection *) user_data;
 	FilerWindow	*filer_window = view_collection->filer_window;
 	GtkStateType	selection_state;
-	GdkColor	*color;
+	GdkColor	*colour;
 	PangoLayout *layout;
 
 	g_return_if_fail(view != NULL);
@@ -390,7 +434,7 @@ static void draw_item(GtkWidget *widget,
 	else
 		selection_state = GTK_STATE_NORMAL;
 
-	color = &widget->style->base[selection_state];
+	colour = &widget->style->base[selection_state];
 
 	fill_template(area, colitem, view_collection, &template);
 
@@ -421,7 +465,13 @@ static void draw_item(GtkWidget *widget,
 	}
 
 	draw_huge_icon(widget->window, widget->style, &template.icon, item,
-			sendi, selected, color);
+			sendi, selected, colour);
+
+	if (view->thumb && ((DirItem *) colitem->data)->base_type == TYPE_DIRECTORY &&
+			(template.icon.width > small_width ||
+			 template.icon.height > small_height)
+			)
+		draw_dir_mark(widget, &template.icon, colitem->data);
 
 //	g_clear_object(&(view->thumb));
 
@@ -471,18 +521,18 @@ static gboolean next_thumb(ViewCollection *vc)
 					view->image = di_image(item);
 				if (view->image)
 					g_object_ref(view->image);
-
-				if (view->thumb || view->image) {
-					gdk_window_invalidate_rect(
-							GTK_WIDGET(vc->collection)->window, area, FALSE);
-				}
 			}
+
+			if (view->thumb || view->image) {
+				gdk_window_invalidate_rect(
+						GTK_WIDGET(vc->collection)->window, area, FALSE);
+			}
+
 			g_free(path);
 			g_free(area);
 		}
 	}
 
-//	gdk_window_process_updates(GTK_WIDGET(vc->collection)->window, FALSE);
 	return TRUE;
 }
 
@@ -527,40 +577,32 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 	ViewData     *view = (ViewData *) colitem->view_data;
 	DirItem      *item = (DirItem *) colitem->data;
 
-	if (view->thumb &&
-		(!filer_window->show_thumbs ||
-		(item->base_type == TYPE_FILE && view->image) ||
-		(item->base_type != TYPE_FILE && item->base_type != TYPE_UNKNOWN))
-	) {
-		g_clear_object(&(view->thumb));
-	}
-
 	if (filer_window->show_thumbs && !view->thumb && !view->image &&
-		(item->base_type == TYPE_UNKNOWN || //for response time
-		 item->base_type == TYPE_FILE))
+		(view->base_type == TYPE_FILE ||
+		 (view->base_type == TYPE_DIRECTORY &&
+		  o_display_show_dir_thumbs.int_value == 1)))
 	{
-		if (item->base_type == TYPE_UNKNOWN || style != HUGE_ICONS)
+		//delay loading in scroll is not good,
+		//because half of view is blank and also too blink. 
+		if (view_collection->collection->vadj->value == 0 || style != HUGE_ICONS)
 		{
-			if (g_queue_index(view_collection->thumb_view_queue, view) == -1)
+			gchar *path = pathdup(
+					make_path(filer_window->real_path, item->leafname));
+			g_queue_push_head(view_collection->thumb_path_queue, path);
+
+			g_queue_push_head(view_collection->thumb_view_queue, view);
+
+			GdkRectangle *carea = g_memdup(area, sizeof(GdkRectangle));
+			g_queue_push_head(view_collection->thumb_area_queue, carea);
+
+			g_queue_push_head(view_collection->thumb_item_queue, item);
+
+			if (!view_collection->thumb_func)
 			{
-				gchar *path = pathdup(
-						make_path(filer_window->real_path, item->leafname));
-				g_queue_push_head(view_collection->thumb_path_queue, path);
-
-				g_queue_push_head(view_collection->thumb_view_queue, view);
-
-				GdkRectangle *carea = g_memdup(area, sizeof(GdkRectangle));
-				g_queue_push_head(view_collection->thumb_area_queue, carea);
-
-				g_queue_push_head(view_collection->thumb_item_queue, item);
-
-				if (!view_collection->thumb_func)
-				{
-					g_object_ref(view_collection);
-					view_collection->thumb_func = g_idle_add_full(
-							G_PRIORITY_HIGH_IDLE + 20, //G_PRIORITY_DEFAULT_IDLE
-							(GSourceFunc) next_thumb, view_collection, NULL);
-				}
+				g_object_ref(view_collection);
+				view_collection->thumb_func = g_idle_add_full(
+						G_PRIORITY_HIGH_IDLE + 20, //G_PRIORITY_DEFAULT_IDLE
+						(GSourceFunc) next_thumb, view_collection, NULL);
 			}
 		}
 		else
@@ -585,116 +627,193 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 			small_full_template(area, colitem,
 						view_collection, template);
 		else if (style == LARGE_ICONS)
-			large_full_template(area, colitem,
-						view_collection, template);
+			large_template(area, colitem,
+						view_collection, template, TRUE);
 		else
-			huge_full_template(area, colitem,
-						view_collection, template);
+			huge_template(area, colitem,
+						view_collection, template, TRUE);
 	}
 	else
 	{
 		if (style == HUGE_ICONS)
 			huge_template(area, colitem,
-					view_collection, template);
+					view_collection, template, FALSE);
 		else if (style == LARGE_ICONS)
 			large_template(area, colitem,
-					view_collection, template);
+					view_collection, template, FALSE);
 		else
 			small_template(area, colitem,
 					view_collection, template);
 	}
 }
 
-static void huge_template(GdkRectangle *area, CollectionItem *colitem,
-			   ViewCollection *view_collection, Template *template)
+static void huge_template(
+		GdkRectangle *area,
+		CollectionItem *colitem,
+		ViewCollection *view_collection,
+		Template *template,
+		gboolean full
+		)
 {
 	gfloat scale = view_collection->filer_window->icon_scale;
-	int	col_width = view_collection->collection->item_width;
-	ViewData	*view = (ViewData *) colitem->view_data;
-	MaskedPixmap	*image = view->image;
-
+	ViewData *view = (ViewData *) colitem->view_data;
+	MaskedPixmap *image = view->image;
+	int col_width = view_collection->collection->item_width;
+	int iw, ih;
 
 	if (image || view->thumb)
 	{
-		int width, height;
-
 		if (view->thumb)
 		{
-			width = gdk_pixbuf_get_width(view->thumb);
-			height = gdk_pixbuf_get_height(view->thumb);
+			iw = gdk_pixbuf_get_width(view->thumb);
+			ih = gdk_pixbuf_get_height(view->thumb);
 		} else {
-			width = image->huge_width;
-			height = image->huge_height;
+			iw = image->huge_width;
+			ih = image->huge_height;
 		}
 
-		if (width <= ICON_WIDTH &&
-			height <= ICON_HEIGHT)
+
+		if (iw <= ICON_WIDTH &&
+			ih <= ICON_HEIGHT)
 			scale = 1.0;
 		else
-			scale *= (gfloat) huge_size / MAX(width, height);
+			scale *= (gfloat) huge_size / MAX(iw, ih);
 
-		template->icon.width = width * scale;
-		template->icon.height = height * scale;
+		iw *= scale;
+		ih *= scale;
+
+		iw = MAX(iw, ICON_WIDTH);
+		ih = MAX(ih, ICON_HEIGHT);
+	}
+	else
+		iw = ih = huge_size * scale;
+
+	template->icon.width = iw;
+	template->icon.height = ih;
+
+	if (full)
+	{
+		int max_text_width = col_width - 2;
+
+		template->leafname.width = MIN(max_text_width, view->name_width);
+		template->leafname.height = MIN(view->name_height,
+				area->height - ih - view->details_height - 1);
+
+		template->icon.x = area->x + (col_width - iw) / 2 + 1;
+		template->icon.y = area->y +
+			(area->height - view->details_height -
+			 template->leafname.height - ih);
+
+		template->leafname.x = area->x + MAX((col_width - view->name_width) / 2, 3);
+		template->leafname.y = template->icon.y + ih;
+
+		if (((DirItem *) colitem->data)->base_type == TYPE_UNKNOWN)
+			return;		/* Not scanned yet */
+
+		template->details.x = area->x + (col_width - view->details_width) / 2;
+		template->details.y = area->y + area->height - view->details_height;
 	}
 	else
 	{
-		template->icon.width = template->icon.height = huge_size * scale;
+		template->leafname.width = view->name_width;
+		template->leafname.height = MIN(view->name_height,
+				area->height - ih - 1);
+
+		template->leafname.x = area->x +
+			MAX((col_width - template->leafname.width) >> 1, 3);
+		template->icon.x = area->x + ((col_width - iw) >> 1) + 1;
+
+		template->icon.y = area->y +
+			(area->height - template->leafname.height - ih) / 2 + 1;
+		template->leafname.y = template->icon.y + ih;
 	}
-
-	template->leafname.width = view->name_width;
-	template->leafname.height = MIN(view->name_height,
-			area->height - template->icon.height - 1);
-
-	template->leafname.x = area->x +
-		MAX((col_width - template->leafname.width) >> 1, 3);
-	template->icon.x = area->x + ((col_width - template->icon.width) >> 1) + 1;
-
-	template->icon.y = area->y +
-		(area->height - template->leafname.height - template->icon.height) / 2 + 1;
-	template->leafname.y = template->icon.y + template->icon.height;
 
 }
 
-static void large_template(GdkRectangle *area, CollectionItem *colitem,
-			   ViewCollection *view_collection, Template *template)
+static void large_template(
+		GdkRectangle *area,
+		CollectionItem *colitem,
+		ViewCollection *view_collection,
+		Template *template,
+		gboolean full
+		)
 {
-	int	col_width = view_collection->collection->item_width;
-	int		iwidth, iheight;
-	int		image_x;
-	int		image_y;
-	ViewData	*view = (ViewData *) colitem->view_data;
-	MaskedPixmap	*image = view->image;
-	
-	int		text_x, text_y;
-	
-	if (image)
+	int col_width = view_collection->collection->item_width;
+	int iw, ih, ix, iy, tx, ty;
+	ViewData *view = (ViewData *) colitem->view_data;
+	MaskedPixmap *image = view->image;
+
+	if (view->thumb)
 	{
-		iwidth = MIN(image->width, ICON_WIDTH);
-		iheight = MIN(image->height, ICON_HEIGHT);
+		iw = gdk_pixbuf_get_width(view->thumb);
+		ih = gdk_pixbuf_get_height(view->thumb);
+		double scale = MAX(iw / (double) ICON_WIDTH,
+				ih / (double) ICON_HEIGHT + 0.0);
+
+		iw /= scale;
+		ih /= scale;
+
+		iw = MAX(iw, ICON_WIDTH * 3/4);
+		ih = MAX(ih, ICON_HEIGHT * 3/4);
+	}
+	else if (image)
+	{
+		iw = MIN(image->width, ICON_WIDTH);
+		ih = MIN(image->height, ICON_HEIGHT);
 	}
 	else
 	{
-		iwidth = ICON_WIDTH;
-		iheight = ICON_HEIGHT;
+		iw = ICON_WIDTH;
+		ih = ICON_HEIGHT;
 	}
-	image_x = area->x + ((col_width - iwidth) >> 1);
 
-	template->leafname.width = view->name_width;
-	template->leafname.height = MIN(view->name_height, area->height - ICON_HEIGHT - 2);
+//	ih = MIN(ICON_HEIGHT, ih);
 
-	text_x = area->x + MAX((col_width - template->leafname.width) >> 1, 3);
-	text_y = area->y + ICON_HEIGHT + 2;
+	template->icon.width = iw;
+	template->icon.height = ih;
 
-	template->leafname.x = text_x;
-	template->leafname.y = text_y;
+	if (full)
+	{
+		int	max_text_width = area->width - ICON_WIDTH - 4;
 
-	image_y = text_y - iheight;
-	image_y = MAX(area->y, image_y);
-	
-	template->icon.x = image_x;
-	template->icon.y = image_y;
-	template->icon.width = iwidth;
-	template->icon.height = MIN(ICON_HEIGHT, iheight);
+		template->icon.x = area->x + (ICON_WIDTH - iw) / 2 + 2;
+		template->icon.y = area->y + (area->height - ih) / 2 + 1;
+
+		tx = area->x + ICON_WIDTH + 4;
+		ty = area->y + area->height / 2
+				- (view->name_height + 2 + view->details_height) / 2;
+
+		template->leafname.x = tx;
+		template->leafname.y = ty;
+
+		template->leafname.width = MIN(max_text_width, view->name_width);
+		template->leafname.height = view->name_height;
+
+		if (((DirItem *) colitem->data)->base_type == TYPE_UNKNOWN)
+			return;		/* Not scanned yet */
+
+		template->details.x = tx;
+		template->details.y = ty + view->name_height + 2;
+	}
+	else
+	{
+		ix = area->x + ((col_width - iw) >> 1);
+
+		template->leafname.width = view->name_width;
+		template->leafname.height = MIN(view->name_height, area->height - ICON_HEIGHT - 2);
+
+		tx = area->x + MAX((col_width - template->leafname.width) >> 1, 3);
+		ty = area->y + ICON_HEIGHT + 2;
+
+		template->leafname.x = tx;
+		template->leafname.y = ty;
+
+		iy = ty - ih;
+		iy = MAX(area->y, iy);
+
+		template->icon.x = ix;
+		template->icon.y = iy;
+	}
 }
 
 static void small_template(GdkRectangle *area, CollectionItem *colitem,
@@ -711,102 +830,11 @@ static void small_template(GdkRectangle *area, CollectionItem *colitem,
 	template->leafname.y = low_text_y;
 	template->leafname.width = MIN(max_text_width, view->name_width);
 	template->leafname.height = view->name_height;
-	
+
 	template->icon.x = area->x + 2;
 	template->icon.y = area->y + 1;
 	template->icon.width = small_width;
 	template->icon.height = small_height;
-}
-
-static void huge_full_template(GdkRectangle *area, CollectionItem *colitem,
-			   ViewCollection *view_collection, Template *template)
-{
-	int	max_text_width;
-	ViewData *view = (ViewData *) colitem->view_data;
-	MaskedPixmap	*image = view->image;
-	gfloat adjust, scale = view_collection->filer_window->icon_scale;
-	int	col_width = view_collection->collection->item_width;
-
-	if (image || view->thumb)
-	{
-		int width, height;
-
-		if (view->thumb)
-		{
-			width = gdk_pixbuf_get_width(view->thumb);
-			height = gdk_pixbuf_get_height(view->thumb);
-		} else {
-			width = image->huge_width;
-			height = image->huge_height;
-		}
-
-		if (width <= ICON_WIDTH &&
-			height <= ICON_HEIGHT)
-			adjust = scale = 1.0;
-		else
-			adjust = (gfloat) huge_size / MAX(width, height);
-
-		template->icon.width = width * scale * adjust;
-		template->icon.height = height * scale * adjust;
-	}
-	else
-	{
-		template->icon.width = template->icon.height = huge_size * scale;
-	}
-
-	max_text_width = col_width - 2;
-
-	template->leafname.width = MIN(max_text_width, view->name_width);
-	template->leafname.height = MIN(view->name_height,
-			area->height - template->icon.height - view->details_height - 1);
-
-	template->icon.x = area->x + (col_width - template->icon.width) / 2 + 1;
-	template->icon.y = area->y +
-		(area->height - view->details_height -
-		 template->leafname.height - template->icon.height);
-
-	template->leafname.x = area->x + MAX((col_width - view->name_width) / 2, 3);
-	template->leafname.y = template->icon.y + template->icon.height;
-
-	if (((DirItem *) colitem->data)->base_type == TYPE_UNKNOWN)
-		return;		/* Not scanned yet */
-
-	template->details.x = area->x + (col_width - view->details_width) / 2;
-	template->details.y = area->y + area->height - view->details_height;
-}
-
-static void large_full_template(GdkRectangle *area, CollectionItem *colitem,
-			   ViewCollection *view_collection, Template *template)
-{
-	int	max_text_width = area->width - ICON_WIDTH - 4;
-	ViewData *view = (ViewData *) colitem->view_data;
-	MaskedPixmap *image = view->image;
-
-	if (image)
-	{
-		template->icon.width = image->width;
-		template->icon.height = image->height;
-	}
-	else
-	{
-		template->icon.width = ICON_WIDTH;
-		template->icon.height = ICON_HEIGHT;
-	}
-
-	template->icon.x = area->x + (ICON_WIDTH - template->icon.width) / 2 + 2;
-	template->icon.y = area->y + (area->height - template->icon.height) / 2 + 1;
-
-	template->leafname.x = area->x + ICON_WIDTH + 4;
-	template->leafname.y = area->y + area->height / 2
-			- (view->name_height + 2 + view->details_height) / 2;
-	template->leafname.width = MIN(max_text_width, view->name_width);
-	template->leafname.height = view->name_height;
-
-	if (((DirItem *) colitem->data)->base_type == TYPE_UNKNOWN)
-		return;		/* Not scanned yet */
-
-	template->details.x = template->leafname.x;
-	template->details.y = template->leafname.y + view->name_height + 2;
 }
 
 static void small_full_template(GdkRectangle *area, CollectionItem *colitem,
@@ -1091,7 +1119,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 	ViewData	*view = (ViewData *) colitem->view_data;
 	gfloat scale = filer_window->icon_scale;
 
-	int pix_width, pix_height, h;
+	int pix_width = 0, pix_height = 0, h;
 
 	if (style != SMALL_ICONS)
 	{
@@ -1188,14 +1216,13 @@ static void update_item(ViewCollection *view_collection, int i)
 	FilerWindow *filer_window = view_collection->filer_window;
 
 	g_return_if_fail(i >= 0 && i < collection->number_of_items);
-	
 	colitem = &collection->items[i];
 
 	display_update_view(filer_window,
 			(DirItem *) colitem->data,
 			(ViewData *) colitem->view_data,
 			FALSE);
-	
+
 	calc_size(filer_window, colitem, &w, &h); 
 	if (w > old_w || h > old_h)
 		collection_set_item_size(collection,

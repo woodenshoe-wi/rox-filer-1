@@ -523,8 +523,8 @@ static void collection_size_allocate(GtkWidget *widget,
 		gtk_adjustment_set_value(collection->vadj,
 			CLAMP(
 				(allocation->height / collection->old_height) *
-				(collection->old_pos + collection->vadj->page_size / 2) -
-				collection->vadj->page_size / 2,
+				(collection->old_pos + collection->vadj->page_size * 3/7) -
+				collection->vadj->page_size * 3/7,
 				0,
 				allocation->height - collection->vadj->page_size));
 
@@ -1051,7 +1051,7 @@ static void scroll_to_show(Collection *collection, int item)
 	if (collection->center_wink)
 	{
 		gtk_adjustment_set_value(collection->vadj, MIN(
-			row * collection->item_height - (collection->vadj->page_size - collection->item_height) / 2,
+			row * collection->item_height - (collection->vadj->page_size - collection->item_height) * 3/7,
 			GTK_WIDGET(collection)->allocation.height - collection->vadj->page_size
 		));
 		return;

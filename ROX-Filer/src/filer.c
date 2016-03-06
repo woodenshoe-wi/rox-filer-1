@@ -185,6 +185,7 @@ Option o_filer_width_limit;
 Option o_view_alpha;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
+static Option o_recreate_dir_thumbs;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 
@@ -209,7 +210,8 @@ void filer_init(void)
 	option_add_int(&o_right_gap, "right_gap", 32);
 	option_add_int(&o_bottom_gap, "bottom_gap", 32);
 	option_add_int(&o_auto_move, "auto_move", FALSE);
-	option_add_int(&o_fast_font_calc, "fast_font_calc", FALSE);
+	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
+	option_add_int(&o_recreate_dir_thumbs, "recreate_dir_thumbs", FALSE);
 
 	option_add_notify(filer_options_changed);
 
@@ -484,8 +486,8 @@ static void update_display(Directory *dir,
 			toolbar_update_info(filer_window);
 			break;
 		case DIR_END_SCAN:
-			g_free(filer_window->dir_color);
-			filer_window->dir_color = xlabel_get(filer_window->sym_path);
+			g_free(filer_window->dir_colour);
+			filer_window->dir_colour = xlabel_get(filer_window->sym_path);
 
 			if (filer_window->dir_icon)
 				g_object_unref(filer_window->dir_icon);
@@ -855,7 +857,7 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 	if (filer_window->dir_icon)
 		g_object_unref(filer_window->dir_icon);
 
-	g_free(filer_window->dir_color);
+	g_free(filer_window->dir_colour);
 	g_free(filer_window->auto_select);
 	g_free(filer_window->real_path);
 	g_free(filer_window->sym_path);
@@ -1605,7 +1607,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->scrollbar = NULL;
 	filer_window->auto_scroll = -1;
 	filer_window->window_id = NULL;
-	filer_window->dir_color = NULL;
+	filer_window->dir_colour = NULL;
 	filer_window->configured = 0;
 	filer_window->last_width = -1;
 	filer_window->last_height = -1;
@@ -2409,8 +2411,8 @@ static gboolean filer_next_thumb_real(GObject *window)
 		switch (pixmap_check_and_load_thumb(path))
 		{
 			case 1:
-				filer_next_thumb(window, path);
-//				filer_next_thumb(window, NULL);
+				//this process is now only checking
+				filer_next_thumb(window, NULL);
 				g_free(path);
 				return FALSE;
 			case 0:
@@ -3172,6 +3174,105 @@ void filer_refresh(FilerWindow *filer_window)
 	full_refresh();
 }
 
+
+static void make_dir_thumb_link(FilerWindow *fw, gchar *path, gchar *thumb_path)
+{
+	//this is quick-and-dirty work
+	struct dirent **entlist;
+	//alpha sort is not equal to rox's sort. Even not checks current settings.
+	int n = scandir(path, &entlist, 0, alphasort);
+	if (n < 0) return;
+	int stage = 0;
+	for (; stage < 2; stage++)
+	{
+		int i = 0;
+		for (; i < n; i++)
+		{
+			struct dirent *ent = entlist[i];
+
+			if (ent->d_name[0] == '.' && (ent->d_name[1] == '\0'
+				|| (ent->d_name[1] == '.' && ent->d_name[2] == '\0')))
+				continue;
+
+			const gchar *subpath = make_path(path, ent->d_name);
+			struct stat	info;
+			if (mc_lstat(subpath, &info) == -1 ||
+				mode_to_base_type(info.st_mode) != TYPE_FILE)
+				continue;
+
+			if (stage > 0)
+			{
+				filer_create_thumb(fw, subpath);
+				continue;
+			}
+
+			GdkPixbuf *image = pixmap_try_thumb(subpath, TRUE);
+			if (image)
+			{
+				char *sub_thumb_path = pixmap_make_thumb_path(subpath);
+				char *rel_path = get_relative_path(thumb_path, sub_thumb_path);
+
+				if (symlink(rel_path, thumb_path) == 0)
+					dir_force_update_path(path);
+				//even the symlink fails this loop wills break.
+
+				g_object_unref(image);
+				g_free(rel_path);
+				g_free(sub_thumb_path);
+
+				stage = 2;
+				break;
+			}
+		}
+	}
+
+	while (n--) free(entlist[n]);
+	free(entlist);
+}
+
+void filer_refresh_thumbs(FilerWindow *filer_window)
+{
+	ViewIter iter;
+	DirItem *item;
+
+	if (!g_queue_is_empty(filer_window->thumb_queue))
+		return;
+
+	set_scanning_display(filer_window, TRUE);
+
+	view_get_iter(filer_window->view, &iter, 0);
+	while ((item = iter.next(&iter)))
+	{
+		if (item->base_type != TYPE_FILE &&
+				(o_recreate_dir_thumbs.int_value != 1 ||
+				 item->base_type != TYPE_DIRECTORY))
+			 continue;
+
+		guchar *path = g_strdup(
+				make_path(filer_window->real_path, item->leafname));
+
+		g_fscache_remove(pixmap_cache, path);
+		g_fscache_remove(thumb_cache, path);
+
+		char *thumb_path = pixmap_make_thumb_path(path);
+		unlink(thumb_path); ///////////////////////////
+
+		dir_force_update_path(path);
+
+		if (item->base_type == TYPE_DIRECTORY)
+			make_dir_thumb_link(filer_window, path, thumb_path);
+		else
+			filer_create_thumb(filer_window, path);
+
+		g_free(thumb_path);
+		g_free(path);
+	}
+
+	set_scanning_display(filer_window, FALSE);
+	if (!g_queue_is_empty(filer_window->thumb_queue))
+		start_thumb_scanning(filer_window);
+}
+
 static inline gboolean is_hidden(const char *dir, DirItem *item)
 {
 	/* If the leaf name starts with '.' then the item is hidden */
@@ -3796,7 +3897,7 @@ static void settings_response(GtkWidget *window, gint response,
 	if (response==GTK_RESPONSE_OK || response==GTK_RESPONSE_NO)
 	{
 		GList *next;
-		gchar *parent;
+		gchar *parent = NULL;
 		int len;
 
 		if (set_win->parent) {

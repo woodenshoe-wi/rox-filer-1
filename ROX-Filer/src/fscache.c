@@ -261,13 +261,36 @@ void g_fscache_update(GFSCache *cache, const char *pathname)
 	}
 }
 
+void g_fscache_remove(GFSCache *cache, const char *pathname)
+{
+	GFSCacheKey key;
+	GFSCacheData *data;
+	struct stat info;
+
+	g_return_if_fail(cache != NULL);
+	g_return_if_fail(pathname != NULL);
+
+	if (mc_stat(pathname, &info))
+		return;
+
+	key.device = info.st_dev;
+	key.inode = info.st_ino;
+
+	data = (GFSCacheData *) g_hash_table_lookup(cache->inode_to_stats, &key);
+	if (data && data->data)
+		g_object_unref(data->data);
+	g_free(data);
+
+	g_hash_table_remove(cache->inode_to_stats, &key);
+}
+
 /* Remove all cache entries last accessed more than 'age' seconds
  * ago.
  */
 void g_fscache_purge(GFSCache *cache, gint age)
 {
 	struct PurgeInfo info;
-	
+
 	g_return_if_fail(cache != NULL);
 
 	info.age = age;

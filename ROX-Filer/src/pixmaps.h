@@ -76,5 +76,6 @@ MaskedPixmap *masked_pixmap_new(GdkPixbuf *full_size);
 GdkPixbuf *scale_pixbuf(GdkPixbuf *src, int max_w, int max_h);
 gint pixmap_check_and_load_thumb(const gchar *path);
 GdkPixbuf *pixmap_load_thumb(const gchar *path);
+char *pixmap_make_thumb_path(const char *path);
 
 #endif /* _PIXMAP_H */

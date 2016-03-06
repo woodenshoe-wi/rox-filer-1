@@ -700,8 +700,8 @@ static void delayed_notify(Directory *dir)
 		return;
 	g_object_ref(dir);
 
-	if (dir->notify_time < 100)
-		dir->notify_time += 3;
+	if (dir->notify_time < 222)
+		dir->notify_time += 33;
 
 	g_timeout_add(dir->notify_time, notify_timeout, dir);
 	dir->notify_active = TRUE;
