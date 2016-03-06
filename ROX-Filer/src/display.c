@@ -1077,10 +1077,13 @@ void display_update_view(FilerWindow *filer_window,
 						FSCACHE_LOOKUP_ONLY_NEW, NULL);
 
 			if (!view->image &&
-				((item->base_type != TYPE_FILE &&
-					(item->base_type != TYPE_DIRECTORY ||
-					 o_display_show_dir_thumbs.int_value != 1)) ||
-				 !filer_window->show_thumbs))
+					(item->_image ||
+					 !filer_window->show_thumbs ||
+					 (item->base_type != TYPE_FILE &&
+					  (item->base_type != TYPE_DIRECTORY ||
+					   o_display_show_dir_thumbs.int_value != 1))
+					)
+			   )
 			{
 				view->image = di_image(item);
 				if (view->image) {
