@@ -286,7 +286,6 @@ gint pixmap_check_and_load_thumb(const gchar *path)
 
 	if (image)
 	{
-		make_dir_thumb(path, image);
 		g_object_unref(image);
 		return 1;
 	}
@@ -747,9 +746,6 @@ static void thumbnail_done(ChildThumbnail *info)
 
 	if (thumb)
 	{
-		if (o_purge_time.int_value > 0)
-			g_fscache_insert(thumb_cache, info->path, thumb, FALSE);
-
 		make_dir_thumb(info->path, thumb);
 
 		g_object_unref(thumb);
