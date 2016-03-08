@@ -332,7 +332,7 @@ GdkPixbuf *pixmap_load_thumb(const gchar *path)
 		char *thumb_path = pixmap_make_thumb_path(path);
 		ret = gdk_pixbuf_new_from_file(thumb_path, NULL);
 
-		if (o_purge_time.int_value > 0)
+		if (ret && o_purge_time.int_value > 0)
 			g_fscache_insert(thumb_cache, path, ret, TRUE);
 
 		g_free(thumb_path);
