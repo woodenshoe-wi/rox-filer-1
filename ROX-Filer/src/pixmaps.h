@@ -37,6 +37,8 @@ extern int small_height; /* window font size */
 extern int small_width; /* SMALL_WIDTH * small_height / SMALL_WIDTH */
 extern int thumb_size;
 
+extern Option o_pixmap_thumb_file_size;
+
 typedef struct _MaskedPixmapClass MaskedPixmapClass;
 
 struct _MaskedPixmapClass {

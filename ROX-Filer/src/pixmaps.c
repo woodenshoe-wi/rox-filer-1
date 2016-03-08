@@ -92,7 +92,7 @@ int thumb_size = PIXMAP_THUMB_SIZE;
 
 gchar *thumb_dir = "normal";
 
-static Option o_thumb_file_size;
+Option o_pixmap_thumb_file_size;
 static Option o_purge_time;
 
 typedef struct _ChildThumbnail ChildThumbnail;
@@ -137,9 +137,9 @@ static void make_dir_thumb(const gchar *path, GdkPixbuf *filethumb);
  ****************************************************************/
 
 static void options_changed(){
-	if (o_thumb_file_size.has_changed)
+	if (o_pixmap_thumb_file_size.has_changed)
 	{
-		switch (thumb_size = o_thumb_file_size.int_value) {
+		switch (thumb_size = o_pixmap_thumb_file_size.int_value) {
 		case 512:
 			thumb_dir = "huge";
 			break;
@@ -167,7 +167,7 @@ void pixmaps_init(void)
 	GtkIconFactory *factory;
 	int i;
 
-	option_add_int(&o_thumb_file_size, "thumb_file_size", PIXMAP_THUMB_SIZE);
+	option_add_int(&o_pixmap_thumb_file_size, "thumb_file_size", PIXMAP_THUMB_SIZE);
 	option_add_int(&o_purge_time, "purge_time", PIXMAP_PURGE_TIME);
 	option_add_notify(options_changed);
 
