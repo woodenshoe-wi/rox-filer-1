@@ -168,6 +168,7 @@ static void load_settings(void);
 static void save_settings(void);
 static gboolean check_settings(FilerWindow *filer_window, gboolean onlycheck);
 static char *tip_from_desktop_file(const char *full_path);
+static void make_dir_thumb_link(FilerWindow *fw, gchar *path, gchar *thumb_path);
 
 static GdkCursor *busy_cursor = NULL;
 static GdkCursor *crosshair = NULL;
@@ -185,7 +186,7 @@ Option o_filer_width_limit;
 Option o_view_alpha;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
-static Option o_recreate_dir_thumbs;
+static Option o_create_sub_dir_thumbs;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 
@@ -211,7 +212,7 @@ void filer_init(void)
 	option_add_int(&o_bottom_gap, "bottom_gap", 32);
 	option_add_int(&o_auto_move, "auto_move", FALSE);
 	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
-	option_add_int(&o_recreate_dir_thumbs, "recreate_dir_thumbs", FALSE);
+	option_add_int(&o_create_sub_dir_thumbs, "create_sub_dir_thumbs", FALSE);
 
 	option_add_notify(filer_options_changed);
 
@@ -2425,6 +2426,19 @@ static gboolean filer_next_thumb_real(GObject *window)
 				g_queue_push_head(filer_window->thumb_queue, path);
 				break;
 			case -1:
+				if (o_display_show_dir_thumbs.int_value == 1)
+				{
+					struct stat	info;
+					if (mc_lstat(path, &info) != -1 &&
+						mode_to_base_type(info.st_mode) == TYPE_DIRECTORY)
+					{
+						char *thumb_path = pixmap_make_thumb_path(path);
+						make_dir_thumb_link(filer_window, path, thumb_path);
+
+						g_free(thumb_path);
+					}
+				}
+
 				g_free(path);
 		}
 
@@ -2576,6 +2590,21 @@ static void filer_options_changed(void)
 		pango_font_description_free(current_font);
 		current_font = NULL;
 		set_font(((FilerWindow *) all_filer_windows->data)->window);
+	}
+
+	if (all_filer_windows &&
+			(o_create_sub_dir_thumbs.has_changed ||
+			 o_display_show_dir_thumbs.has_changed
+			))
+	{
+		GList *next;
+		for (next = all_filer_windows; next; next = next->next)
+		{
+			FilerWindow *fw = (FilerWindow *) next->data;
+
+			filer_cancel_thumbnails(fw);
+			filer_create_thumbs(fw);
+		}
 	}
 }
 
@@ -3193,6 +3222,9 @@ static void make_dir_thumb_link(FilerWindow *fw, gchar *path, gchar *thumb_path)
 	int stage = 0;
 	for (; stage < 2; stage++)
 	{
+		if (stage > 0 && o_create_sub_dir_thumbs.int_value != 1)
+			break;
+
 		int i = 0;
 		for (; i < n; i++)
 		{
@@ -3251,9 +3283,7 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 	view_get_iter(filer_window->view, &iter, 0);
 	while ((item = iter.next(&iter)))
 	{
-		if (item->base_type != TYPE_FILE &&
-				(o_recreate_dir_thumbs.int_value != 1 ||
-				 item->base_type != TYPE_DIRECTORY))
+		if (item->base_type != TYPE_FILE)
 			 continue;
 
 		guchar *path = g_strdup(
@@ -3267,10 +3297,7 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 
 		dir_force_update_path(path);
 
-		if (item->base_type == TYPE_DIRECTORY)
-			make_dir_thumb_link(filer_window, path, thumb_path);
-		else
-			filer_create_thumb(filer_window, path);
+		filer_create_thumb(filer_window, path);
 
 		g_free(thumb_path);
 		g_free(path);

@@ -138,8 +138,8 @@ indicator'>If this is on then files which have one or more extended attributes s
 			This is the default setting for new windows. Use the Display menu to turn thumbnails on and off for individual windows.</toggle>
 		<toggle name='display_show_dir_thumbs' label='Show image thumbnails on directory'>
 			If there is a previously created thumbnail in directory, the thumbnail even shows on directory instead of a dir icon in the Icons View.</toggle>
-		<toggle name='recreate_dir_thumbs' label='Re-pick sub dir thumbs on the occasion of the re-creating file thumbs'>
-			Re-creating file thumbs is assigned centre click on the scan button. When there is no thumbs in a sub dir, this process creates all thumbs in the dir. If this picked a wrong thumb, re-creating thumbs in the sub dir wills solve it.</toggle>
+		<toggle name='create_sub_dir_thumbs' label='Create sub dir thumbs automatically'>
+			When there is no thumbs in a sub dir, this process creates all thumbs in the dir. If this picked a wrong thumb, re-creating thumbs in the sub dir wills solve it. Re-creating file thumbs is assigned centre click on the scan button. </toggle>
 	 <spacer/>
          <launch uri="http://www.kerofin.demon.co.uk/2005/interfaces/VideoThumbnail" label="Video thumbnails" appname="VideoThumbnail"/>
       </frame>

@@ -302,7 +302,6 @@ gint pixmap_check_thumb(const gchar *path)
 		}
 	}
 
-	g_fscache_insert(pixmap_cache, path, NULL, TRUE);
 	return -1;
 }
 
