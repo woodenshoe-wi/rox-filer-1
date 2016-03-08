@@ -3241,9 +3241,19 @@ static void make_dir_thumb_link(FilerWindow *fw, gchar *path, gchar *thumb_path)
 				mode_to_base_type(info.st_mode) != TYPE_FILE)
 				continue;
 
+
 			if (stage > 0)
 			{
-				filer_create_thumb(fw, subpath);
+				gboolean found;
+				GdkPixbuf *pixmap = g_fscache_lookup_full(pixmap_cache, subpath,
+						FSCACHE_LOOKUP_ONLY_NEW, &found);
+
+				if (pixmap)
+					g_object_unref(pixmap);
+
+				if (!found)
+					filer_create_thumb(fw, subpath);
+
 				continue;
 			}
 
