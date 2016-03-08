@@ -577,8 +577,15 @@ static void attach(FilerWindow *filer_window)
 	gdk_window_set_cursor(filer_window->window->window, busy_cursor);
 	view_clear(filer_window->view);
 	filer_window->scanning = TRUE;
+
+	if (filer_window->sort_type != SORT_NAME)
+		filer_window->directory->notify_time = DIR_NOTIFY_TIME_FOR_SORT_DATA;
+
 	dir_attach(filer_window->directory, (DirCallback) update_display,
 			filer_window);
+
+	filer_window->directory->notify_time = 1;
+
 	filer_set_title(filer_window);
 	bookmarks_add_history(filer_window->sym_path);
 

@@ -24,6 +24,9 @@
 extern gboolean dnotify_wakeup_flag;
 #endif
 
+#define DIR_NOTIFY_TIME_FOR_SORT_DATA 1111
+#define DIR_NOTIFY_TIME 222
+
 typedef enum {
 	DIR_START_SCAN,	/* Set 'scanning' indicator */
 	DIR_END_SCAN,	/* Clear 'scanning' indicator */
