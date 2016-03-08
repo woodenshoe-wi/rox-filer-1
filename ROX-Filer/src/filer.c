@@ -3293,7 +3293,9 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 	view_get_iter(filer_window->view, &iter, 0);
 	while ((item = iter.next(&iter)))
 	{
-		if (item->base_type != TYPE_FILE)
+		if (item->base_type != TYPE_FILE &&
+				(o_display_show_dir_thumbs.int_value != 1 ||
+				 item->base_type != TYPE_DIRECTORY))
 			 continue;
 
 		guchar *path = g_strdup(
@@ -3307,7 +3309,10 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 
 		dir_force_update_path(path);
 
-		filer_create_thumb(filer_window, path);
+		if (item->base_type == TYPE_DIRECTORY)
+			make_dir_thumb_link(filer_window, path, thumb_path);
+		else
+			filer_create_thumb(filer_window, path);
 
 		g_free(thumb_path);
 		g_free(path);
