@@ -280,7 +280,7 @@ void pixmap_make_small(MaskedPixmap *mp)
 }
 
 /* -1:not thumb target 0:not created 1:created and loaded */
-gint pixmap_check_and_load_thumb(const gchar *path)
+gint pixmap_check_thumb(const gchar *path)
 {
 	GdkPixbuf *image = pixmap_try_thumb(path, TRUE);
 
@@ -322,13 +322,21 @@ GdkPixbuf *pixmap_load_thumb(const gchar *path)
 	if (pixmap)
 		g_object_unref(pixmap);
 
+	found = FALSE;
+
 	if (o_purge_time.int_value > 0)
 		ret = g_fscache_lookup_full(thumb_cache,
 				path, FSCACHE_LOOKUP_ONLY_NEW, &found);
 
-	if (!found && !ret)
-		ret = pixmap_try_thumb(path, TRUE);
+	if (!found) {
+		char *thumb_path = pixmap_make_thumb_path(path);
+		ret = gdk_pixbuf_new_from_file(thumb_path, NULL);
 
+		if (o_purge_time.int_value > 0)
+			g_fscache_insert(thumb_cache, path, ret, TRUE);
+
+		g_free(thumb_path);
+	}
 	return ret;
 }
 

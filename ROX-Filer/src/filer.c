@@ -2415,10 +2415,9 @@ static gboolean filer_next_thumb_real(GObject *window)
 	{
 		filer_window->tried_thumbs++;
 
-		switch (pixmap_check_and_load_thumb(path))
+		switch (pixmap_check_thumb(path))
 		{
 			case 1:
-				//this process is now only checking
 				filer_next_thumb(window, NULL);
 				g_free(path);
 				return FALSE;
@@ -2524,7 +2523,9 @@ void filer_create_thumbs(FilerWindow *filer_window)
 		const guchar *path;
 		gboolean found;
 
-		 if (item->base_type != TYPE_FILE)
+		 if (item->base_type != TYPE_FILE &&
+				(o_display_show_dir_thumbs.int_value != 1 ||
+				 item->base_type != TYPE_DIRECTORY))
 			 continue;
 
 		 /*if (strcmp(item->mime_type->media_type, "image") != 0)

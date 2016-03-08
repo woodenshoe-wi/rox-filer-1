@@ -584,7 +584,10 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 	{
 		//delay loading in scroll is not good,
 		//because half of view is blank and also too blink. 
-		if (view_collection->collection->vadj->value == 0 || style != HUGE_ICONS)
+		if (
+				style != HUGE_ICONS ||
+				filer_window->scanning ||
+				view_collection->collection->vadj->value == 0)
 		{
 			gchar *path = pathdup(
 					make_path(filer_window->real_path, item->leafname));
