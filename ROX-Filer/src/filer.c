@@ -3276,8 +3276,7 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 	ViewIter iter;
 	DirItem *item;
 
-	if (!g_queue_is_empty(filer_window->thumb_queue))
-		return;
+	filer_cancel_thumbnails(filer_window);
 
 	set_scanning_display(filer_window, TRUE);
 
