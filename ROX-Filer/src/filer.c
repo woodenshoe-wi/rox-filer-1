@@ -465,6 +465,20 @@ static void queue_interesting(FilerWindow *filer_window)
 	}
 }
 
+static void check_and_resize(FilerWindow *fw) {
+	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS) return;
+
+	gint w,h;
+	gtk_window_get_size(GTK_WINDOW(fw->window), &w, &h);
+	if (!fw->configured ||
+		(w == fw->last_width &&
+		h == fw->last_height))
+	{
+		view_style_changed(fw->view, 0);
+		view_autosize(fw->view);
+	}
+}
+
 static void update_display(Directory *dir,
 			DirAction	action,
 			GPtrArray	*items,
@@ -557,20 +571,8 @@ static void update_display(Directory *dir,
 			break;
 	}
 
-	if (o_filer_auto_resize.int_value == RESIZE_ALWAYS &&
-		!init &&
-		action == DIR_END_SCAN)
-	{
-		gint w,h;
-		gtk_window_get_size(GTK_WINDOW(filer_window->window), &w, &h);
-		if (!filer_window->configured ||
-			(w == filer_window->last_width &&
-			h == filer_window->last_height))
-		{
-			view_style_changed(filer_window->view, 0);
-			view_autosize(filer_window->view);
-		}
-	}
+	if (!init && action == DIR_END_SCAN)
+		check_and_resize(filer_window);
 }
 
 static void attach(FilerWindow *filer_window)
@@ -2373,7 +2375,11 @@ static void set_selection_state(FilerWindow *filer_window, gboolean normal)
 
 void filer_cancel_thumbnails(FilerWindow *filer_window)
 {
-	gtk_widget_hide(filer_window->thumb_bar);
+	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	{
+		gtk_widget_hide(filer_window->thumb_bar);
+		check_and_resize(filer_window);
+	}
 
 	g_queue_free_full(filer_window->thumb_queue, g_free);
 	filer_window->thumb_queue = g_queue_new();
@@ -2401,10 +2407,6 @@ static gboolean filer_next_thumb_real(GObject *window)
 		
 	if (g_queue_is_empty(filer_window->thumb_queue))
 	{
-//		view_style_changed(filer_window->view, 0);
-//		if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
-//			view_autosize(filer_window->view);
-
 		filer_cancel_thumbnails(filer_window);
 		g_object_unref(window);
 		return FALSE;
@@ -2452,7 +2454,10 @@ static gboolean filer_next_thumb_real(GObject *window)
 	}
 
 	if (!GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	{
 		gtk_widget_show_all(filer_window->thumb_bar);
+		check_and_resize(filer_window);
+	}
 
 	total = filer_window->max_thumbs;
 	done = total - g_queue_get_length(filer_window->thumb_queue);

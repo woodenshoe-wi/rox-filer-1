@@ -1778,6 +1778,13 @@ static void view_collection_autosize(ViewIface *view)
 	if (space == 0)
 		space = filer_window->display_style == SMALL_ICONS ? h : 2;
 
+	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	{
+		GtkRequisition req;
+		gtk_widget_size_request(filer_window->thumb_bar, &req);
+		space += req.height;
+	}
+
 	tn = t + space;
 	t = tn + 44 /* window decoration and charm. when small then wide */;
 
