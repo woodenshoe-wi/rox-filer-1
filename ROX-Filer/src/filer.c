@@ -1643,7 +1643,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->flags = (FilerFlags) 0;
 	filer_window->thumb_queue = g_queue_new();
 	filer_window->max_thumbs = 0;
-	filer_window->tried_thumbs = -1;
+	filer_window->trying_thumbs = FALSE;
 
 	filer_window->temp_filter_string = NULL;
 	filer_window->regexp = NULL;
@@ -2383,8 +2383,6 @@ void filer_cancel_thumbnails(FilerWindow *filer_window)
 
 	g_queue_free_full(filer_window->thumb_queue, g_free);
 	filer_window->thumb_queue = g_queue_new();
-	if (filer_window->tried_thumbs != -1)
-		filer_window->tried_thumbs = 0;
 
 	filer_window->max_thumbs = 0;
 }
@@ -2411,7 +2409,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 	if (g_queue_is_empty(filer_window->thumb_queue))
 	{
 		filer_cancel_thumbnails(filer_window);
-		filer_window->tried_thumbs = -1;
+		filer_window->trying_thumbs = FALSE;
 		g_object_unref(window);
 		return FALSE;
 	}
@@ -2420,12 +2418,6 @@ static gboolean filer_next_thumb_real(GObject *window)
 
 	switch (pixmap_check_thumb(path))
 	{
-	case 1:
-		filer_next_thumb(window, NULL);
-		g_free(path);
-		return FALSE;
-	case 0:
-		break;
 	case -1:
 		if (o_display_show_dir_thumbs.int_value == 1)
 		{
@@ -2439,10 +2431,12 @@ static gboolean filer_next_thumb_real(GObject *window)
 				g_free(thumb_path);
 			}
 		}
-
-		g_free(path);
+	case 1:
 		filer_next_thumb(window, NULL);
+		g_free(path);
 		return FALSE;
+	case 0:
+		break;
 	}
 
 	pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
@@ -2491,10 +2485,10 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 
 static void start_thumb_scanning(FilerWindow *filer_window)
 {
-	if (filer_window->tried_thumbs != -1)
+	if (filer_window->trying_thumbs)
 		return;		/* Already scanning */
 
-	filer_window->tried_thumbs++;
+	filer_window->trying_thumbs = TRUE;
 
 	g_object_ref(G_OBJECT(filer_window->window));
 	filer_next_thumb(G_OBJECT(filer_window->window), NULL);
