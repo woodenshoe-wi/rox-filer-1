@@ -2383,8 +2383,10 @@ void filer_cancel_thumbnails(FilerWindow *filer_window)
 
 	g_queue_free_full(filer_window->thumb_queue, g_free);
 	filer_window->thumb_queue = g_queue_new();
+	if (filer_window->tried_thumbs != -1)
+		filer_window->tried_thumbs = 0;
+
 	filer_window->max_thumbs = 0;
-	filer_window->tried_thumbs = -1;
 }
 
 /* Generate the next thumb for this window. The window object is
@@ -2399,15 +2401,17 @@ static gboolean filer_next_thumb_real(GObject *window)
 
 	filer_window = g_object_get_data(window, "filer_window");
 
+
 	if (!filer_window)
 	{
 		g_object_unref(window);
 		return FALSE;
 	}
-		
+
 	if (g_queue_is_empty(filer_window->thumb_queue))
 	{
 		filer_cancel_thumbnails(filer_window);
+		filer_window->tried_thumbs = -1;
 		g_object_unref(window);
 		return FALSE;
 	}
@@ -2510,7 +2514,6 @@ void filer_create_thumb(FilerWindow *filer_window, const gchar *path)
 {
 	if (g_queue_is_empty(filer_window->thumb_queue)) {
 		filer_window->max_thumbs=0;
-		filer_window->tried_thumbs = -1;
 	}
 
 	filer_window->max_thumbs++;
