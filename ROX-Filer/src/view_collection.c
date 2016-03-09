@@ -368,9 +368,9 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	GdkWindow *window = widget->window;
 	cairo_t *cr = gdk_cairo_create(window);
 	int size = MIN(MAX(MAX(
-					rect->width, rect->height) / 9,
-				small_height / 2),
-			small_height * 3 / 4);
+					rect->width, rect->height) / 7,
+				small_height * 3/4),
+			small_height);
 	int right = rect->x + rect->width;
 	int mid = rect->y + rect->height / 2;
 
@@ -394,7 +394,7 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 			(100 - o_view_alpha.int_value) / 100.0);
 	cairo_fill(cr);
 
-	size -= 1.1;
+	size -= 1.4;
 
 	GdkColor colour = *base;
 	colour = *type_get_colour(item, &colour);
