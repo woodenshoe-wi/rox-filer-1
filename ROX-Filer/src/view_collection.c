@@ -1735,7 +1735,7 @@ static void view_collection_autosize(ViewIface *view)
 	int		max_x, max_y, min_x = 0;
 	const float	r = 1.6;
 	int		t = 0, tn;
-	int		space = 0;
+	int		space = 0, exspace = 0;
 
 	/* Get the extra height required for the toolbar and minibuffer,
 	 * if visible.
@@ -1780,13 +1780,6 @@ static void view_collection_autosize(ViewIface *view)
 
 	tn = t + space;
 	t = tn + 44 /* window decoration and charm. when small then wide */;
-
-	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
-	{
-		GtkRequisition req;
-		gtk_widget_size_request(filer_window->thumb_bar, &req);
-		space += req.height;
-	}
 
 	/* Aim for a size where
 	 * 	   x = r(y + t + h),		(1)
@@ -1845,9 +1838,16 @@ static void view_collection_autosize(ViewIface *view)
 
 	rows = MAX((n + cols - 1) / cols, 1);
 
+	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	{
+		GtkRequisition req;
+		gtk_widget_size_request(filer_window->thumb_bar, &req);
+		exspace += req.height;
+	}
+
 	filer_window_set_size(filer_window,
 			w * MAX(cols, 1) + 2,
-			MIN(max_y, h * rows + space));
+			MIN(max_y, h * rows + space) + exspace);
 }
 
 static gboolean view_collection_cursor_visible(ViewIface *view)
