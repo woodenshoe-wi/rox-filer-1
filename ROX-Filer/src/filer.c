@@ -3227,7 +3227,8 @@ static void make_dir_thumb_link(FilerWindow *fw, gchar *path, gchar *thumb_path)
 			break;
 
 		int i = 0;
-		for (; i < n; i++)
+		int min = MIN(n, 999);
+		for (; i < min; i++)
 		{
 			struct dirent *ent = entlist[i];
 
@@ -3240,7 +3241,6 @@ static void make_dir_thumb_link(FilerWindow *fw, gchar *path, gchar *thumb_path)
 			if (mc_lstat(subpath, &info) == -1 ||
 				mode_to_base_type(info.st_mode) != TYPE_FILE)
 				continue;
-
 
 			if (stage > 0)
 			{
