@@ -2418,44 +2418,35 @@ static gboolean filer_next_thumb_real(GObject *window)
 
 	path = (gchar *) g_queue_pop_tail(filer_window->thumb_queue);
 
-	if (filer_window->max_thumbs > filer_window->tried_thumbs)
+	switch (pixmap_check_thumb(path))
 	{
-		filer_window->tried_thumbs++;
-
-		switch (pixmap_check_thumb(path))
+	case 1:
+		filer_next_thumb(window, NULL);
+		g_free(path);
+		return FALSE;
+	case 0:
+		break;
+	case -1:
+		if (o_display_show_dir_thumbs.int_value == 1)
 		{
-			case 1:
-				filer_next_thumb(window, NULL);
-				g_free(path);
-				return FALSE;
-			case 0:
-				g_queue_push_head(filer_window->thumb_queue, path);
-				break;
-			case -1:
-				if (o_display_show_dir_thumbs.int_value == 1)
-				{
-					struct stat	info;
-					if (mc_lstat(path, &info) != -1 &&
-						mode_to_base_type(info.st_mode) == TYPE_DIRECTORY)
-					{
-						char *thumb_path = pixmap_make_thumb_path(path);
-						make_dir_thumb_link(filer_window, path, thumb_path);
+			struct stat	info;
+			if (mc_lstat(path, &info) != -1 &&
+				mode_to_base_type(info.st_mode) == TYPE_DIRECTORY)
+			{
+				char *thumb_path = pixmap_make_thumb_path(path);
+				make_dir_thumb_link(filer_window, path, thumb_path);
 
-						g_free(thumb_path);
-					}
-				}
-
-				g_free(path);
+				g_free(thumb_path);
+			}
 		}
 
+		g_free(path);
 		filer_next_thumb(window, NULL);
 		return FALSE;
 	}
-	else
-	{
-		pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
-		g_free(path);
-	}
+
+	pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
+	g_free(path);
 
 	if (!GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
 	{
