@@ -753,6 +753,8 @@ static void thumbnail_done(ChildThumbnail *info)
 
 	if (thumb)
 	{
+		g_fscache_remove(thumb_cache, info->path);
+
 		make_dir_thumb(info->path, thumb);
 
 		g_object_unref(thumb);
