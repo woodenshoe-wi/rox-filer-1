@@ -368,9 +368,9 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	GdkWindow *window = widget->window;
 	cairo_t *cr = gdk_cairo_create(window);
 	int size = MIN(MAX(MAX(
-					rect->width, rect->height) / 9,
-				small_height / 2),
-			small_height * 3 / 4);
+					rect->width, rect->height) / 7,
+				small_height * 3/4),
+			small_height);
 	int right = rect->x + rect->width;
 	int mid = rect->y + rect->height / 2;
 
@@ -394,7 +394,7 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 			(100 - o_view_alpha.int_value) / 100.0);
 	cairo_fill(cr);
 
-	size -= 1.1;
+	size -= 1.4;
 
 	GdkColor colour = *base;
 	colour = *type_get_colour(item, &colour);
@@ -584,7 +584,10 @@ static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 	{
 		//delay loading in scroll is not good,
 		//because half of view is blank and also too blink. 
-		if (view_collection->collection->vadj->value == 0 || style != HUGE_ICONS)
+		if (
+				style != HUGE_ICONS ||
+				filer_window->scanning ||
+				view_collection->collection->vadj->value == 0)
 		{
 			gchar *path = pathdup(
 					make_path(filer_window->real_path, item->leafname));
@@ -1732,7 +1735,7 @@ static void view_collection_autosize(ViewIface *view)
 	int		max_x, max_y, min_x = 0;
 	const float	r = 1.6;
 	int		t = 0, tn;
-	int		space = 0;
+	int		space = 0, exspace = 0;
 
 	/* Get the extra height required for the toolbar and minibuffer,
 	 * if visible.
@@ -1835,9 +1838,16 @@ static void view_collection_autosize(ViewIface *view)
 
 	rows = MAX((n + cols - 1) / cols, 1);
 
+	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	{
+		GtkRequisition req;
+		gtk_widget_size_request(filer_window->thumb_bar, &req);
+		exspace += req.height;
+	}
+
 	filer_window_set_size(filer_window,
 			w * MAX(cols, 1) + 2,
-			MIN(max_y, h * rows + space));
+			MIN(max_y, h * rows + space) + exspace);
 }
 
 static gboolean view_collection_cursor_visible(ViewIface *view)

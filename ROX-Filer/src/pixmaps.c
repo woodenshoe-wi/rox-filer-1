@@ -92,7 +92,7 @@ int thumb_size = PIXMAP_THUMB_SIZE;
 
 gchar *thumb_dir = "normal";
 
-static Option o_thumb_file_size;
+Option o_pixmap_thumb_file_size;
 static Option o_purge_time;
 
 typedef struct _ChildThumbnail ChildThumbnail;
@@ -137,9 +137,9 @@ static void make_dir_thumb(const gchar *path, GdkPixbuf *filethumb);
  ****************************************************************/
 
 static void options_changed(){
-	if (o_thumb_file_size.has_changed)
+	if (o_pixmap_thumb_file_size.has_changed)
 	{
-		switch (thumb_size = o_thumb_file_size.int_value) {
+		switch (thumb_size = o_pixmap_thumb_file_size.int_value) {
 		case 512:
 			thumb_dir = "huge";
 			break;
@@ -167,7 +167,7 @@ void pixmaps_init(void)
 	GtkIconFactory *factory;
 	int i;
 
-	option_add_int(&o_thumb_file_size, "thumb_file_size", PIXMAP_THUMB_SIZE);
+	option_add_int(&o_pixmap_thumb_file_size, "thumb_file_size", PIXMAP_THUMB_SIZE);
 	option_add_int(&o_purge_time, "purge_time", PIXMAP_PURGE_TIME);
 	option_add_notify(options_changed);
 
@@ -280,7 +280,7 @@ void pixmap_make_small(MaskedPixmap *mp)
 }
 
 /* -1:not thumb target 0:not created 1:created and loaded */
-gint pixmap_check_and_load_thumb(const gchar *path)
+gint pixmap_check_thumb(const gchar *path)
 {
 	GdkPixbuf *image = pixmap_try_thumb(path, TRUE);
 
@@ -302,7 +302,6 @@ gint pixmap_check_and_load_thumb(const gchar *path)
 		}
 	}
 
-	g_fscache_insert(pixmap_cache, path, NULL, TRUE);
 	return -1;
 }
 
@@ -322,13 +321,21 @@ GdkPixbuf *pixmap_load_thumb(const gchar *path)
 	if (pixmap)
 		g_object_unref(pixmap);
 
+	found = FALSE;
+
 	if (o_purge_time.int_value > 0)
 		ret = g_fscache_lookup_full(thumb_cache,
 				path, FSCACHE_LOOKUP_ONLY_NEW, &found);
 
-	if (!found && !ret)
-		ret = pixmap_try_thumb(path, TRUE);
+	if (!found) {
+		char *thumb_path = pixmap_make_thumb_path(path);
+		ret = gdk_pixbuf_new_from_file(thumb_path, NULL);
 
+		if (ret && o_purge_time.int_value > 0)
+			g_fscache_insert(thumb_cache, path, ret, TRUE);
+
+		g_free(thumb_path);
+	}
 	return ret;
 }
 
@@ -746,6 +753,8 @@ static void thumbnail_done(ChildThumbnail *info)
 
 	if (thumb)
 	{
+		g_fscache_remove(thumb_cache, info->path);
+
 		make_dir_thumb(info->path, thumb);
 
 		g_object_unref(thumb);

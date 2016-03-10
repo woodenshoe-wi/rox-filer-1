@@ -37,6 +37,8 @@ extern int small_height; /* window font size */
 extern int small_width; /* SMALL_WIDTH * small_height / SMALL_WIDTH */
 extern int thumb_size;
 
+extern Option o_pixmap_thumb_file_size;
+
 typedef struct _MaskedPixmapClass MaskedPixmapClass;
 
 struct _MaskedPixmapClass {
@@ -74,7 +76,7 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data);
 GdkPixbuf *pixmap_try_thumb(const gchar *path, gboolean can_load);
 MaskedPixmap *masked_pixmap_new(GdkPixbuf *full_size);
 GdkPixbuf *scale_pixbuf(GdkPixbuf *src, int max_w, int max_h);
-gint pixmap_check_and_load_thumb(const gchar *path);
+gint pixmap_check_thumb(const gchar *path);
 GdkPixbuf *pixmap_load_thumb(const gchar *path);
 char *pixmap_make_thumb_path(const char *path);
 

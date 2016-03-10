@@ -168,6 +168,7 @@ static void load_settings(void);
 static void save_settings(void);
 static gboolean check_settings(FilerWindow *filer_window, gboolean onlycheck);
 static char *tip_from_desktop_file(const char *full_path);
+static void make_dir_thumb_link(FilerWindow *fw, gchar *path, gchar *thumb_path);
 
 static GdkCursor *busy_cursor = NULL;
 static GdkCursor *crosshair = NULL;
@@ -185,7 +186,7 @@ Option o_filer_width_limit;
 Option o_view_alpha;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
-static Option o_recreate_dir_thumbs;
+static Option o_create_sub_dir_thumbs;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 
@@ -211,7 +212,7 @@ void filer_init(void)
 	option_add_int(&o_bottom_gap, "bottom_gap", 32);
 	option_add_int(&o_auto_move, "auto_move", FALSE);
 	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
-	option_add_int(&o_recreate_dir_thumbs, "recreate_dir_thumbs", FALSE);
+	option_add_int(&o_create_sub_dir_thumbs, "create_sub_dir_thumbs", FALSE);
 
 	option_add_notify(filer_options_changed);
 
@@ -464,6 +465,20 @@ static void queue_interesting(FilerWindow *filer_window)
 	}
 }
 
+static void check_and_resize(FilerWindow *fw) {
+	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS) return;
+
+	gint w,h;
+	gtk_window_get_size(GTK_WINDOW(fw->window), &w, &h);
+	if (!fw->configured ||
+		(w == fw->last_width &&
+		h == fw->last_height))
+	{
+		view_style_changed(fw->view, 0);
+		view_autosize(fw->view);
+	}
+}
+
 static void update_display(Directory *dir,
 			DirAction	action,
 			GPtrArray	*items,
@@ -556,20 +571,8 @@ static void update_display(Directory *dir,
 			break;
 	}
 
-	if (o_filer_auto_resize.int_value == RESIZE_ALWAYS &&
-		!init &&
-		action == DIR_END_SCAN)
-	{
-		gint w,h;
-		gtk_window_get_size(GTK_WINDOW(filer_window->window), &w, &h);
-		if (!filer_window->configured ||
-			(w == filer_window->last_width &&
-			h == filer_window->last_height))
-		{
-			view_style_changed(filer_window->view, 0);
-			view_autosize(filer_window->view);
-		}
-	}
+	if (!init && action == DIR_END_SCAN)
+		check_and_resize(filer_window);
 }
 
 static void attach(FilerWindow *filer_window)
@@ -1640,7 +1643,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->flags = (FilerFlags) 0;
 	filer_window->thumb_queue = g_queue_new();
 	filer_window->max_thumbs = 0;
-	filer_window->tried_thumbs = -1;
+	filer_window->trying_thumbs = FALSE;
 
 	filer_window->temp_filter_string = NULL;
 	filer_window->regexp = NULL;
@@ -2372,12 +2375,16 @@ static void set_selection_state(FilerWindow *filer_window, gboolean normal)
 
 void filer_cancel_thumbnails(FilerWindow *filer_window)
 {
-	gtk_widget_hide(filer_window->thumb_bar);
+	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	{
+		gtk_widget_hide(filer_window->thumb_bar);
+		check_and_resize(filer_window);
+	}
 
 	g_queue_free_full(filer_window->thumb_queue, g_free);
 	filer_window->thumb_queue = g_queue_new();
+
 	filer_window->max_thumbs = 0;
-	filer_window->tried_thumbs = -1;
 }
 
 /* Generate the next thumb for this window. The window object is
@@ -2392,54 +2399,54 @@ static gboolean filer_next_thumb_real(GObject *window)
 
 	filer_window = g_object_get_data(window, "filer_window");
 
+
 	if (!filer_window)
 	{
 		g_object_unref(window);
 		return FALSE;
 	}
-		
+
 	if (g_queue_is_empty(filer_window->thumb_queue))
 	{
-//		view_style_changed(filer_window->view, 0);
-//		if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
-//			view_autosize(filer_window->view);
-
 		filer_cancel_thumbnails(filer_window);
+		filer_window->trying_thumbs = FALSE;
 		g_object_unref(window);
 		return FALSE;
 	}
 
 	path = (gchar *) g_queue_pop_tail(filer_window->thumb_queue);
 
-	if (filer_window->max_thumbs > filer_window->tried_thumbs)
+	switch (pixmap_check_thumb(path))
 	{
-		filer_window->tried_thumbs++;
-
-		switch (pixmap_check_and_load_thumb(path))
+	case -1:
+		if (o_display_show_dir_thumbs.int_value == 1)
 		{
-			case 1:
-				//this process is now only checking
-				filer_next_thumb(window, NULL);
-				g_free(path);
-				return FALSE;
-			case 0:
-				g_queue_push_head(filer_window->thumb_queue, path);
-				break;
-			case -1:
-				g_free(path);
-		}
+			struct stat	info;
+			if (mc_lstat(path, &info) != -1 &&
+				mode_to_base_type(info.st_mode) == TYPE_DIRECTORY)
+			{
+				char *thumb_path = pixmap_make_thumb_path(path);
+				make_dir_thumb_link(filer_window, path, thumb_path);
 
+				g_free(thumb_path);
+			}
+		}
+	case 1:
 		filer_next_thumb(window, NULL);
-		return FALSE;
-	}
-	else
-	{
-		pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
 		g_free(path);
+		return FALSE;
+	case 0:
+		break;
 	}
+
+	pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
+	g_free(path);
 
 	if (!GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	{
 		gtk_widget_show_all(filer_window->thumb_bar);
+		check_and_resize(filer_window);
+	}
 
 	total = filer_window->max_thumbs;
 	done = total - g_queue_get_length(filer_window->thumb_queue);
@@ -2478,10 +2485,10 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 
 static void start_thumb_scanning(FilerWindow *filer_window)
 {
-	if (filer_window->tried_thumbs != -1)
+	if (filer_window->trying_thumbs)
 		return;		/* Already scanning */
 
-	filer_window->tried_thumbs++;
+	filer_window->trying_thumbs = TRUE;
 
 	g_object_ref(G_OBJECT(filer_window->window));
 	filer_next_thumb(G_OBJECT(filer_window->window), NULL);
@@ -2492,7 +2499,6 @@ void filer_create_thumb(FilerWindow *filer_window, const gchar *path)
 {
 	if (g_queue_is_empty(filer_window->thumb_queue)) {
 		filer_window->max_thumbs=0;
-		filer_window->tried_thumbs = -1;
 	}
 
 	filer_window->max_thumbs++;
@@ -2524,7 +2530,9 @@ void filer_create_thumbs(FilerWindow *filer_window)
 		const guchar *path;
 		gboolean found;
 
-		 if (item->base_type != TYPE_FILE)
+		 if (item->base_type != TYPE_FILE &&
+				(o_display_show_dir_thumbs.int_value != 1 ||
+				 item->base_type != TYPE_DIRECTORY))
 			 continue;
 
 		 /*if (strcmp(item->mime_type->media_type, "image") != 0)
@@ -2575,6 +2583,22 @@ static void filer_options_changed(void)
 		pango_font_description_free(current_font);
 		current_font = NULL;
 		set_font(((FilerWindow *) all_filer_windows->data)->window);
+	}
+
+	if (all_filer_windows &&
+			(o_create_sub_dir_thumbs.has_changed ||
+			 o_display_show_dir_thumbs.has_changed ||
+			o_pixmap_thumb_file_size.has_changed
+			))
+	{
+		GList *next;
+		for (next = all_filer_windows; next; next = next->next)
+		{
+			FilerWindow *fw = (FilerWindow *) next->data;
+
+			filer_cancel_thumbnails(fw);
+			filer_create_thumbs(fw);
+		}
 	}
 }
 
@@ -3192,8 +3216,12 @@ static void make_dir_thumb_link(FilerWindow *fw, gchar *path, gchar *thumb_path)
 	int stage = 0;
 	for (; stage < 2; stage++)
 	{
+		if (stage > 0 && o_create_sub_dir_thumbs.int_value != 1)
+			break;
+
 		int i = 0;
-		for (; i < n; i++)
+		int min = MIN(n, 999);
+		for (; i < min; i++)
 		{
 			struct dirent *ent = entlist[i];
 
@@ -3209,7 +3237,16 @@ static void make_dir_thumb_link(FilerWindow *fw, gchar *path, gchar *thumb_path)
 
 			if (stage > 0)
 			{
-				filer_create_thumb(fw, subpath);
+				gboolean found;
+				GdkPixbuf *pixmap = g_fscache_lookup_full(pixmap_cache, subpath,
+						FSCACHE_LOOKUP_ONLY_NEW, &found);
+
+				if (pixmap)
+					g_object_unref(pixmap);
+
+				if (!found)
+					filer_create_thumb(fw, subpath);
+
 				continue;
 			}
 
@@ -3242,8 +3279,7 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 	ViewIter iter;
 	DirItem *item;
 
-	if (!g_queue_is_empty(filer_window->thumb_queue))
-		return;
+	filer_cancel_thumbnails(filer_window);
 
 	set_scanning_display(filer_window, TRUE);
 
@@ -3251,7 +3287,7 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 	while ((item = iter.next(&iter)))
 	{
 		if (item->base_type != TYPE_FILE &&
-				(o_recreate_dir_thumbs.int_value != 1 ||
+				(o_display_show_dir_thumbs.int_value != 1 ||
 				 item->base_type != TYPE_DIRECTORY))
 			 continue;
 
