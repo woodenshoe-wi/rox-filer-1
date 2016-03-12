@@ -94,6 +94,7 @@ gchar *thumb_dir = "normal";
 
 Option o_pixmap_thumb_file_size;
 static Option o_purge_time;
+static Option o_jpeg_thumbs;
 
 typedef struct _ChildThumbnail ChildThumbnail;
 
@@ -169,6 +170,7 @@ void pixmaps_init(void)
 
 	option_add_int(&o_pixmap_thumb_file_size, "thumb_file_size", PIXMAP_THUMB_SIZE);
 	option_add_int(&o_purge_time, "purge_time", PIXMAP_PURGE_TIME);
+	option_add_int(&o_jpeg_thumbs, "jpeg_thumbs", FALSE);
 	option_add_notify(options_changed);
 
 	gtk_widget_push_colormap(gdk_rgb_get_colormap());
@@ -584,14 +586,24 @@ static void save_thumbnail(const char *pathname, GdkPixbuf *full)
 	g_free(md5);
 
 	old_mask = umask(0077);
-	gdk_pixbuf_save(thumb, to->str, "png", NULL,
-			"tEXt::Thumb::Image::Width", swidth,
-			"tEXt::Thumb::Image::Height", sheight,
-			"tEXt::Thumb::Size", ssize,
-			"tEXt::Thumb::MTime", smtime,
-			"tEXt::Thumb::URI", uri,
-			"tEXt::Software", PROJECT,
-			NULL);
+	if (o_jpeg_thumbs.int_value == 1)
+	{
+		//At least we don't need extensions being '.jpg'
+		gdk_pixbuf_save(thumb, to->str, "jpeg", NULL,
+				"quality", "77",
+				NULL);
+	}
+	else
+	{
+		gdk_pixbuf_save(thumb, to->str, "png", NULL,
+				"tEXt::Thumb::Image::Width", swidth,
+				"tEXt::Thumb::Image::Height", sheight,
+				"tEXt::Thumb::Size", ssize,
+				"tEXt::Thumb::MTime", smtime,
+				"tEXt::Thumb::URI", uri,
+				"tEXt::Software", PROJECT,
+				NULL);
+	}
 	umask(old_mask);
 
 	/* We create the file ###.png.ROX-Filer-PID and rename it to avoid
@@ -777,8 +789,8 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 {
 	GdkPixbuf *thumb = NULL;
 	char *thumb_path, *path, *pic_path = NULL;
-	const char *ssize, *smtime;
-	struct stat info;
+	const char *pic_uri, *ssize, *smtime;
+	struct stat info, thumbinfo;
 	time_t ttime, now;
 
 	path = pathdup(pathname);
@@ -789,26 +801,38 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 		goto err;
 
 	/* Note that these don't need freeing... */
-	ssize = gdk_pixbuf_get_option(thumb, "tEXt::Thumb::Size");
-	/* This is optional, so don't flag an error if it is missing */
+	pic_uri = gdk_pixbuf_get_option(thumb, "tEXt::Thumb::URI");
+	if (pic_uri)
+	{
+		pic_path = g_filename_from_uri(pic_uri, NULL, NULL);
 
-	smtime = gdk_pixbuf_get_option(thumb, "tEXt::Thumb::MTime");
-	if (!smtime)
-		goto err;
+		if (mc_stat(pic_path, &info) != 0)
+			goto err;
 
-	pic_path = g_filename_from_uri(
-			gdk_pixbuf_get_option(thumb, "tEXt::Thumb::URI"), NULL, NULL);
+		smtime = gdk_pixbuf_get_option(thumb, "tEXt::Thumb::MTime");
+		if (!smtime)
+			goto err;
+		ttime=(time_t) atol(smtime);
+		time(&now);
+		if (info.st_mtime != ttime && now>ttime+PIXMAP_THUMB_TOO_OLD_TIME)
+			goto err;
 
-	if (mc_stat(pic_path, &info) != 0)
-		goto err;
+		/* This is optional, so don't flag an error if it is missing */
+		ssize = gdk_pixbuf_get_option(thumb, "tEXt::Thumb::Size");
+		if (ssize && info.st_size < atol(ssize))
+			goto err;
+	}
+	else
+	{ //for jpeg
+		if (mc_stat(thumb_path, &thumbinfo) != 0 ||
+			mc_stat(path, &info) != 0
+			)
+			goto err;
 
-	ttime=(time_t) atol(smtime);
-	time(&now);
-	if (info.st_mtime != ttime && now>ttime+PIXMAP_THUMB_TOO_OLD_TIME)
-		goto err;
-
-	if (ssize && info.st_size < atol(ssize))
-		goto err;
+		if (!S_ISLNK(thumbinfo.st_mode) &&
+				info.st_mtime > thumbinfo.st_mtime)
+			goto err;
+	}
 
 	goto out;
 err:
