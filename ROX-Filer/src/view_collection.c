@@ -1224,7 +1224,9 @@ static void update_item(ViewCollection *view_collection, int i)
 	display_update_view(filer_window,
 			(DirItem *) colitem->data,
 			(ViewData *) colitem->view_data,
-			FALSE);
+			((ViewData *) colitem->view_data)->base_type == TYPE_UNKNOWN &&
+			((DirItem *) colitem->data)->flags & ITEM_FLAG_RECENT
+			);
 
 	calc_size(filer_window, colitem, &w, &h); 
 	if (w > old_w || h > old_h)
