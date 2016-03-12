@@ -1224,7 +1224,9 @@ static void update_item(ViewCollection *view_collection, int i)
 	display_update_view(filer_window,
 			(DirItem *) colitem->data,
 			(ViewData *) colitem->view_data,
-			FALSE);
+			((ViewData *) colitem->view_data)->base_type == TYPE_UNKNOWN &&
+			((DirItem *) colitem->data)->flags & ITEM_FLAG_RECENT
+			);
 
 	calc_size(filer_window, colitem, &w, &h); 
 	if (w > old_w || h > old_h)
@@ -1756,8 +1758,7 @@ static void view_collection_autosize(ViewIface *view)
 	n = collection->number_of_items;
 	if (n == 0)
 		h = (filer_window->display_style != SMALL_ICONS ? ICON_HEIGHT : 0) +
-			small_height + 4;
-	n = MAX(n, 2);
+			small_height;
 
 	max_x = ((o_filer_width_limit.int_value == 0 ?
 			 o_filer_size_limit.int_value :
@@ -1807,6 +1808,8 @@ static void view_collection_autosize(ViewIface *view)
 	x = (r * t + sqrt(r*r*t*t + 4*h*r * (n*w - 1))) / 2 ;
 	x = ((x + w / 2) / w) * w;
 
+	x = MIN(x, n * w);
+
 	/* Limit x */
 	if (x < min_x)
 	{
@@ -1823,8 +1826,6 @@ static void view_collection_autosize(ViewIface *view)
 					< (min_x * h))
 				x += w;
 		}
-		else
-			x = min_x;
 	}
 
 	if (x > max_x)
