@@ -157,6 +157,8 @@ indicator'>If this is on then files which have one or more extended attributes s
 			<item label='Huge (512px)' value='512'/>
 		</menu>
 	</hbox>
+		<toggle name='jpeg_thumbs' label='Use JPEG for thumbnails'>
+			Small file size and fast just about 4-6 times, though has'nt alpha.</toggle>
 	<spacer/>
 	<hbox>
 		<numentry name='purge_time' label='Purge Time for Memory Cache:' unit='sec' min='0' max='999999' width='6'>

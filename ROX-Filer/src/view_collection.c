@@ -1826,6 +1826,8 @@ static void view_collection_autosize(ViewIface *view)
 					< (min_x * h))
 				x += w;
 		}
+		else
+			x = n * w;
 	}
 
 	if (x > max_x)
