@@ -390,13 +390,14 @@ void drag_data_get(GtkWidget          		*widget,
 	long		to_send_length = 1;
 	gboolean	delete_once_sent = FALSE;
 	GdkAtom		type;
-	guchar		*path;
+//	guchar		*path;
 
 	type = selection_data->target;
 
 	switch (info)
 	{
 		case	TARGET_RAW:
+/* work around. raw data causes massive memory leak. to_send is not freed.
 			path = g_dataset_get_data(context, "full_path");
 			if (path && load_file(path, &to_send, &to_send_length))
 			{
@@ -404,6 +405,7 @@ void drag_data_get(GtkWidget          		*widget,
 				break;
 			}
 			g_warning("drag_data_get: Can't find path!\n");
+*/
 			return;
 		case	TARGET_UTF8:
 		{
