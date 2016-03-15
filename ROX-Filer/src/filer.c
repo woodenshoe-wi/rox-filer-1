@@ -383,7 +383,11 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 			/* In start up, there is no GDK_window. Have to use GTK. */
 			gtk_window_move(GTK_WINDOW(window), x, y);
 		}
-		if (w != currentw || h != currenth)
+		if (
+				w != currentw ||
+				h != currenth ||
+				w != filer_window->last_width ||
+				h != filer_window->last_height)
 			gtk_window_resize(GTK_WINDOW(window), w, h);
 	}
 	else
