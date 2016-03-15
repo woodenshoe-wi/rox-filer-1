@@ -119,30 +119,30 @@ static Tool all_tools[] = {
 	 
 	{N_("Up"), GTK_STOCK_GO_UP, N_("Change to parent directory\n"
 						"  Right: Open parent directory\n"
-						"  Centre: Change to parent in real path"),
+						"  Middle: Change to parent in real path"),
 	 toolbar_up_clicked, DROP_TO_PARENT, TRUE,
 	 FALSE},
 	 
 	{N_("Home"), GTK_STOCK_HOME, N_("Change to home directory\n"
 						"  Right: Open home directory\n"
-						"  Centre: Change to first bookmark"),
+						"  Middle: Change to first bookmark"),
 	 toolbar_home_clicked, DROP_TO_HOME, TRUE,
 	 FALSE},
 	
 	{N_("Jump"), ROX_STOCK_BOOKMARKS, N_("Bookmarks menu\n"
 						"  Right: Edit Bookmarks\n"
-						"  Centre: Jump to last visited directory"),
+						"  Middle: Jump to last visited directory"),
 	 toolbar_bookmarks_clicked, DROP_BOOKMARK, FALSE,
 	 TRUE},
 
 	{N_("Scan"), GTK_STOCK_REFRESH, N_("Rescan directory contents\n"
-						"  Centre: Delete/re-create thumb cache"),
+						"  Middle: Delete/re-create thumb cache"),
 	 toolbar_refresh_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
 	{N_("Size┼"), GTK_STOCK_ZOOM_IN, N_("Change icon size\n"
 						"  Right: Change to smaller\n"
-						"  Centre: Change to Auto Size\n"
+						"  Middle: Change to Auto Size\n"
 						"  Scroll: Temporary huge zoom\n"
 						"Status: ┘Huge, ┤Large, ┐Small, ├Auto"),
 	 toolbar_size_clicked, DROP_NONE, TRUE,
@@ -154,7 +154,7 @@ static Tool all_tools[] = {
 	
 	{N_("List"), ROX_STOCK_SHOW_DETAILS, N_("Show extra details\n"
 						"  Right: Rotate Icons with details\n"
-						"  Centre: Return to normal Icons View"),
+						"  Middle: Return to normal Icons View"),
 	 toolbar_details_clicked, DROP_NONE, TRUE,
 	 FALSE},
 	
@@ -178,7 +178,7 @@ static Tool all_tools[] = {
  	
 	{N_("○"), GTK_STOCK_SAVE, N_("Save Current Display Settings...\n"
 						"  Right: for parent/* \n"
-						"  Centre: Clear to default settings\n"
+						"  Middle: Clear to default settings\n"
 						"Under:\n"
 						"  ▽: No settings\n"
 						"  ▼: Own settings\n"
