@@ -824,13 +824,14 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 	}
 	else
 	{ //for jpeg
-		if (mc_stat(thumb_path, &thumbinfo) != 0 ||
-			mc_stat(path, &info) != 0
+		if (mc_lstat(thumb_path, &thumbinfo) != 0 ||
+			mc_lstat(path, &info) != 0
 			)
 			goto err;
 
 		if (!S_ISLNK(thumbinfo.st_mode) &&
-				info.st_mtime > thumbinfo.st_mtime)
+				(info.st_mtime > thumbinfo.st_mtime ||
+				info.st_ctime > thumbinfo.st_ctime))
 			goto err;
 	}
 

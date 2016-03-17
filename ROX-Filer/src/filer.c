@@ -3287,6 +3287,10 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 
 	set_scanning_display(filer_window, TRUE);
 
+	char *thumb_path = pixmap_make_thumb_path(filer_window->real_path);
+	unlink(thumb_path); ///////////////////////////
+	g_free(thumb_path);
+
 	view_get_iter(filer_window->view, &iter, 0);
 	while ((item = iter.next(&iter)))
 	{
@@ -3301,7 +3305,7 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 		g_fscache_remove(pixmap_cache, path);
 		g_fscache_remove(thumb_cache, path);
 
-		char *thumb_path = pixmap_make_thumb_path(path);
+		thumb_path = pixmap_make_thumb_path(path);
 		unlink(thumb_path); ///////////////////////////
 
 		dir_force_update_path(path);
