@@ -1813,7 +1813,7 @@ static void view_collection_autosize(ViewIface *view)
 	/* Limit x */
 	if (x < min_x)
 	{
-		if (n * w > min_x)
+		if (n * w > min_x && min_x > w)
 		{
 			cols = min_x / w;
 			x = cols * w;
