@@ -247,7 +247,7 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">" N_("Clear Selection"),	NULL, clear_selection, 0, NULL},
 {">" N_("Invert Selection"),	NULL, invert_selection, 0, NULL},
 {">" N_("Select by Name..."),	"period", mini_buffer, MINI_SELECT_BY_NAME, NULL},
-{">" N_("Easy Select..."),	"asciicircum", mini_buffer, MINI_EASY_SELECT, NULL},
+{">" N_("Reg Select..."),	"asciicircum", mini_buffer, MINI_REG_SELECT, NULL},
 {">" N_("Select If..."),	"<Shift>question", mini_buffer, MINI_SELECT_IF, NULL},
 {N_("Options..."),		NULL, menu_show_options, 0, "<StockItem>", GTK_STOCK_PREFERENCES},
 {N_("New"),			NULL, NULL, 0, "<Branch>"},

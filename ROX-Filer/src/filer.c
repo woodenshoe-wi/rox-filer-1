@@ -613,7 +613,7 @@ static void detach(FilerWindow *filer_window)
 {
 	g_return_if_fail(filer_window->directory != NULL);
 
-	if (filer_window->mini_type == MINI_EASY_SELECT)
+	if (filer_window->mini_type == MINI_REG_SELECT)
 		minibuffer_hide(filer_window);
 	
 	dir_detach(filer_window->directory,
@@ -1357,7 +1357,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 			else if (!(event->state & modifiers) &&
 						key >= GDK_a && key <= GDK_z)
 			{
-				minibuffer_show(filer_window, MINI_EASY_SELECT, key);
+				minibuffer_show(filer_window, MINI_REG_SELECT, key);
 				return TRUE;
 			}
 			else if ((event->state & modifiers) == GDK_SHIFT_MASK &&
@@ -2853,7 +2853,7 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 			break;
 	}
 
-	if (filer_window->mini_type == MINI_EASY_SELECT)
+	if (filer_window->mini_type == MINI_REG_SELECT)
 		minibuffer_hide(filer_window);
 }
 
