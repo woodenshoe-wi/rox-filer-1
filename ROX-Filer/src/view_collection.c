@@ -1815,10 +1815,9 @@ static void view_collection_autosize(ViewIface *view)
 	{
 		if (n * w > min_x)
 		{
-			cols = min_x / w;
+			cols = MAX(min_x / w, 1);
 			x = cols * w;
-			if (cols != 0 &&
-				min_x != x &&
+			if (min_x != x &&
 				n % cols &&
 				n % cols <= n / cols &&
 				/* Put window decoration away
