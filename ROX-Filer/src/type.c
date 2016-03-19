@@ -279,7 +279,7 @@ MIME_type *type_get_type(const guchar *path)
 	MIME_type	*type = NULL;
 
 	item = diritem_new("");
-	diritem_restat(path, item, NULL);
+	diritem_restat(path, item, NULL, TRUE);
 	if (item->base_type != TYPE_ERROR)
 		type = item->mime_type;
 	diritem_free(item);
@@ -712,7 +712,7 @@ static void drag_app_dropped(GtkWidget	*drop_box,
 	DirItem	*item;
 
 	item = diritem_new("");
-	diritem_restat(app, item, NULL);
+	diritem_restat(app, item, NULL, TRUE);
 	if (item->flags & ITEM_FLAG_APPDIR || EXECUTABLE_FILE(item))
 	{
 		guchar	*path;

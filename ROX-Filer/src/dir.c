@@ -93,7 +93,7 @@ GFSCache *dir_cache = NULL;
 /* Static prototypes */
 static void update(Directory *dir, gchar *pathname, gpointer data);
 static void set_idle_callback(Directory *dir);
-static DirItem *insert_item(Directory *dir, const guchar *leafname);
+static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean examine_now);
 static void remove_missing(Directory *dir, GPtrArray *keep);
 static void dir_recheck(Directory *dir,
 			const guchar *path, const guchar *leafname);
@@ -380,7 +380,7 @@ DirItem *dir_update_item(Directory *dir, const gchar *leafname)
 	DirItem *item;
 	
 	time(&diritem_recent_time);
-	item = insert_item(dir, leafname);
+	item = insert_item(dir, leafname, TRUE);
 	dir_merge_new(dir);
 
 	return item;
@@ -463,28 +463,51 @@ static gboolean recheck_callback(gpointer data)
 {
 	Directory *dir = (Directory *) data;
 	guchar	*leaf;
-	
+	gboolean merged = FALSE;
+
 	g_return_val_if_fail(dir != NULL, FALSE);
 	g_return_val_if_fail(dir->recheck_list != NULL, FALSE);
-	g_return_val_if_fail(!g_queue_is_empty(dir->recheck_list), FALSE);
-
-	leaf = g_queue_pop_tail(dir->recheck_list);
-
-	/* usleep(800); */
-
-	insert_item(dir, leaf);
-
-	g_free(leaf);
 
 	if (!g_queue_is_empty(dir->recheck_list))
-		return TRUE;	/* Call again */
+	{
+		leaf = g_queue_pop_tail(dir->recheck_list);
 
-	/* The recheck_list list empty. Stop scanning, unless
-	 * needs_update, in which case we start scanning again.
-	 */
+		DirItem *item = insert_item(dir, leaf, FALSE);
+		if (item && item->flags & ITEM_FLAG_DIR_NEED_EXAMINE)
+			g_queue_push_head(dir->examine_list, item);
 
-	dir_merge_new(dir);
-	
+		g_free(leaf);
+
+		if (!g_queue_is_empty(dir->recheck_list))
+			return TRUE;	/* Call again */
+
+		dir_merge_new(dir);
+		merged = TRUE;
+	}
+
+	if (!g_queue_is_empty(dir->examine_list))
+	{
+		if(merged) return TRUE;
+
+		DirItem *item = g_queue_pop_tail(dir->examine_list);
+
+		if (item->flags & ITEM_FLAG_DIR_NEED_EXAMINE)
+		{
+			if (diritem_examine_dir(
+						make_path(dir->pathname, item->leafname),
+						item))
+				g_ptr_array_add(dir->up_items, item);
+
+			item->flags &= ~ITEM_FLAG_DIR_NEED_EXAMINE;
+		}
+
+		if (!g_queue_is_empty(dir->examine_list))
+			return TRUE;
+	}
+
+	if (!merged)
+		dir_merge_new(dir);
+
 	dir->have_scanned = TRUE;
 	dir_set_scanning(dir, FALSE);
 	g_source_remove(dir->idle_callback);
@@ -532,6 +555,8 @@ void dir_merge_new(Directory *dir)
 
 	for (i = 0; i < gone->len; i++)
 	{
+
+
 		DirItem	*item = (DirItem *) gone->pdata[i];
 
 		diritem_free(item);
@@ -712,7 +737,7 @@ static void delayed_notify(Directory *dir)
  * (leafname may be from the current DirItem item)
  * Ensure diritem_recent_time is reasonably up-to-date before calling this.
  */
-static DirItem *insert_item(Directory *dir, const guchar *leafname)
+static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean examine_now)
 {
 	const gchar  	*full_path;
 	DirItem		*item;
@@ -736,7 +761,7 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname)
 				g_object_ref(old._image);
 			do_compare = TRUE;
 		}
-		diritem_restat(full_path, item, &dir->stat_info);
+		diritem_restat(full_path, item, &dir->stat_info, examine_now);
 	}
 	else
 	{
@@ -745,7 +770,7 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname)
 		 * we get here.
 		 */
 		item = diritem_new(leafname);
-		diritem_restat(full_path, item, &dir->stat_info);
+		diritem_restat(full_path, item, &dir->stat_info, examine_now);
 		if (item->base_type == TYPE_ERROR &&
 				item->lstat_errno == ENOENT)
 		{
@@ -824,7 +849,10 @@ static void update(Directory *dir, gchar *pathname, gpointer data)
  */
 static void set_idle_callback(Directory *dir)
 {
-	if (!g_queue_is_empty(dir->recheck_list) && dir->users)
+	if (
+			(!g_queue_is_empty(dir->recheck_list) ||
+			 !g_queue_is_empty(dir->examine_list)) &&
+			dir->users)
 	{
 		/* Work to do, and someone's watching */
 		dir_set_scanning(dir, TRUE);
@@ -885,7 +913,7 @@ static void dir_recheck(Directory *dir,
 	g_free(old);
 
 	time(&diritem_recent_time);
-	insert_item(dir, leafname);
+	insert_item(dir, leafname, TRUE);
 }
 
 static void to_array(gpointer key, gpointer value, gpointer data)
@@ -922,6 +950,7 @@ static void dir_finialize(GObject *object)
 	g_print("[ dir finalize ]\n");
 
 	free_recheck_list(dir);
+	g_queue_free(dir->examine_list);
 	set_idle_callback(dir);
 	if (dir->rescan_timeout != -1)
 		g_source_remove(dir->rescan_timeout);
@@ -957,6 +986,7 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 
 	dir->known_items = g_hash_table_new(g_str_hash, g_str_equal);
 	dir->recheck_list = g_queue_new();
+	dir->examine_list = g_queue_new();
 	dir->idle_callback = 0;
 	dir->scanning = FALSE;
 	dir->have_scanned = FALSE;
@@ -1090,6 +1120,7 @@ static void dir_rescan(Directory *dir)
 
 	free_recheck_list(dir);
 	dir->recheck_list = g_queue_new();
+	g_queue_clear(dir->examine_list);
 
 	/* For each name found, mark it as needing to be put on the rescan
 	 * list at some point in the future.

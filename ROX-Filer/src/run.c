@@ -317,7 +317,7 @@ gboolean run_by_path(const guchar *full_path)
 
 	/* XXX: Loads an image - wasteful */
 	item = diritem_new("");
-	diritem_restat(full_path, item, NULL);
+	diritem_restat(full_path, item, NULL, TRUE);
 	retval = run_diritem(full_path, item, NULL, NULL, FALSE);
 	diritem_free(item);
 	
@@ -361,7 +361,7 @@ gboolean run_by_uri(const gchar *uri, gchar **errmsg)
 		DirItem *item;
 
 		item=diritem_new(scheme);
-		diritem_restat(cmd, item, NULL);
+		diritem_restat(cmd, item, NULL, TRUE);
 
 		run_with_args(cmd, item, uri);
 		retval=TRUE; /* we hope... */

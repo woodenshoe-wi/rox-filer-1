@@ -546,7 +546,7 @@ static GList *menu_from_dir(GtkWidget *menu, const gchar *dir_name,
 		}
 
 		ditem = diritem_new("");
-		diritem_restat(fname, ditem, NULL);
+		diritem_restat(fname, ditem, NULL, TRUE);
 
 		item = make_send_to_item(ditem, leaf, style);
 
@@ -1736,7 +1736,7 @@ static void show_send_to_menu(GList *paths, GdkEvent *event)
 		DirItem	*item;
 		
 		item = diritem_new("");
-		diritem_restat(paths->data, item, NULL);
+		diritem_restat(paths->data, item, NULL, TRUE);
 
 		add_sendto(menu,
 			   item->mime_type->media_type,
@@ -1756,7 +1756,7 @@ static void show_send_to_menu(GList *paths, GdkEvent *event)
 		item = diritem_new("");
 		for(rover=paths; rover; rover=g_list_next(rover))
 		{
-			diritem_restat(rover->data, item, NULL);
+			diritem_restat(rover->data, item, NULL, TRUE);
 			if(!type)
 				type=item->mime_type;
 			else

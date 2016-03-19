@@ -52,10 +52,6 @@
  */
 time_t diritem_recent_time;
 
-/* Static prototypes */
-static void examine_dir(const guchar *path, DirItem *item,
-			struct stat *link_target);
-
 /****************************************************************
  *			EXTERNAL INTERFACE			*
  ****************************************************************/
@@ -68,7 +64,11 @@ void diritem_init(void)
 /* Bring this item's structure uptodate.
  * 'parent' is optional; it saves one stat() for directories.
  */
-void diritem_restat(const guchar *path, DirItem *item, struct stat *parent)
+void diritem_restat(
+		const guchar *path,
+		DirItem *item,
+		struct stat *parent,
+		gboolean examine_now)
 {
 	struct stat	info;
 
@@ -151,7 +151,23 @@ void diritem_restat(const guchar *path, DirItem *item, struct stat *parent)
 		 * of the *symlink*, but we really want the uid of the dir
 		 * to which the symlink points.
 		 */
-		examine_dir(path, item, &info);
+		check_globicon(path, item);
+
+		if (item->flags & ITEM_FLAG_MOUNT_POINT)
+		{
+			item->mime_type = inode_mountpoint;
+			/* Try to avoid automounter problems */
+		}
+		else if (info.st_mode & S_IWOTH)
+		{/* Don't trust world-writable dirs */}
+		else
+		{
+			if (examine_now)
+				diritem_examine_dir(path, item);
+			else
+				item->flags |= ITEM_FLAG_DIR_NEED_EXAMINE;
+		}
+
 	}
 	else if (item->base_type == TYPE_FILE)
 	{
@@ -255,37 +271,19 @@ void _diritem_get_image(DirItem *item)
 		item->_image = type_to_icon(item->mime_type);
 }
 
-/****************************************************************
- *			INTERNAL FUNCTIONS			*
- ****************************************************************/
-
 /* Fill in more details of the DirItem for a directory item.
  * - Looks for an image (but maybe still NULL on error)
  * - Updates ITEM_FLAG_APPDIR
- *
- * link_target contains stat info for the link target for symlinks (or for the
- * item itself if not a link).
  */
-static void examine_dir(const guchar *path, DirItem *item,
-			struct stat *link_target)
+gboolean diritem_examine_dir(const guchar *path, DirItem *item)
 {
 	struct stat info;
 	static GString *tmp = NULL;
-	uid_t uid = link_target->st_uid;
+	uid_t uid = item->uid;
+	MaskedPixmap *newimage = NULL;
 
 	if (!tmp)
 		tmp = g_string_new(NULL);
-
-	check_globicon(path, item);
-
-	if (item->flags & ITEM_FLAG_MOUNT_POINT)
-	{
-		item->mime_type = inode_mountpoint;
-		return;		/* Try to avoid automounter problems */
-	}
-
-	if (link_target->st_mode & S_IWOTH)
-		return;		/* Don't trust world-writable dirs */
 
 	/* Finding the icon:
 	 *
@@ -301,9 +299,6 @@ static void examine_dir(const guchar *path, DirItem *item,
 
 	g_string_printf(tmp, "%s/.DirIcon", path);
 
-	if (item->_image)
-		goto no_diricon;	/* Already got an icon */
-
 	if (mc_lstat(tmp->str, &info) != 0 || info.st_uid != uid)
 		goto no_diricon;	/* Missing, or wrong owner */
 
@@ -314,7 +309,7 @@ static void examine_dir(const guchar *path, DirItem *item,
 		goto no_diricon;	/* Too big, or non-regular file */
 
 	/* Try to load image; may still get NULL... */
-	item->_image = g_fscache_lookup(pixmap_cache, tmp->str);
+	newimage = g_fscache_lookup(pixmap_cache, tmp->str);
 
 no_diricon:
 
@@ -324,7 +319,7 @@ no_diricon:
 
 	if (mc_lstat(tmp->str, &info) != 0 || info.st_uid != uid)
 		goto out;	/* Missing, or wrong owner */
-		
+
 	if (!(info.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
 		goto out;	/* Not executable */
 
@@ -332,7 +327,7 @@ no_diricon:
 
 	/* Try to load AppIcon.xpm... */
 
-	if (item->_image)
+	if (newimage)
 		goto out;	/* Already got an icon */
 
 	g_string_truncate(tmp, tmp->len - 3);
@@ -349,14 +344,24 @@ no_diricon:
 		goto out;	/* Too big, or non-regular file */
 
 	/* Try to load image; may still get NULL... */
-	item->_image = g_fscache_lookup(pixmap_cache, tmp->str);
+	newimage = g_fscache_lookup(pixmap_cache, tmp->str);
 
 out:
 
-	if ((item->flags & ITEM_FLAG_APPDIR) && !item->_image)
+	if ((item->flags & ITEM_FLAG_APPDIR) && !newimage)
 	{
 		/* This is an application without an icon */
-		item->_image = im_appdir;
-		g_object_ref(item->_image);
+		newimage = im_appdir;
+		g_object_ref(newimage);
 	}
+
+	if (newimage)
+	{
+		if (item->_image)
+			g_object_unref(item->_image);
+
+		item->_image = newimage;
+		return TRUE;
+	}
+	return FALSE;
 }
