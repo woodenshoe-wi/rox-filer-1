@@ -404,6 +404,7 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_line_to(cr, right - size, mid);
 	cairo_line_to(cr, right, mid - size);
 	size -= 2.1;
+	right += 1;
 	cairo_move_to(cr, right, mid + size);
 	cairo_line_to(cr, right - size, mid);
 	cairo_line_to(cr, right, mid - size);
