@@ -273,7 +273,24 @@ static gboolean transparent_expose(GtkWidget *widget,
 
 	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	gdk_cairo_region(cr, event->region);
-	cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
+
+	if (o_use_background_colour.int_value)
+	{
+		cairo_paint(cr);
+
+		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+//		gdk_cairo_region(cr, event->region);
+		GdkColor base;
+		gdk_color_parse(o_background_colour.value, &base);
+		cairo_set_source_rgba(cr,
+				base.red / p,
+				base.green / p,
+				base.blue / p,
+				(100 - o_view_alpha.int_value) / 100.0);
+		cairo_fill(cr);
+	}
+	else
+		cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
 
 	if (!fg)
 		goto end;
@@ -386,17 +403,22 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
 	static const float p = 65535.0;
-	GdkColor *base = &widget->style->base[GTK_STATE_NORMAL];
+	GdkColor base;
+	if (o_use_background_colour.int_value)
+		gdk_color_parse(o_background_colour.value, &base);
+	else
+		base = widget->style->base[GTK_STATE_NORMAL];
+
 	cairo_set_source_rgba(cr,
-			base->red / p,
-			base->green / p,
-			base->blue / p,
+			base.red / p,
+			base.green / p,
+			base.blue / p,
 			(100 - o_view_alpha.int_value) / 100.0);
 	cairo_fill(cr);
 
 	size -= 1.4;
 
-	GdkColor colour = *base;
+	GdkColor colour = widget->style->fg[GTK_STATE_NORMAL];
 	colour = *type_get_colour(item, &colour);
 	gdk_cairo_set_source_color(cr, &colour);
 	cairo_set_line_width(cr, 0.9);

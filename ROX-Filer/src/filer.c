@@ -184,6 +184,8 @@ Option o_filer_auto_resize, o_unique_filer_windows;
 Option o_filer_size_limit;
 Option o_filer_width_limit;
 Option o_view_alpha;
+Option o_use_background_colour;
+Option o_background_colour;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 static Option o_create_sub_dir_thumbs;
@@ -208,6 +210,8 @@ void filer_init(void)
 			VIEW_TYPE_COLLECTION); 
 
 	option_add_int(&o_view_alpha, "view_alpha", 0);
+	option_add_int(&o_use_background_colour, "use_background_colour", 0);
+	option_add_string(&o_background_colour, "background_colour", "#ffffff");
 	option_add_int(&o_right_gap, "right_gap", 32);
 	option_add_int(&o_bottom_gap, "bottom_gap", 32);
 	option_add_int(&o_auto_move, "auto_move", FALSE);
@@ -370,7 +374,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 
 		if (dx != 0 || dy != 0)
 		{
-			if (GTK_WIDGET_VISIBLE(window))
+			if (gtk_window_is_active(GTK_WINDOW(window)))
 			{
 				gdk_window_get_pointer(gdk_window, &px, &py, NULL);
 				XWarpPointer(gdk_x11_drawable_get_xdisplay(gdk_window),
@@ -397,7 +401,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	filer_window->last_width = w;
 	filer_window->last_height = h;
 
-	if (GTK_WIDGET_VISIBLE(window))
+	if (gtk_window_is_active(GTK_WINDOW(window)))
 	{
 		GdkEvent *event = gtk_get_current_event();
 		if (event)

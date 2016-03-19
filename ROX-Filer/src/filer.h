@@ -149,6 +149,8 @@ extern Option		o_filer_auto_resize, o_unique_filer_windows;
 extern Option		o_filer_size_limit;
 extern Option		o_filer_width_limit;
 extern Option		o_view_alpha;
+extern Option		o_use_background_colour;
+extern Option		o_background_colour;
 extern Option		o_fast_font_calc;
 extern gint 		fw_font_height;
 extern gint 		fw_font_widths[0x7f];
