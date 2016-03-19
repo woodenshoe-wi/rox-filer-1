@@ -1063,8 +1063,9 @@ static gint coll_button_press(GtkWidget *widget,
 		/* rocker gesture */
 		if (motion_state == MOTION_READY_FOR_DND)
 			dnd_motion_disable();
-		else
-			collection_end_lasso(view_collection->collection, GDK_CLEAR);
+
+		filer_set_autoscroll(view_collection->filer_window, FALSE);
+		collection_end_lasso(view_collection->collection, GDK_CLEAR);
 
 		change_to_parent(view_collection->filer_window);
 	}
