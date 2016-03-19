@@ -1061,6 +1061,8 @@ static gint coll_button_press(GtkWidget *widget,
 		filer_perform_action(view_collection->filer_window, event);
 	else {
 		/* rocker gesture */
+		filer_set_autoscroll(view_collection->filer_window, FALSE);
+		collection_end_lasso(view_collection->collection, GDK_CLEAR);
 		change_to_parent(view_collection->filer_window);
 		drag_start_x = drag_start_y = 999999; /* now start point is far away */
 	}

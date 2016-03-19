@@ -292,7 +292,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	{
 		if (filer_window->scrollbar)
 			w += filer_window->scrollbar->allocation.width;
-		
+
 		if (o_toolbar.int_value != TOOLBAR_NONE)
 			h += filer_window->toolbar->allocation.height;
 		if (filer_window->message)
@@ -399,36 +399,28 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 
 	if (GTK_WIDGET_VISIBLE(window))
 	{
-		/* If the resize was triggered by a key press, keep
-		 * the pointer inside the window so that it doesn't
-		 * lose focus when using pointer-follows-mouse.
-		 */
-		GdkEvent *event = gtk_get_current_event();
-		if (event && event->type == GDK_KEY_PRESS)
+		int x, y;
+		int nx, ny;
+
+		GdkWindow *win = filer_window->window->window;
+
+		gdk_window_get_pointer(filer_window->window->window,
+					&x, &y, NULL);
+
+		if (filer_window->scrollbar)
+			w -= filer_window->scrollbar->allocation.width;
+
+		nx = CLAMP(x, 2, w - 2);
+		ny = CLAMP(y, 2, h - 2);
+
+		if (nx != x || ny != y)
 		{
-			int x, y;
-			int nx, ny;
-
-			GdkWindow *win = filer_window->window->window;
-
-			gdk_window_get_pointer(filer_window->window->window,
-						&x, &y, NULL);
-
-			nx = CLAMP(x, 4, w - 4);
-			ny = CLAMP(y, 4, h - 4);
-			
-			if (nx != x || ny != y)
-			{
-				XWarpPointer(gdk_x11_drawable_get_xdisplay(win),
-						None,
-						gdk_x11_drawable_get_xid(win),
-						0, 0, 0, 0,
-						nx, ny);
-			}
+			XWarpPointer(gdk_x11_drawable_get_xdisplay(win),
+					None,
+					gdk_x11_drawable_get_xid(win),
+					0, 0, 0, 0,
+					nx, ny);
 		}
-
-		if (event)
-			gdk_event_free(event);
 	}
 }
 
