@@ -292,7 +292,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	{
 		if (filer_window->scrollbar)
 			w += filer_window->scrollbar->allocation.width;
-		
+
 		if (o_toolbar.int_value != TOOLBAR_NONE)
 			h += filer_window->toolbar->allocation.height;
 		if (filer_window->message)
@@ -399,12 +399,8 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 
 	if (GTK_WIDGET_VISIBLE(window))
 	{
-		/* If the resize was triggered by a key press, keep
-		 * the pointer inside the window so that it doesn't
-		 * lose focus when using pointer-follows-mouse.
-		 */
 		GdkEvent *event = gtk_get_current_event();
-		if (event && event->type == GDK_KEY_PRESS)
+		if (event)
 		{
 			int x, y;
 			int nx, ny;
@@ -414,9 +410,12 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 			gdk_window_get_pointer(filer_window->window->window,
 						&x, &y, NULL);
 
-			nx = CLAMP(x, 4, w - 4);
-			ny = CLAMP(y, 4, h - 4);
-			
+			if (filer_window->scrollbar)
+				w -= filer_window->scrollbar->allocation.width;
+
+			nx = CLAMP(x, 2, w - 2);
+			ny = CLAMP(y, 2, h - 2);
+
 			if (nx != x || ny != y)
 			{
 				XWarpPointer(gdk_x11_drawable_get_xdisplay(win),
@@ -425,10 +424,9 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 						0, 0, 0, 0,
 						nx, ny);
 			}
-		}
 
-		if (event)
-			gdk_event_free(event);
+		 	gdk_event_free(event);
+		}
 	}
 }
 
@@ -613,7 +611,7 @@ static void detach(FilerWindow *filer_window)
 {
 	g_return_if_fail(filer_window->directory != NULL);
 
-	if (filer_window->mini_type == MINI_EASY_SELECT)
+	if (filer_window->mini_type == MINI_REG_SELECT)
 		minibuffer_hide(filer_window);
 	
 	dir_detach(filer_window->directory,
@@ -1357,7 +1355,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 			else if (!(event->state & modifiers) &&
 						key >= GDK_a && key <= GDK_z)
 			{
-				minibuffer_show(filer_window, MINI_EASY_SELECT, key);
+				minibuffer_show(filer_window, MINI_REG_SELECT, key);
 				return TRUE;
 			}
 			else if ((event->state & modifiers) == GDK_SHIFT_MASK &&
@@ -2853,7 +2851,7 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 			break;
 	}
 
-	if (filer_window->mini_type == MINI_EASY_SELECT)
+	if (filer_window->mini_type == MINI_REG_SELECT)
 		minibuffer_hide(filer_window);
 }
 

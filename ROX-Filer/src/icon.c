@@ -164,7 +164,7 @@ void icon_may_update(Icon *icon)
 	if (image)
 		g_object_ref(image);
 	mount_update(FALSE);
-	diritem_restat(icon->path, icon->item, NULL);
+	diritem_restat(icon->path, icon->item, NULL, TRUE);
 
 	if (di_image(icon->item) != image || icon->item->flags != flags)
 	{
@@ -471,7 +471,7 @@ void icon_set_path(Icon *icon, const char *pathname, const char *name)
 		}
 
 		icon->item = diritem_new(name);
-		diritem_restat(icon->path, icon->item, NULL);
+		diritem_restat(icon->path, icon->item, NULL, TRUE);
 		g_free(base);
 	}
 }

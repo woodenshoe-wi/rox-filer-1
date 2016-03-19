@@ -404,6 +404,7 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_line_to(cr, right - size, mid);
 	cairo_line_to(cr, right, mid - size);
 	size -= 2.1;
+	right += 1;
 	cairo_move_to(cr, right, mid + size);
 	cairo_line_to(cr, right - size, mid);
 	cairo_line_to(cr, right, mid - size);
@@ -1060,8 +1061,12 @@ static gint coll_button_press(GtkWidget *widget,
 		filer_perform_action(view_collection->filer_window, event);
 	else {
 		/* rocker gesture */
+		if (motion_state == MOTION_READY_FOR_DND)
+			dnd_motion_disable();
+		else
+			collection_end_lasso(view_collection->collection, GDK_CLEAR);
+
 		change_to_parent(view_collection->filer_window);
-		drag_start_x = drag_start_y = 999999; /* now start point is far away */
 	}
 
 	return FALSE;
@@ -1297,7 +1302,9 @@ static SortFn sort_fn(FilerWindow *fw)
 	{
 		case SORT_NAME: return sort_by_name;
 		case SORT_TYPE: return sort_by_type;
-		case SORT_DATE: return sort_by_date;
+		case SORT_DATEA: return sort_by_datea;
+		case SORT_DATEC: return sort_by_datec;
+		case SORT_DATEM: return sort_by_datem;
 		case SORT_SIZE: return sort_by_size;
 		case SORT_OWNER: return sort_by_owner;
 		case SORT_GROUP: return sort_by_group;

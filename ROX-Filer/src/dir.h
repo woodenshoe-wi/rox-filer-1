@@ -77,6 +77,7 @@ struct _Directory
 	GPtrArray	*gone_items;	/* Items removed */
 
 	GQueue		*recheck_list;	/* Items to check on callback */
+	GQueue		*examine_list;	/* Items to examine on callback */
 
 	gboolean	have_scanned;	/* TRUE after first complete scan */
 	gboolean	scanning;	/* TRUE if we sent DIR_START_SCAN */

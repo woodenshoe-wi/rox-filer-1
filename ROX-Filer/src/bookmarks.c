@@ -83,7 +83,7 @@ static void commit_edits(GtkTreeModel *model);
 void bookmarks_show_menu(FilerWindow *filer_window, GtkWidget *widget)
 {
 	GdkEvent *event;
-	GtkMenu *menu;
+	static GtkMenu *menu = NULL;
 	int	button = 0;
 
 	event = gtk_get_current_event();
@@ -94,6 +94,9 @@ void bookmarks_show_menu(FilerWindow *filer_window, GtkWidget *widget)
 			button = ((GdkEventButton *) event)->button;
 		gdk_event_free(event);
 	}
+
+	if (menu)
+		gtk_widget_destroy((GtkWidget *) menu);
 
 	menu = GTK_MENU(bookmarks_build_menu(filer_window));
 

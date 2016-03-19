@@ -55,7 +55,7 @@ indicator'>If this is on then files which have one or more extended attributes s
         </hbox>
 
 		<numentry name='huge_size' label='Huge Icons size:' unit='pixels' min='64' max='1024' width='4'>
-			Resolution is depends on 'Thumbnails->Cache File Size'.</numentry>
+			Resolution depends on 'Thumbnails->Cache File Size'.</numentry>
       </frame>
       <frame label='Icon View'>
         <hbox>

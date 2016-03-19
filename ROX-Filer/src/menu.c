@@ -208,7 +208,9 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">",				NULL, NULL, 0, "<Separator>"},
 {">" N_("Sort by Name"),	NULL, set_sort, SORT_NAME, NULL},
 {">" N_("Sort by Type"),	NULL, set_sort, SORT_TYPE, NULL},
-{">" N_("Sort by Date"),	NULL, set_sort, SORT_DATE, NULL},
+{">" N_("Sort by Date (atime)"),	NULL, set_sort, SORT_DATEA, NULL},
+{">" N_("Sort by Date (ctime)"),	NULL, set_sort, SORT_DATEC, NULL},
+{">" N_("Sort by Date (mtime)"),	NULL, set_sort, SORT_DATEM, NULL},
 {">" N_("Sort by Size"),	NULL, set_sort, SORT_SIZE, NULL},
 {">" N_("Sort by Owner"),	NULL, set_sort, SORT_OWNER, NULL},
 {">" N_("Sort by Group"),	NULL, set_sort, SORT_GROUP, NULL},
@@ -247,7 +249,7 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">" N_("Clear Selection"),	NULL, clear_selection, 0, NULL},
 {">" N_("Invert Selection"),	NULL, invert_selection, 0, NULL},
 {">" N_("Select by Name..."),	"period", mini_buffer, MINI_SELECT_BY_NAME, NULL},
-{">" N_("Easy Select..."),	"asciicircum", mini_buffer, MINI_EASY_SELECT, NULL},
+{">" N_("Reg Select..."),	"asciicircum", mini_buffer, MINI_REG_SELECT, NULL},
 {">" N_("Select If..."),	"<Shift>question", mini_buffer, MINI_SELECT_IF, NULL},
 {N_("Options..."),		NULL, menu_show_options, 0, "<StockItem>", GTK_STOCK_PREFERENCES},
 {N_("New"),			NULL, NULL, 0, "<Branch>"},
@@ -546,7 +548,7 @@ static GList *menu_from_dir(GtkWidget *menu, const gchar *dir_name,
 		}
 
 		ditem = diritem_new("");
-		diritem_restat(fname, ditem, NULL);
+		diritem_restat(fname, ditem, NULL, TRUE);
 
 		item = make_send_to_item(ditem, leaf, style);
 
@@ -1736,7 +1738,7 @@ static void show_send_to_menu(GList *paths, GdkEvent *event)
 		DirItem	*item;
 		
 		item = diritem_new("");
-		diritem_restat(paths->data, item, NULL);
+		diritem_restat(paths->data, item, NULL, TRUE);
 
 		add_sendto(menu,
 			   item->mime_type->media_type,
@@ -1756,7 +1758,7 @@ static void show_send_to_menu(GList *paths, GdkEvent *event)
 		item = diritem_new("");
 		for(rover=paths; rover; rover=g_list_next(rover))
 		{
-			diritem_restat(rover->data, item, NULL);
+			diritem_restat(rover->data, item, NULL, TRUE);
 			if(!type)
 				type=item->mime_type;
 			else

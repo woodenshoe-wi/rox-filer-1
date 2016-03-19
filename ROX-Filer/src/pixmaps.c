@@ -432,7 +432,7 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 			base = g_path_get_basename(thumb_prog);
 			item = diritem_new(base);
 			g_free(base);
-			diritem_restat(thumb_prog, item, NULL);
+			diritem_restat(thumb_prog, item, NULL, TRUE);
 			if (item->flags & ITEM_FLAG_APPDIR)
 				thumb_prog = g_strconcat(thumb_prog, "/AppRun",
 						NULL);
@@ -830,8 +830,7 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 			goto err;
 
 		if (!S_ISLNK(thumbinfo.st_mode) &&
-				(info.st_mtime > thumbinfo.st_mtime ||
-				info.st_ctime > thumbinfo.st_ctime))
+				info.st_ctime > thumbinfo.st_ctime)
 			goto err;
 	}
 

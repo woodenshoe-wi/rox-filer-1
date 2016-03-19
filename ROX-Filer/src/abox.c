@@ -637,7 +637,7 @@ void abox_set_file(ABox *abox, int i, const gchar *path)
 	base = g_path_get_basename(path);
 	item = diritem_new(base);
 	g_free(base);
-	diritem_restat(path, item, NULL);
+	diritem_restat(path, item, NULL, TRUE);
 
 	gtk_image_set_from_pixbuf(GTK_IMAGE(abox->cmp_icon[i]),
 				  di_image(item)->pixbuf);

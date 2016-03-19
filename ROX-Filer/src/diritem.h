@@ -26,8 +26,9 @@ typedef enum
 	 * being added to the queue more than once at a time.
 	 */
 	ITEM_FLAG_NEED_RESCAN_QUEUE = 0x100,
-	
-	ITEM_FLAG_HAS_XATTR      = 0x200, /* Has extended attributes set */
+	ITEM_FLAG_DIR_NEED_EXAMINE = 0x200,
+
+	ITEM_FLAG_HAS_XATTR      = 0x800, /* Has extended attributes set */
 } ItemFlags;
 
 struct _DirItem
@@ -50,9 +51,10 @@ struct _DirItem
 
 void diritem_init(void);
 DirItem *diritem_new(const guchar *leafname);
-void diritem_restat(const guchar *path, DirItem *item, struct stat *parent);
+void diritem_restat(const guchar *path, DirItem *item, struct stat *parent, gboolean examine_now);
 void _diritem_get_image(DirItem *item);
 void diritem_free(DirItem *item);
+gboolean diritem_examine_dir(const guchar *path, DirItem *item);
 
 static inline MaskedPixmap *di_image(DirItem *item)
 {

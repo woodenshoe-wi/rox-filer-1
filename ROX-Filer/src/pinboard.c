@@ -705,7 +705,7 @@ void pinboard_set_backdrop_app(const gchar *app)
 	gboolean can_set;
 
 	item = diritem_new("");
-	diritem_restat(app, item, NULL);
+	diritem_restat(app, item, NULL, TRUE);
 	if (!(item->flags & ITEM_FLAG_APPDIR))
 	{
 		delayed_error(_("The backdrop handler must be an application "

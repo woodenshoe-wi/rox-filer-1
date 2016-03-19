@@ -116,7 +116,7 @@ typedef enum {
 	MINI_FILTER,
 	MINI_TEMP_FILTER,
 	MINI_SELECT_BY_NAME,
-	MINI_EASY_SELECT,
+	MINI_REG_SELECT,
 } MiniType;
 
 /* The next three correspond to the styles on the Display submenu: */
@@ -141,10 +141,12 @@ typedef enum {		/* Values used in options, must start at 0 */
 typedef enum {		/* Values used in options */
 	SORT_NAME = 0,
 	SORT_TYPE = 1,
-	SORT_DATE = 2,
+	SORT_DATEM = 2,
 	SORT_SIZE = 3,
 	SORT_OWNER = 4,
-	SORT_GROUP = 5
+	SORT_GROUP = 5,
+	SORT_DATEC = 6,
+	SORT_DATEA = 7,
 } SortType;
 
 /* Each DirItem has a base type with indicates what kind of object it is.

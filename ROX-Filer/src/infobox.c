@@ -217,7 +217,7 @@ static GtkWidget *make_vbox(const guchar *path, GObject *window)
 	base = g_path_get_basename(path);
 	item = diritem_new(base);
 	g_free(base);
-	diritem_restat(path, item, NULL);
+	diritem_restat(path, item, NULL, TRUE);
 
 	ai = appinfo_get(path, item);
 	if (ai)
