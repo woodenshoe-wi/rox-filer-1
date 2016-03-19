@@ -830,8 +830,7 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 			goto err;
 
 		if (!S_ISLNK(thumbinfo.st_mode) &&
-				(info.st_mtime > thumbinfo.st_mtime ||
-				info.st_ctime > thumbinfo.st_ctime))
+				info.st_ctime > thumbinfo.st_ctime)
 			goto err;
 	}
 
