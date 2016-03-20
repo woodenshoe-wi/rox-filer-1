@@ -280,6 +280,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 			settings_table, filer_window->sym_path);
 	GtkWidget *window = filer_window->window;
 	GtkRequisition *req = &window->requisition;
+	gint dx = 0, dy = 0, px = 0, py = 0;
 
 	if (filer_window->req_width >= 0)
 	{
@@ -309,7 +310,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	if (o_auto_move.int_value || filer_window->reqx >= 0)
 	{
 		GdkWindow *gdk_window = window->window;
-		gint x, y, m, currentw, currenth, bcw, bch, lx, ly, px, py, dx, dy, mxend, myend;
+		gint x, y, m, currentw, currenth, bcw, bch, lx, ly, mxend, myend;
 		GdkRectangle frect = {0, 0, 0, 0};
 
 		gdk_window_get_pointer(NULL, &x, &y, NULL);
@@ -406,27 +407,27 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 		GdkEvent *event = gtk_get_current_event();
 		if (event)
 		{
-			int x, y;
 			int nx, ny;
 
 			GdkWindow *win = filer_window->window->window;
 
-			gdk_window_get_pointer(filer_window->window->window,
-						&x, &y, NULL);
+			if (dx == 0 && dy == 0)
+				gdk_window_get_pointer(filer_window->window->window,
+						&px, &py, NULL);
 
 			if (filer_window->scrollbar)
 				w -= filer_window->scrollbar->allocation.width;
 
-			nx = CLAMP(x, 2, w - 2);
-			ny = CLAMP(y, 2, h - 2);
+			nx = CLAMP(px, 2, w - 2);
+			ny = CLAMP(py, 2, h - 2);
 
-			if (nx != x || ny != y)
+			if (nx != px || ny != py)
 			{
 				XWarpPointer(gdk_x11_drawable_get_xdisplay(win),
 						None,
 						gdk_x11_drawable_get_xid(win),
 						0, 0, 0, 0,
-						nx, ny);
+						nx + dx, ny + dy);
 			}
 
 		 	gdk_event_free(event);

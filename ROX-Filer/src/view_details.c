@@ -1060,6 +1060,14 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 	gtk_tree_selection_set_select_function(view_details->selection,
 			test_can_change_selection, view_details, NULL);
 
+	if (o_use_background_colour.int_value)
+	{
+		GdkColor base;
+		gdk_color_parse(o_background_colour.value, &base);
+		gtk_widget_modify_base(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &base);
+	}
+
 	/* Sorting */
 	view_details->sort_fn = NULL;
 
