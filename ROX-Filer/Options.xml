@@ -95,7 +95,7 @@ indicator'>If this is on then files which have one or more extended attributes s
 		<spacer/>
 		<hbox>
 			<numentry name='view_alpha' label='Transparency:' unit='%' min='0' max='100' width='3'>
-			When the value is 0, the window will open without alpha support. So it needs re-open. Also this depends on your environment. Basically if your windows have shadows, then you'll get transparent view.
+			This depends on your environment. Basically if your windows have shadows, then you'll get transparent view.
 			</numentry>
 		</hbox>
 	<spacer/>
@@ -330,7 +330,14 @@ xterm -e wget $1</entry>
       <label help='1'>Themes should be placed inside the ~/.icons directory.</label>
       <label help='1'>Use the 'Set Icon...' dialog box to set the icon for each MIME type. Note that icons set this way override those from the selected theme.</label>
     </frame>
-    <section title='Colours'>
+	<section title='Colours'>
+		<frame label='Background colour'>
+			<hbox>
+				<toggle name='use_background_colour' label='Use custom background colour:'></toggle>
+				<colour name='background_colour' label=''/>
+			</hbox>
+		</frame>
+
       <frame label='File type colours'>
         <toggle name='display_colour_types' label='Colour files based on their types'>Filenames (and details) are coloured according to the file's type.</toggle>
 	<spacer/>
