@@ -1881,13 +1881,10 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 		small_width = (SMALL_WIDTH * small_height) / SMALL_HEIGHT;
 	}
 
-	if (o_view_alpha.int_value > 0)
-	{
-		GdkScreen *screen = gtk_widget_get_screen(filer_window->window);
-		GdkColormap *rgba = gdk_screen_get_rgba_colormap(screen);
-		if (rgba)
-			gtk_widget_set_colormap(filer_window->window, rgba);
-	}
+	GdkScreen *screen = gtk_widget_get_screen(filer_window->window);
+	GdkColormap *rgba = gdk_screen_get_rgba_colormap(screen);
+	if (rgba)
+		gtk_widget_set_colormap(filer_window->window, rgba);
 
 	/* This property is cleared when the window is destroyed.
 	 * You can thus ref filer_window->window and use this to see
