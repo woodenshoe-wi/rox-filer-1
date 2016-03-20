@@ -846,13 +846,13 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 					break;
 
 			bpath = g_strndup(path, i);
-			
+
 			item = gtk_menu_item_new();
 
 			fix = gtk_fixed_new();
 			label =  gtk_label_new(bpath);
 
-			gtk_widget_modify_fg (label,
+			gtk_widget_modify_fg(label,
 					GTK_STATE_NORMAL,
 					&label->style->text[GTK_STATE_INSENSITIVE]);
 
