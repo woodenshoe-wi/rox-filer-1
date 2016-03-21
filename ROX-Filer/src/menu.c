@@ -179,6 +179,17 @@ static GtkWidget	*file_shift_item;	/* Shift Open label */
 static GtkWidget	*filer_auto_size_menu;	/* The Automatic item */
 static GtkWidget	*filer_hidden_menu;	/* The Show Hidden item */
 static GtkWidget	*filer_filter_dirs_menu;/* The Filter Dirs item */
+
+/* The Sort items */
+static GtkWidget	*filer_sort_name_menu;
+static GtkWidget	*filer_sort_type_menu;
+static GtkWidget	*filer_sort_date_a_menu;
+static GtkWidget	*filer_sort_date_c_menu;
+static GtkWidget	*filer_sort_date_m_menu;
+static GtkWidget	*filer_sort_size_menu;
+static GtkWidget	*filer_sort_owner_menu;
+static GtkWidget	*filer_sort_group_menu;
+
 static GtkWidget	*filer_reverse_menu;	/* The Reversed item */
 static GtkWidget	*filer_thumb_menu;	/* The Show Thumbs item */
 static GtkWidget	*filer_new_window;	/* The New Window item */
@@ -206,14 +217,16 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">" N_("Smaller Icons"),   	"minus", change_size, -1, "<StockItem>", GTK_STOCK_ZOOM_OUT},
 {">" N_("Automatic"),   	NULL, change_size_auto, 0, "<ToggleItem>"},
 {">",				NULL, NULL, 0, "<Separator>"},
-{">" N_("Sort by Name"),	NULL, set_sort, SORT_NAME, NULL},
-{">" N_("Sort by Type"),	NULL, set_sort, SORT_TYPE, NULL},
-{">" N_("Sort by Date (atime)"),	NULL, set_sort, SORT_DATEA, NULL},
-{">" N_("Sort by Date (ctime)"),	NULL, set_sort, SORT_DATEC, NULL},
-{">" N_("Sort by Date (mtime)"),	NULL, set_sort, SORT_DATEM, NULL},
-{">" N_("Sort by Size"),	NULL, set_sort, SORT_SIZE, NULL},
-{">" N_("Sort by Owner"),	NULL, set_sort, SORT_OWNER, NULL},
-{">" N_("Sort by Group"),	NULL, set_sort, SORT_GROUP, NULL},
+
+{">" N_("Sort by Name"),         NULL, set_sort, SORT_NAME,  "<ToggleItem>"},
+{">" N_("Sort by Type"),         NULL, set_sort, SORT_TYPE,  "<ToggleItem>"},
+{">" N_("Sort by Date (atime)"), NULL, set_sort, SORT_DATEA, "<ToggleItem>"},
+{">" N_("Sort by Date (ctime)"), NULL, set_sort, SORT_DATEC, "<ToggleItem>"},
+{">" N_("Sort by Date (mtime)"), NULL, set_sort, SORT_DATEM, "<ToggleItem>"},
+{">" N_("Sort by Size"),         NULL, set_sort, SORT_SIZE,  "<ToggleItem>"},
+{">" N_("Sort by Owner"),        NULL, set_sort, SORT_OWNER, "<ToggleItem>"},
+{">" N_("Sort by Group"),        NULL, set_sort, SORT_GROUP, "<ToggleItem>"},
+
 {">" N_("Reversed"),		NULL, reverse_sort, 0, "<ToggleItem>"},
 {">",				NULL, NULL, 0, "<Separator>"},
 {">" N_("Show Hidden"),   	"<Ctrl>H", hidden, 0, "<ToggleItem>"},
@@ -318,6 +331,16 @@ gboolean ensure_filer_menu(void)
 	GET_SMENU_ITEM(filer_file_menu, "filer", "File");
 	GET_SSMENU_ITEM(filer_hidden_menu, "filer", "Display", "Show Hidden");
 	GET_SSMENU_ITEM(filer_filter_dirs_menu, "filer", "Display", "Filter Directories With Files");
+
+	GET_SSMENU_ITEM(filer_sort_name_menu  , "filer", "Display", "Sort by Name");
+	GET_SSMENU_ITEM(filer_sort_type_menu  , "filer", "Display", "Sort by Type");
+	GET_SSMENU_ITEM(filer_sort_date_a_menu, "filer", "Display", "Sort by Date (atime)");
+	GET_SSMENU_ITEM(filer_sort_date_c_menu, "filer", "Display", "Sort by Date (ctime)");
+	GET_SSMENU_ITEM(filer_sort_date_m_menu, "filer", "Display", "Sort by Date (mtime)");
+	GET_SSMENU_ITEM(filer_sort_size_menu  , "filer", "Display", "Sort by Size");
+	GET_SSMENU_ITEM(filer_sort_owner_menu , "filer", "Display", "Sort by Owner");
+	GET_SSMENU_ITEM(filer_sort_group_menu , "filer", "Display", "Sort by Group");
+
 	GET_SSMENU_ITEM(filer_reverse_menu, "filer", "Display", "Reversed");
 	GET_SSMENU_ITEM(filer_auto_size_menu, "filer", "Display", "Automatic");
 	GET_SSMENU_ITEM(filer_thumb_menu, "filer", "Display",
@@ -793,6 +816,24 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 		gtk_check_menu_item_set_active(
 				GTK_CHECK_MENU_ITEM(filer_filter_dirs_menu),
 				filer_window->filter_directories);
+
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_name_menu  ),
+				filer_window->sort_type == SORT_NAME );
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_type_menu  ),
+				filer_window->sort_type == SORT_TYPE );
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_date_a_menu),
+				filer_window->sort_type == SORT_DATEA);
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_date_c_menu),
+				filer_window->sort_type == SORT_DATEC);
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_date_m_menu),
+				filer_window->sort_type == SORT_DATEM);
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_size_menu  ),
+				filer_window->sort_type == SORT_SIZE );
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_owner_menu ),
+				filer_window->sort_type == SORT_OWNER);
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_group_menu ),
+				filer_window->sort_type == SORT_GROUP);
+
 		gtk_check_menu_item_set_active(
 				GTK_CHECK_MENU_ITEM(filer_reverse_menu),
 				filer_window->sort_order != GTK_SORT_ASCENDING);
