@@ -1693,7 +1693,7 @@ static void view_collection_cursor_to_iter(ViewIface *view, ViewIter *iter)
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
 	FilerWindow	*filer_window = view_collection->filer_window;
-	
+
 	g_return_if_fail(iter == NULL ||
 			 iter->view == (ViewIface *) view_collection);
 

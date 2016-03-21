@@ -487,7 +487,7 @@ static void collection_size_allocate(GtkWidget *widget,
 	{
 		int	first, last;
 		int	crow, ccol;
-		
+
 		collection_item_to_rowcol(collection, collection->cursor_item,
 					  &crow, &ccol);
 
@@ -1112,7 +1112,7 @@ static void get_visible_limits(Collection *collection, int *first, int *last)
 static void cancel_wink(Collection *collection)
 {
 	gint	item;
-	
+
 	g_return_if_fail(collection != NULL);
 	g_return_if_fail(IS_COLLECTION(collection));
 	g_return_if_fail(collection->wink_item != -1);
@@ -1150,7 +1150,7 @@ static void invert_wink(Collection *collection)
 static gboolean wink_timeout(Collection *collection)
 {
 	gint	item;
-	
+
 	g_return_val_if_fail(collection != NULL, FALSE);
 	g_return_val_if_fail(IS_COLLECTION(collection), FALSE);
 	g_return_val_if_fail(collection->wink_item != -1, FALSE);
@@ -1671,10 +1671,6 @@ void collection_wink_item(Collection *collection, gint item)
 
 	if (!collection->center_wink)
 		scroll_to_show(collection, item);
-
-	invert_wink(collection);
-
-	gdk_flush();
 }
 
 /* Call test(item, data) on each item in the collection.
