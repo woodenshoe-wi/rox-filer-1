@@ -1415,7 +1415,7 @@ void change_to_parent(FilerWindow *filer_window)
 	if (mount_is_user_mounted(filer_window->real_path))
 		may_offer_unmount(filer_window,
 				g_strdup(filer_window->real_path));
-	
+
 	dir = g_path_get_dirname(current);
 	base = g_path_get_basename(current);
 	filer_change_to(filer_window, dir, base);
@@ -1471,11 +1471,11 @@ void filer_change_to(FilerWindow *filer_window,
 		g_free(sym_path);
 		return;
 	}
-	
+
 	if (o_unique_filer_windows.int_value && !spring_in_progress)
 	{
 		FilerWindow *fw;
-		
+
 		fw = find_filer_window(sym_path, filer_window);
 		if (fw)
 			gtk_widget_destroy(fw->window);

@@ -53,10 +53,8 @@
 #include "minibuffer.h"
 #include "dir.h"
 #include "diritem.h"
-#include "fscache.h"
 #include "view_iface.h"
 #include "xtypes.h"
-#include "usericons.h"
 
 /* Options bits */
 static Option o_display_caps_first;
@@ -778,7 +776,9 @@ ViewData *display_create_viewdata(FilerWindow *filer_window, DirItem *item)
 	view->details = NULL;
 	view->image = NULL;
 	view->thumb = NULL;
+	view->may_thumb = FALSE;
 	view->base_type = TYPE_UNKNOWN;
+	view->recent = FALSE;
 
 	display_update_view(filer_window, item, view, TRUE);
 
@@ -1086,48 +1086,16 @@ void display_update_view(FilerWindow *filer_window,
 
 	if (!update_name_layout)
 	{
-		if (view->thumb)
-			g_clear_object(&view->thumb);
-
-		if (view->image)
-			g_clear_object(&view->image);
+		g_clear_object(&view->thumb);
+		g_clear_object(&view->image);
+		view->may_thumb = FALSE;
 	}
 
-	if (!view->image)
-		view->image = get_globicon(
-				make_path(filer_window->sym_path, item->leafname));
+	if (!update_name_layout &&
+			view->recent == (item->flags & ITEM_FLAG_RECENT))
+		return;
 
-	if (!view->image)
-	{
-		const guchar *path = make_path(filer_window->real_path, item->leafname);
-
-		view->image = get_globicon(path);
-
-		if (item->base_type != TYPE_UNKNOWN) {
-			//.DirIcon
-			if (!view->image && filer_window->show_thumbs &&
-					item->base_type == TYPE_FILE)
-				view->image = g_fscache_lookup_full(pixmap_cache, path,
-						FSCACHE_LOOKUP_ONLY_NEW, NULL);
-
-			if (!view->image &&
-					(item->flags & ITEM_FLAG_APPDIR ||
-					 !filer_window->show_thumbs ||
-					 (item->base_type != TYPE_FILE &&
-					  (item->base_type != TYPE_DIRECTORY ||
-					   o_display_show_dir_thumbs.int_value != 1))
-					)
-			   )
-			{
-				view->image = di_image(item);
-				if (view->image) {
-					g_object_ref(view->image);
-				}
-			}
-		}
-	}
-
-	if (!update_name_layout) return;
+	view->recent = item->flags & ITEM_FLAG_RECENT;
 
 	basic &= !(item->flags & ITEM_FLAG_RECENT);
 	basic &= (filer_window->display_style == SMALL_ICONS ||

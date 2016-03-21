@@ -107,7 +107,7 @@ static void collection_set_property(GObject      *object,
 				    GParamSpec   *pspec);
 static gint collection_expose(GtkWidget *widget, GdkEventExpose *event);
 static void default_draw_item(GtkWidget *widget,
-				CollectionItem *data,
+				int idx,
 				GdkRectangle *area,
 				gpointer user_data);
 static gboolean	default_test_point(Collection *collection,
@@ -185,7 +185,7 @@ static void draw_one_item(Collection *collection, int item, GdkRectangle *area)
 	if (item < collection->number_of_items)
 	{
 		collection->draw_item((GtkWidget *) collection,
-				&collection->items[item],
+				item,
 				area, collection->cb_user_data);
 	}
 	
@@ -487,7 +487,7 @@ static void collection_size_allocate(GtkWidget *widget,
 	{
 		int	first, last;
 		int	crow, ccol;
-		
+
 		collection_item_to_rowcol(collection, collection->cursor_item,
 					  &crow, &ccol);
 
@@ -638,16 +638,17 @@ static gint collection_expose(GtkWidget *widget, GdkEventExpose *event)
 }
 
 static void default_draw_item(GtkWidget *widget,
-			      CollectionItem *item,
+			      int idx,
 			      GdkRectangle *area,
 			      gpointer user_data)
 {
 	gdk_draw_arc(widget->window,
-			item->selected ? widget->style->white_gc
-				       : widget->style->black_gc,
+			COLLECTION(widget)->items[idx].selected ?
+				widget->style->white_gc :
+				widget->style->black_gc,
 			TRUE,
 			area->x, area->y,
-		 	COLLECTION(widget)->item_width, area->height,
+			COLLECTION(widget)->item_width, area->height,
 			0, 360 * 64);
 }
 
@@ -1111,7 +1112,7 @@ static void get_visible_limits(Collection *collection, int *first, int *last)
 static void cancel_wink(Collection *collection)
 {
 	gint	item;
-	
+
 	g_return_if_fail(collection != NULL);
 	g_return_if_fail(IS_COLLECTION(collection));
 	g_return_if_fail(collection->wink_item != -1);
@@ -1149,7 +1150,7 @@ static void invert_wink(Collection *collection)
 static gboolean wink_timeout(Collection *collection)
 {
 	gint	item;
-	
+
 	g_return_val_if_fail(collection != NULL, FALSE);
 	g_return_val_if_fail(IS_COLLECTION(collection), FALSE);
 	g_return_val_if_fail(collection->wink_item != -1, FALSE);
@@ -1670,10 +1671,6 @@ void collection_wink_item(Collection *collection, gint item)
 
 	if (!collection->center_wink)
 		scroll_to_show(collection, item);
-
-	invert_wink(collection);
-
-	gdk_flush();
 }
 
 /* Call test(item, data) on each item in the collection.

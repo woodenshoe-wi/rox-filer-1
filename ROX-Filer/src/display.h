@@ -25,7 +25,9 @@ struct _ViewData
 
 	MaskedPixmap *image;		/* Image; not thumbnail */
 	GdkPixbuf *thumb;
+	gboolean may_thumb;
 	int base_type; /* for time lag */
+	gboolean recent;
 };
 
 extern Option o_display_inherit_options, o_display_sort_by;
