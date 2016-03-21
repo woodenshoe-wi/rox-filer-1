@@ -44,6 +44,8 @@
 #include "toolbar.h"	/* for resizing */
 #include "filer.h"
 #include "display.h"
+#include "usericons.h"
+#include "fscache.h"
 
 #define MIN_ITEM_WIDTH 64
 
@@ -71,7 +73,7 @@ static void view_collection_class_init(gpointer gclass, gpointer data);
 static void view_collection_init(GTypeInstance *object, gpointer gclass);
 
 static void draw_item(GtkWidget *widget,
-			CollectionItem *item,
+			int idx,
 			GdkRectangle *area,
 			gpointer user_data);
 static void fill_template(GdkRectangle *area, CollectionItem *item,
@@ -435,31 +437,181 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_destroy(cr);
 }
 
+static gboolean next_thumb(ViewCollection *vc)
+{
+	int i;
+
+	for (i = 0; i < 3; i++)
+	{
+		if (g_queue_is_empty(vc->thumbs_queue))
+		{
+			vc->thumb_func = 0;
+			g_object_unref(vc);
+			return FALSE;
+		} else {
+			intptr_t idx = (intptr_t) g_queue_pop_tail(vc->thumbs_queue);
+			if (idx >= vc->collection->number_of_items)
+				continue;
+
+			FilerWindow    *fw = vc->filer_window;
+			CollectionItem *colitem = &vc->collection->items[idx];
+			DirItem        *item = (DirItem *) colitem->data;
+			ViewData       *view = (ViewData *) colitem->view_data;
+
+			if (!view->may_thumb)
+				continue;
+
+			view->may_thumb = FALSE;
+			gchar *path = pathdup(
+					make_path(fw->real_path, item->leafname));
+			view->thumb = pixmap_load_thumb(path);
+			g_free(path);
+
+			if (!view->image || view->thumb)
+			{
+				if (!view->thumb && !view->image)
+				{
+					view->image = di_image(item);
+					if (view->image)
+						g_object_ref(view->image);
+				}
+				collection_draw_item(vc->collection, idx, TRUE);
+			}
+		}
+	}
+
+	return TRUE;
+}
+
+static void clear_thumb_func(ViewCollection *vc)
+{
+	if (vc->thumb_func)
+	{
+		g_source_remove(vc->thumb_func);
+		vc->thumb_func = 0;
+		g_object_unref(vc);
+	}
+	if (vc->thumbs_queue)
+	{
+		g_queue_free(vc->thumbs_queue);
+		vc->thumbs_queue = NULL;
+	}
+}
+static void reset_thumb_func(ViewCollection *vc)
+{
+	clear_thumb_func(vc);
+	vc->thumbs_queue = g_queue_new();
+}
+
 static void draw_item(GtkWidget *widget,
-			CollectionItem *colitem,
+			int idx,
 			GdkRectangle *area,
 			gpointer user_data)
 {
-	DirItem		*item = (DirItem *) colitem->data;
-	gboolean	selected = colitem->selected;
-	Template	template;
-	ViewData *view = (ViewData *) colitem->view_data;
-	ViewCollection	*view_collection = (ViewCollection *) user_data;
-	FilerWindow	*filer_window = view_collection->filer_window;
-	GtkStateType	selection_state;
-	GdkColor	*colour;
-	PangoLayout *layout;
+	ViewCollection *vc = (ViewCollection *) user_data;
+	FilerWindow    *fw = vc->filer_window;
+	CollectionItem *colitem = &vc->collection->items[idx];
+	gboolean       selected = colitem->selected;
+	DirItem        *item = (DirItem *) colitem->data;
+	ViewData       *view = (ViewData *) colitem->view_data;
+	GtkStateType   selection_state;
+	GdkColor       *colour;
+	Template       template;
+	PangoLayout    *layout;
 
 	g_return_if_fail(view != NULL);
 
+	if (view->base_type == TYPE_UNKNOWN) {
+		if (fw->display_style == HUGE_ICONS) return;
+		goto end_image;
+	}
+
+	if (!view->may_thumb && !view->thumb && !view->image)
+	{
+		view->image = get_globicon(
+				make_path(fw->sym_path, item->leafname));
+
+		if (!view->image)
+		{
+			const guchar *path = make_path(fw->real_path, item->leafname);
+
+			view->image = get_globicon(path);
+
+			//.DirIcon
+			if (!view->image && fw->show_thumbs &&
+					item->base_type == TYPE_FILE)
+				view->image = g_fscache_lookup_full(pixmap_cache, path,
+						FSCACHE_LOOKUP_ONLY_NEW, NULL);
+
+			if (!view->image)
+			{
+				if (fw->show_thumbs &&
+						!(item->flags & ITEM_FLAG_APPDIR) &&
+						(item->base_type == TYPE_FILE ||
+						 (item->base_type == TYPE_DIRECTORY &&
+						  o_display_show_dir_thumbs.int_value == 1)))
+				{
+					view->may_thumb = TRUE;
+				}
+				else
+				{
+					view->image = di_image(item);
+					if (view->image)
+						g_object_ref(view->image);
+				}
+			}
+		}
+	}
+
+	if (view->may_thumb)
+	{
+		//delay loading in scroll is not good,
+		//because half of view is blank and also too blink. 
+		if (
+				fw->display_style != HUGE_ICONS ||
+				fw->scanning ||
+				vc->collection->vadj->value == 0)
+		{
+			intptr_t idxptr = idx;
+			g_queue_push_head(vc->thumbs_queue, (gpointer) idxptr);
+
+			if (!vc->thumb_func)
+			{
+				g_object_ref(vc);
+				vc->thumb_func = g_idle_add_full(
+						G_PRIORITY_HIGH_IDLE + 20, //G_PRIORITY_DEFAULT_IDLE
+						(GSourceFunc) next_thumb, vc, NULL);
+			}
+
+			if (fw->display_style == HUGE_ICONS) return;
+		}
+		else
+		{
+			view->may_thumb = FALSE;
+			gchar *path = pathdup(
+					make_path(fw->real_path, item->leafname));
+			view->thumb = pixmap_load_thumb(path);
+			g_free(path);
+		}
+
+		if (!view->thumb && !view->image)
+		{
+			view->image = di_image(item);
+			if (view->image)
+				g_object_ref(view->image);
+		}
+	}
+
+end_image:
+
 	if (selected)
-		selection_state = filer_window->selection_state;
+		selection_state = fw->selection_state;
 	else
 		selection_state = GTK_STATE_NORMAL;
 
 	colour = &widget->style->base[selection_state];
 
-	fill_template(area, colitem, view_collection, &template);
+	fill_template(area, colitem, vc, &template);
 
 	/* Set up GC for coloured file types */
 	if (!type_gc)
@@ -498,7 +650,7 @@ static void draw_item(GtkWidget *widget,
 
 //	g_clear_object(&(view->thumb));
 
-	layout = make_layout(filer_window, item);
+	layout = make_layout(fw, item);
 
 	draw_string(widget, layout,
 			&template.leafname,
@@ -507,7 +659,7 @@ static void draw_item(GtkWidget *widget,
 			selection_state,
 			TRUE);
 
-	if (filer_window->details_type != DETAILS_NONE &&
+	if (fw->details_type != DETAILS_NONE &&
 		view->details && item->base_type != TYPE_UNKNOWN)
 		draw_string(widget, view->details,
 				&template.details,
@@ -519,75 +671,6 @@ static void draw_item(GtkWidget *widget,
 	g_object_unref(G_OBJECT(layout));
 }
 
-static gboolean next_thumb(ViewCollection *vc)
-{
-	int i;
-
-	for (i = 0; i < 3; i++)
-	{
-		if (g_queue_is_empty(vc->thumb_path_queue))
-		{
-			vc->thumb_func = 0;
-			g_object_unref(vc);
-			return FALSE;
-		} else {
-			gchar *path = (gchar *) g_queue_pop_tail(vc->thumb_path_queue);
-			ViewData *view = (ViewData *) g_queue_pop_tail(vc->thumb_view_queue);
-			GdkRectangle *area =
-				(GdkRectangle *) g_queue_pop_tail(vc->thumb_area_queue);
-			DirItem *item = (DirItem *) g_queue_pop_tail(vc->thumb_item_queue);
-
-			if (!view->thumb && !view->image) {
-				view->thumb = pixmap_load_thumb(path);
-
-				if (!view->thumb)
-					view->image = di_image(item);
-				if (view->image)
-					g_object_ref(view->image);
-			}
-
-			if (view->thumb || view->image) {
-				gdk_window_invalidate_rect(
-						GTK_WIDGET(vc->collection)->window, area, FALSE);
-			}
-
-			g_free(path);
-			g_free(area);
-		}
-	}
-
-	return TRUE;
-}
-
-static void clear_thumb_func(ViewCollection *vc)
-{
-	if (vc->thumb_func)
-	{
-		g_source_remove(vc->thumb_func);
-		vc->thumb_func = 0;
-		g_object_unref(vc);
-	}
-	if (vc->thumb_path_queue)
-	{
-		g_queue_free_full(vc->thumb_path_queue, g_free);
-		vc->thumb_path_queue = NULL;
-		g_queue_free(vc->thumb_view_queue);
-		vc->thumb_view_queue = NULL;
-		g_queue_free_full(vc->thumb_area_queue, g_free);
-		vc->thumb_area_queue = NULL;
-		g_queue_free(vc->thumb_item_queue);
-		vc->thumb_item_queue = NULL;
-	}
-}
-static void reset_thumb_func(ViewCollection *vc)
-{
-	clear_thumb_func(vc);
-	vc->thumb_path_queue = g_queue_new();
-	vc->thumb_view_queue = g_queue_new();
-	vc->thumb_area_queue = g_queue_new();
-	vc->thumb_item_queue = g_queue_new();
-}
-
 /* A template contains the locations of the three rectangles (for the icon,
  * name and extra details).
  * Fill in the empty 'template' with the rectanges for this item.
@@ -595,54 +678,8 @@ static void reset_thumb_func(ViewCollection *vc)
 static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 			ViewCollection *view_collection, Template *template)
 {
-	FilerWindow  *filer_window = view_collection->filer_window;
 	DisplayStyle style = view_collection->filer_window->display_style;
 	ViewData     *view = (ViewData *) colitem->view_data;
-	DirItem      *item = (DirItem *) colitem->data;
-
-	if (filer_window->show_thumbs && !view->thumb && !view->image &&
-		(view->base_type == TYPE_FILE ||
-		 (view->base_type == TYPE_DIRECTORY &&
-		  o_display_show_dir_thumbs.int_value == 1)))
-	{
-		//delay loading in scroll is not good,
-		//because half of view is blank and also too blink. 
-		if (
-				style != HUGE_ICONS ||
-				filer_window->scanning ||
-				view_collection->collection->vadj->value == 0)
-		{
-			gchar *path = pathdup(
-					make_path(filer_window->real_path, item->leafname));
-			g_queue_push_head(view_collection->thumb_path_queue, path);
-
-			g_queue_push_head(view_collection->thumb_view_queue, view);
-
-			GdkRectangle *carea = g_memdup(area, sizeof(GdkRectangle));
-			g_queue_push_head(view_collection->thumb_area_queue, carea);
-
-			g_queue_push_head(view_collection->thumb_item_queue, item);
-
-			if (!view_collection->thumb_func)
-			{
-				g_object_ref(view_collection);
-				view_collection->thumb_func = g_idle_add_full(
-						G_PRIORITY_HIGH_IDLE + 20, //G_PRIORITY_DEFAULT_IDLE
-						(GSourceFunc) next_thumb, view_collection, NULL);
-			}
-		}
-		else
-		{
-			gchar *path = pathdup(
-					make_path(filer_window->real_path, item->leafname));
-			view->thumb = pixmap_load_thumb(path);
-			if (!view->thumb)
-				view->image = di_image(item);
-			if (view->image)
-				g_object_ref(view->image);
-			g_free(path);
-		}
-	}
 
 	if (view_collection->filer_window->details_type != DETAILS_NONE)
 	{
@@ -697,7 +734,6 @@ static void huge_template(
 			iw = image->huge_width;
 			ih = image->huge_height;
 		}
-
 
 		if (iw <= ICON_WIDTH &&
 			ih <= ICON_HEIGHT)
@@ -1162,22 +1198,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 
 		if (style == HUGE_ICONS)
 		{
-			if (!filer_window->show_thumbs && view->image)
-			{
-				if (view->image->huge_width <= ICON_WIDTH &&
-					view->image->huge_height <= ICON_HEIGHT)
-					scale = 1.0;
-				else
-					scale *= (gfloat) huge_size /
-						MAX(view->image->huge_width, view->image->huge_height);
-
-				pix_width = view->image->huge_width * scale;
-				pix_height = view->image->huge_height * scale;
-			}
-			else
-			{
-				pix_width = pix_height = huge_size * scale;
-			}
+			pix_width = pix_height = huge_size * scale;
 		}
 	}
 
@@ -1252,9 +1273,7 @@ static void update_item(ViewCollection *view_collection, int i)
 	display_update_view(filer_window,
 			(DirItem *) colitem->data,
 			(ViewData *) colitem->view_data,
-			((ViewData *) colitem->view_data)->base_type == TYPE_UNKNOWN &&
-			((DirItem *) colitem->data)->flags & ITEM_FLAG_RECENT
-			);
+			FALSE);
 
 	calc_size(filer_window, colitem, &w, &h); 
 	if (w > old_w || h > old_h)

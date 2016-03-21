@@ -43,7 +43,7 @@ typedef struct _CollectionItem   CollectionItem;
 
 typedef struct _CollectionClass  CollectionClass;
 typedef void (*CollectionDrawFunc)(GtkWidget *widget,
-			     	  CollectionItem *item,
+			     	  int idx,
 			     	  GdkRectangle *area,
 				  gpointer user_data);
 typedef gboolean (*CollectionTestFunc)( Collection *collection,
