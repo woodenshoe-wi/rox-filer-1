@@ -2416,7 +2416,7 @@ static gpointer scandir_thread(SubDirInfo *info)
 	//alphasort is not equal to rox's sort. Even doesn't check current settings.
 	info->cancel = FALSE;
 	info->tried = 0;
-	info->n = scandir(info->path, &info->entlist, 0, alphasort);
+	info->n = MAX(0, scandir(info->path, &info->entlist, 0, alphasort));
 	g_mutex_unlock(&m_dirthumb);
 	return NULL;
 }
