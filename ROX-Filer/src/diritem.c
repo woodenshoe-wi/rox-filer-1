@@ -51,6 +51,7 @@
  * the current time before calling diritem_restat().
  */
 time_t diritem_recent_time;
+static GMutex m_diritems;
 
 /****************************************************************
  *			EXTERNAL INTERFACE			*
@@ -66,17 +67,28 @@ void diritem_init(void)
  */
 void diritem_restat(
 		const guchar *path,
-		DirItem *item,
+		DirItem *retitem,
 		struct stat *parent,
 		gboolean examine_now)
 {
 	struct stat	info;
 
+	g_mutex_lock(&m_diritems);
+	DirItem newitem = *retitem;
+	g_mutex_unlock(&m_diritems);
+
+	DirItem *item = &newitem;
+
 	if (item->_image)
 	{
-		g_object_unref(item->_image);
+		g_mutex_lock(&m_diritems);
+		if (retitem->_image)
+			g_object_unref(retitem->_image);
+		retitem->_image = NULL;
 		item->_image = NULL;
+		g_mutex_unlock(&m_diritems);
 	}
+
 	item->flags = 0;
 	item->mime_type = NULL;
 
@@ -161,12 +173,7 @@ void diritem_restat(
 		else if (info.st_mode & S_IWOTH)
 		{/* Don't trust world-writable dirs */}
 		else
-		{
-			if (examine_now)
-				diritem_examine_dir(path, item);
-			else
-				item->flags |= ITEM_FLAG_DIR_NEED_EXAMINE;
-		}
+			item->flags |= ITEM_FLAG_DIR_NEED_EXAMINE;
 
 	}
 	else if (item->base_type == TYPE_FILE)
@@ -223,6 +230,15 @@ void diritem_restat(
 
 	if (!item->mime_type)
 		item->mime_type = mime_type_from_base_type(item->base_type);
+
+	item->flags &= ~ITEM_FLAG_NEED_RESCAN_QUEUE;
+
+	g_mutex_lock(&m_diritems);
+	*retitem = newitem;
+	g_mutex_unlock(&m_diritems);
+
+	if (examine_now && item->flags & ITEM_FLAG_DIR_NEED_EXAMINE)
+		diritem_examine_dir(path, retitem);
 }
 
 DirItem *diritem_new(const guchar *leafname)
@@ -231,7 +247,6 @@ DirItem *diritem_new(const guchar *leafname)
 
 	item = g_new(DirItem, 1);
 	item->leafname = g_strdup(leafname);
-	item->may_delete = FALSE;
 	item->_image = NULL;
 	item->base_type = TYPE_UNKNOWN;
 	item->flags = ITEM_FLAG_NEED_RESCAN_QUEUE;
@@ -258,17 +273,25 @@ void diritem_free(DirItem *item)
 }
 
 /* For use by di_image() only. Sets item->_image. */
-void _diritem_get_image(DirItem *item)
+MaskedPixmap *_diritem_get_image(DirItem *item)
 {
-	g_return_if_fail(item->_image == NULL);
-
-	if (item->base_type == TYPE_ERROR)
+	MaskedPixmap *ret;
+	g_mutex_lock(&m_diritems);
+	if (!item->_image && item->base_type != TYPE_UNKNOWN)
 	{
-		item->_image = im_error;
-		g_object_ref(im_error);
+		if (item->base_type == TYPE_ERROR)
+		{
+			item->_image = im_error;
+			g_object_ref(im_error);
+		}
+		else
+			item->_image = type_to_icon(item->mime_type);
 	}
-	else
-		item->_image = type_to_icon(item->mime_type);
+
+	ret = item->_image;
+	g_mutex_unlock(&m_diritems);
+
+	return ret;
 }
 
 /* Fill in more details of the DirItem for a directory item.
@@ -277,6 +300,7 @@ void _diritem_get_image(DirItem *item)
  */
 gboolean diritem_examine_dir(const guchar *path, DirItem *item)
 {
+
 	struct stat info;
 	static GString *tmp = NULL;
 	uid_t uid = item->uid;
@@ -323,7 +347,9 @@ no_diricon:
 	if (!(info.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
 		goto out;	/* Not executable */
 
+	g_mutex_lock(&m_diritems);
 	item->flags |= ITEM_FLAG_APPDIR;
+	g_mutex_unlock(&m_diritems);
 
 	/* Try to load AppIcon.xpm... */
 
@@ -348,6 +374,10 @@ no_diricon:
 
 out:
 
+	g_mutex_lock(&m_diritems);
+	item->flags &= ~ITEM_FLAG_DIR_NEED_EXAMINE;
+	g_mutex_unlock(&m_diritems);
+
 	if ((item->flags & ITEM_FLAG_APPDIR) && !newimage)
 	{
 		/* This is an application without an icon */
@@ -357,11 +387,14 @@ out:
 
 	if (newimage)
 	{
+		g_mutex_lock(&m_diritems);
 		if (item->_image)
 			g_object_unref(item->_image);
 
 		item->_image = newimage;
+		g_mutex_unlock(&m_diritems);
 		return TRUE;
 	}
+
 	return FALSE;
 }

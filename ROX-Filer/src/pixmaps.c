@@ -131,7 +131,7 @@ static GList *thumbs_purge_cache(Option *option, xmlNode *node, guchar *label);
 static gchar *thumbnail_path(const gchar *path);
 static gchar *thumbnail_program(MIME_type *type);
 static GdkPixbuf *extract_tiff_thumbnail(const gchar *path);
-static void make_dir_thumb(const gchar *path, GdkPixbuf *filethumb);
+static void make_dir_thumb(const gchar *path);
 
 /****************************************************************
  *			EXTERNAL INTERFACE			*
@@ -348,6 +348,8 @@ static int thumb_prog_timeout(ChildThumbnail *info)
 	kill(info->child, 9);
 	return FALSE;
 }
+
+
 /* Load image 'path' in the background and insert into pixmap_cache.
  * Call callback(data, path) when done (path is NULL => error).
  * If the image is already uptodate, or being created already, calls the
@@ -727,7 +729,7 @@ char *pixmap_make_thumb_path(const char *path)
 	return thumb_path; /* This return is used unlink! Be carefull */
 }
 
-static void make_dir_thumb(const gchar *path, GdkPixbuf *filethumb)
+static void make_dir_thumb(const gchar *path)
 {
 	gchar *dir = g_path_get_dirname(path);
 
@@ -767,7 +769,7 @@ static void thumbnail_done(ChildThumbnail *info)
 	{
 		g_fscache_remove(thumb_cache, info->path);
 
-		make_dir_thumb(info->path, thumb);
+		make_dir_thumb(info->path);
 
 		g_object_unref(thumb);
 		info->callback(info->data, info->path);

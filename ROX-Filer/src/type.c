@@ -121,6 +121,8 @@ static GtkIconTheme *icon_theme = NULL;
 static GtkIconTheme *rox_theme = NULL;
 static GtkIconTheme *gnome_theme = NULL;
 
+static GMutex m_xdg;
+
 void type_init(void)
 {
 	int	    i;
@@ -200,8 +202,10 @@ static MIME_type *get_mime_type(const gchar *type_name, gboolean can_create)
 	mtype->image = NULL;
 	mtype->comment = NULL;
 
+	g_mutex_lock(&m_xdg);
 	mtype->executable = xdg_mime_mime_type_subclass(type_name,
 						"application/x-executable");
+	g_mutex_unlock(&m_xdg);
 
 	g_hash_table_insert(type_hash, g_strdup(type_name), mtype);
 
@@ -315,7 +319,10 @@ MIME_type *type_from_path(const char *path)
 		return mime_type;
 
 	/* Try name and contents next */
+	g_mutex_lock(&m_xdg);
 	type_name = xdg_mime_get_mime_type_for_file(path, NULL);
+	g_mutex_unlock(&m_xdg);
+
 	if (type_name)
 		return get_mime_type(type_name, TRUE);
 

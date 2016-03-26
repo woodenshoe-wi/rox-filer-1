@@ -449,7 +449,7 @@ static gboolean next_thumb(ViewCollection *vc)
 			g_object_unref(vc);
 			return FALSE;
 		} else {
-			intptr_t idx = (intptr_t) g_queue_pop_tail(vc->thumbs_queue);
+			int idx = GPOINTER_TO_INT(g_queue_pop_tail(vc->thumbs_queue));
 			if (idx >= vc->collection->number_of_items)
 				continue;
 
@@ -522,7 +522,8 @@ static void draw_item(GtkWidget *widget,
 	g_return_if_fail(view != NULL);
 
 	if (view->base_type == TYPE_UNKNOWN) {
-		if (fw->display_style == HUGE_ICONS) return;
+		if (fw->display_style == HUGE_ICONS &&
+				vc->collection->vadj->value == 0) return;
 		goto end_image;
 	}
 
@@ -572,8 +573,7 @@ static void draw_item(GtkWidget *widget,
 				fw->scanning ||
 				vc->collection->vadj->value == 0)
 		{
-			intptr_t idxptr = idx;
-			g_queue_push_head(vc->thumbs_queue, (gpointer) idxptr);
+			g_queue_push_head(vc->thumbs_queue, GUINT_TO_POINTER(idx));
 
 			if (!vc->thumb_func)
 			{

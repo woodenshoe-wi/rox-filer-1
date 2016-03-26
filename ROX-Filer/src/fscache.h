@@ -26,6 +26,33 @@ typedef enum {
 	FSCACHE_LOOKUP_INSERT,	/* Internal use */
 } FSCacheLookup;
 
+struct _GFSCache
+{
+	GHashTable    *inode_to_stats;
+	GFSLoadFunc   load;
+	GFSUpdateFunc update;
+	gpointer      user_data;
+};
+typedef struct _GFSCacheKey GFSCacheKey;
+typedef struct _GFSCacheData GFSCacheData;
+
+struct _GFSCacheKey
+{
+	dev_t device;
+	ino_t inode;
+};
+
+struct _GFSCacheData
+{
+	GObject *data;		/* The object from the file */
+	time_t  last_lookup;
+
+	/* Details of the file last time we checked it */
+	time_t  m_time, c_time;
+	off_t   length;
+	mode_t  mode;
+};
+
 GFSCache *g_fscache_new(GFSLoadFunc load,
 			GFSUpdateFunc update,
 			gpointer user_data);

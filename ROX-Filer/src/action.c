@@ -773,6 +773,7 @@ static void destroy_action_window(GtkWidget *widget, gpointer data)
 static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 			      int force, int brief, int recurse, int newer)
 {
+
 	gboolean	autoq;
 	int		filedes[4];	/* 0 and 2 are for reading */
 	GUIside		*gui_side;

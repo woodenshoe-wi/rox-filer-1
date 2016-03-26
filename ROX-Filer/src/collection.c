@@ -1145,6 +1145,8 @@ static void invert_wink(Collection *collection)
 			area.x, area.y,
 			collection->item_width - 1,
 			area.height - 1);
+
+	gdk_flush();
 }
 
 static gboolean wink_timeout(Collection *collection)

@@ -2092,6 +2092,8 @@ void filer_update_all(void)
 /* Refresh the various caches even if we don't think we need to */
 void full_refresh(void)
 {
+	dir_stop();
+	read_globicons();
 	mount_update(TRUE);
 	reread_mime_files();	/* Refreshes all windows */
 }
@@ -2585,7 +2587,6 @@ static gboolean filer_next_thumb_real(GObject *window)
 						&sdinfo);
 
 				g_thread_unref(scd);
-
 			}
 		}
 	case 1:
@@ -3358,7 +3359,7 @@ void filer_refresh(FilerWindow *filer_window)
 			on_child_death(pid, (CallbackFn) refresh_done,
 					filer_window);
 	}
-	
+
 	full_refresh();
 }
 
