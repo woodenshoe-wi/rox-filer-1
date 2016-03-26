@@ -249,7 +249,7 @@ DirItem *diritem_new(const guchar *leafname)
 	item->leafname = g_strdup(leafname);
 	item->_image = NULL;
 	item->base_type = TYPE_UNKNOWN;
-	item->flags = ITEM_FLAG_NEED_RESCAN_QUEUE;
+	item->flags = ITEM_FLAG_NEED_RESCAN_QUEUE | ITEM_FLAG_NOT_DELETE;
 	item->mime_type = NULL;
 	item->leafname_collate = collate_key_new(item->leafname);
 	item->label = NULL;

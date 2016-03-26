@@ -1118,23 +1118,18 @@ static Directory *dir_new(const char *pathname)
 	return dir;
 }
 
-static void mark_unused(gpointer key, gpointer value, gpointer data)
-{
-	DirItem	*item = (DirItem *) value;
-	item->flags |= ITEM_FLAG_MAY_DELETE;
-}
-static void keep_deleted(gpointer key, gpointer value, gpointer data)
+static gboolean check_delete(gpointer key, gpointer value, gpointer data)
 {
 	DirItem	*item = (DirItem *) value;
 	Directory *dir = (Directory *) data;
-
-	if (item->flags & ITEM_FLAG_MAY_DELETE)
+	if (item->flags & ITEM_FLAG_NOT_DELETE)
+		item->flags &= ~ITEM_FLAG_NOT_DELETE;
+	else
+	{
 		g_ptr_array_add(dir->gone_items, item);
-}
-static gboolean check_unused(gpointer key, gpointer value, gpointer data)
-{
-	DirItem	*item = (DirItem *) value;
-	return item->flags & ITEM_FLAG_MAY_DELETE;
+		return TRUE;
+	}
+	return FALSE;
 }
 
 /* Get the names of all files in the directory.
@@ -1143,21 +1138,12 @@ static gboolean check_unused(gpointer key, gpointer value, gpointer data)
  */
 static void dir_scan(Directory *dir)
 {
-	GPtrArray	*names;
-	DIR		*d;
-	struct dirent	*ent;
-	guint		i;
-	const char	*pathname;
-	GList		*next;
-
 	g_return_if_fail(dir != NULL);
 
 	stop_scan_t(dir);
 
-	pathname = dir->pathname;
+	const char *pathname = dir->pathname;
 	dir->needs_update = FALSE;
-	names = g_ptr_array_new();
-
 	mount_update(FALSE);
 	if (dir->error)
 	{
@@ -1174,7 +1160,7 @@ static void dir_scan(Directory *dir)
 		return;		/* Report on attach */
 	}
 
-	d = mc_opendir(pathname);
+	DIR *d = mc_opendir(pathname);
 	if (!d)
 	{
 		dir->error = g_strdup_printf(_("Can't open directory: %s"),
@@ -1186,7 +1172,14 @@ static void dir_scan(Directory *dir)
 	dir_set_scanning(dir, TRUE);
 	gdk_flush();
 
-	/* Make a list of all the names in the directory */
+	if (dir->have_scanned)
+	{
+		free_recheck_list(dir);
+		dir->recheck_list = g_queue_new();
+		g_queue_clear(dir->examine_list);
+	}
+
+	struct dirent *ent;
 	while ((ent = mc_readdir(d)))
 	{
 		if (ent->d_name[0] == '.')
@@ -1197,60 +1190,30 @@ static void dir_scan(Directory *dir)
 				continue;		/* Ignore '..' */
 		}
 
-		g_ptr_array_add(names, g_strdup(ent->d_name));
-	}
-	mc_closedir(d);
-
-	if (dir->have_scanned)
-	{
-		free_recheck_list(dir);
-		dir->recheck_list = g_queue_new();
-		g_queue_clear(dir->examine_list);
-
-		/* Remove all the old items that have gone.
-		 * Notify everyone who is watching us of the removed items.
-		 */
-		g_hash_table_foreach(dir->known_items, mark_unused, NULL);
-	}
-
-	/* For each name found, mark it as needing to be put on the rescan
-	 * list at some point in the future.
-	 * If the item is new, put a blank place-holder item in the directory.
-	 */
-	for (i = 0; i < names->len; i++)
-	{
 		DirItem *old;
-		guchar *name = names->pdata[i];
-
 		if (dir->have_scanned &&
-				(old = g_hash_table_lookup(dir->known_items, name)))
+				(old = g_hash_table_lookup(dir->known_items, ent->d_name)))
 		{
-			/* This flag is cleared when the item is added
+			/* ITEM_FLAG_NEED_RESCAN_QUEUE is cleared when the item is added
 			 * to the rescan list.
 			 */
-			old->flags |= ITEM_FLAG_NEED_RESCAN_QUEUE;
+			old->flags |= ITEM_FLAG_NEED_RESCAN_QUEUE | ITEM_FLAG_NOT_DELETE;
 
-			/* Unmark all items also in 'keep' */
-			old->flags &= ~ITEM_FLAG_MAY_DELETE;
 		}
 		else
 		{
 			DirItem *new;
 
-			new = diritem_new(name);
+			new = diritem_new(ent->d_name);
 			g_ptr_array_add(dir->new_items, new);
 			g_hash_table_insert(dir->known_items, new->leafname, new);
 		}
 	}
+	mc_closedir(d);
 
 	if (dir->have_scanned)
-	{
-		/* Add each item still marked to 'deleted' */
-		g_hash_table_foreach(dir->known_items, keep_deleted, dir);
-
-		/* Remove all items still marked */
-		g_hash_table_foreach_remove(dir->known_items, check_unused, NULL);
-	}
+		/* Remove all items and add to gone list */
+		g_hash_table_foreach_remove(dir->known_items, check_delete, dir);
 
 	dir_merge_new(dir);
 
@@ -1259,6 +1222,7 @@ static void dir_scan(Directory *dir)
 	 * scanning hidden items.
 	 */
 	in_callback++;
+	GList *next;
 	for (next = dir->users; next; next = next->next)
 	{
 		DirUser *user = (DirUser *) next->data;
@@ -1267,10 +1231,6 @@ static void dir_scan(Directory *dir)
 				NULL, user->data);
 	}
 	in_callback--;
-
-	for (i = names->len; i--;)
-		g_free(names->pdata[i]);
-	g_ptr_array_free(names, TRUE);
 
 	dir->have_scanned = TRUE;
 
