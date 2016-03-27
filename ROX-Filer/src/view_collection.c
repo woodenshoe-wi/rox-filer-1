@@ -1411,7 +1411,7 @@ static void view_collection_update_items(ViewIface *view, GPtrArray *items)
 	int		i;
 
 	g_return_if_fail(items->len > 0);
-	
+
 	/* The item data has already been modified, so this gives the
 	 * final sort order...
 	 */

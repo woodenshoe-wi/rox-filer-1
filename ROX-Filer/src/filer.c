@@ -605,11 +605,11 @@ static void attach(FilerWindow *filer_window)
 
 	if (filer_window->sort_type != SORT_NAME)
 		filer_window->directory->notify_time = DIR_NOTIFY_TIME_FOR_SORT_DATA;
+	else
+		filer_window->directory->notify_time = 0;
 
 	dir_attach(filer_window->directory, (DirCallback) update_display,
 			filer_window);
-
-	filer_window->directory->notify_time = 1;
 
 	filer_set_title(filer_window);
 	bookmarks_add_history(filer_window->sym_path);

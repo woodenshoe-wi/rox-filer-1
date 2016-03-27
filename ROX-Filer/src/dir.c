@@ -590,7 +590,9 @@ static gboolean recheck_callback(gpointer data)
 		{
 			while (do_recheck(data)) {}
 		}
-
+		dir->req_notify = FALSE;
+		dir->notify_time = 0;
+		dir_merge_new(dir);
 	}
 
 	if (dir->req_notify)
