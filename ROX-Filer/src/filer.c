@@ -599,6 +599,7 @@ static void update_display(Directory *dir,
 static void attach(FilerWindow *filer_window)
 {
 	gdk_window_set_cursor(filer_window->window->window, busy_cursor);
+	gdk_flush();
 	view_clear(filer_window->view);
 	filer_window->scanning = TRUE;
 
