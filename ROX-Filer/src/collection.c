@@ -1500,7 +1500,7 @@ void collection_qsort(Collection *collection,
 		cursor_data = collection->items[cursor].data;
 	else
 		cursor = -1;
-	
+
 	cmp_callback = compar;
 	qsort(collection->items, items, sizeof(collection->items[0]),
 			order == GTK_SORT_ASCENDING ? collection_cmp
@@ -1526,7 +1526,7 @@ void collection_qsort(Collection *collection,
 			}
 		}
 	}
-	
+
 	gtk_widget_queue_draw(GTK_WIDGET(collection));
 }
 

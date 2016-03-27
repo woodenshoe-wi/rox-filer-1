@@ -574,7 +574,15 @@ static gboolean recheck_callback(gpointer data)
 	if (dir->req_scan_off)
 	{
 		dir->req_scan_off = FALSE;
-		dir_set_scanning(dir, FALSE); //may be skipped
+
+		if (dir->req_notify)
+		{
+			dir->req_notify = FALSE;
+			dir_merge_new(dir);
+		}
+
+		dir_set_scanning(dir, FALSE);
+		dir->notify_time = 0;
 	}
 
 	if (!dir->in_scan_thread)
@@ -582,17 +590,14 @@ static gboolean recheck_callback(gpointer data)
 		g_thread_join(dir->t_scan);
 		dir->t_scan = NULL;
 
-		dir_set_scanning(dir, FALSE);
-
 		if (!g_queue_is_empty(dir->recheck_list) ||
 			!g_queue_is_empty(dir->examine_list)
 			)
 		{
 			while (do_recheck(data)) {}
 		}
-		dir->req_notify = FALSE;
-		dir->notify_time = 0;
-		dir_merge_new(dir);
+
+		dir_set_scanning(dir, FALSE);
 	}
 
 	if (dir->req_notify)
@@ -640,6 +645,7 @@ static gpointer scan_thread(gpointer data)
 			attach_callback(dir);
 	}
 
+	dir->notify_time = 0;
 	dir->in_scan_thread = FALSE;
 	attach_callback(dir);
 
@@ -797,7 +803,7 @@ static void delayed_notify(Directory *dir, gboolean mainthread)
 	g_object_ref(dir);
 
 	if (dir->notify_time < DIR_NOTIFY_TIME)
-		dir->notify_time += DIR_NOTIFY_TIME / 11;
+		dir->notify_time += DIR_NOTIFY_TIME / 4;
 
 	g_timeout_add(dir->notify_time, notify_timeout, dir);
 	dir->notify_active = TRUE;

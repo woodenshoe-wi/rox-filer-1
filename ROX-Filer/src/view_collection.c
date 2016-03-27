@@ -1281,7 +1281,8 @@ static void update_item(ViewCollection *view_collection, int i)
 					 MAX(old_w, w),
 					 MAX(old_h, h));
 
-	collection_draw_item(collection, i, TRUE);
+	if (!filer_window->req_sort) //will redraw soon
+		collection_draw_item(collection, i, TRUE);
 }
 
 /* Implementations of the View interface. See view_iface.c for comments. */
@@ -1405,34 +1406,47 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 
 static void view_collection_update_items(ViewIface *view, GPtrArray *items)
 {
-	ViewCollection	*view_collection = VIEW_COLLECTION(view);
-	Collection	*collection = view_collection->collection;
-	FilerWindow	*filer_window = view_collection->filer_window;
-	int		i;
+	ViewCollection *view_collection = VIEW_COLLECTION(view);
+	Collection     *collection = view_collection->collection;
+	FilerWindow    *filer_window = view_collection->filer_window;
+	int      i;
+	gboolean mayfirsttime = FALSE;
 
 	g_return_if_fail(items->len > 0);
-
-	/* The item data has already been modified, so this gives the
-	 * final sort order...
-	 */
-	collection_qsort(collection, sort_fn(filer_window),
-			 filer_window->sort_order);
 
 	for (i = 0; i < items->len; i++)
 	{
 		DirItem *item = (DirItem *) items->pdata[i];
-		const gchar *leafname = item->leafname;
-		int j;
+		int j = -1;
 
 		if (!filer_match_filter(filer_window, item))
 			continue;
 
-		j = collection_find_item(collection, item,
-					 sort_fn(filer_window),
-					 filer_window->sort_order);
+		if (!mayfirsttime)
+			j = collection_find_item(collection, item,
+					sort_fn(filer_window), filer_window->sort_order);
 
 		if (j < 0)
-			g_warning("Failed to find '%s'\n", leafname);
+		{
+			mayfirsttime = TRUE;
+			j = collection_find_item(collection, item,
+						sort_by_name, filer_window->sort_order);
+		}
+
+		if (j < 0)
+		{
+			mayfirsttime = FALSE;
+			int k = collection->number_of_items;
+			while (k--)
+				if (item == collection->items[k].data)
+				{
+					j = k;
+					break;
+				}
+		}
+
+		if (j < 0)
+			g_warning("Failed to find '%s'\n", (const gchar *) item->leafname);
 		else
 			update_item(view_collection, j);
 	}

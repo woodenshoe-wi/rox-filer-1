@@ -512,6 +512,7 @@ static void update_display(Directory *dir,
 	{
 		case DIR_ADD:
 			view_add_items(view, items);
+			filer_window->req_sort = FALSE;
 			break;
 		case DIR_REMOVE:
 			view_delete_if(view, if_deleted, items);
@@ -522,6 +523,14 @@ static void update_display(Directory *dir,
 			toolbar_update_info(filer_window);
 			break;
 		case DIR_END_SCAN:
+			filer_window->first_scan = FALSE;
+			if (filer_window->req_sort)
+			{
+				filer_window->req_sort = FALSE;
+				view_sort(view);
+				gtk_widget_queue_draw(GTK_WIDGET(view));
+			}
+
 			g_free(filer_window->dir_colour);
 			filer_window->dir_colour = xlabel_get(filer_window->sym_path);
 
@@ -570,6 +579,15 @@ static void update_display(Directory *dir,
 
 			break;
 		case DIR_UPDATE:
+			if (filer_window->sort_type != SORT_NAME &&
+					filer_window->view_type == VIEW_TYPE_COLLECTION)
+			{
+				if (!filer_window->first_scan)
+					view_sort(view);
+				else
+					filer_window->req_sort = TRUE;
+			}
+
 			view_update_items(view, items);
 
 			if (!init && !filer_window->dir_icon)
@@ -1474,6 +1492,8 @@ void filer_change_to(FilerWindow *filer_window,
 	g_return_if_fail(filer_window != NULL);
 
 	filer_window->under_init = TRUE;
+	filer_window->first_scan = TRUE;
+	filer_window->req_sort = FALSE;
 
 	filer_cancel_thumbnails(filer_window);
 
@@ -1620,6 +1640,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	filer_window = g_new(FilerWindow, 1);
 	filer_window->under_init = TRUE;
+	filer_window->first_scan = TRUE;
+	filer_window->req_sort = FALSE;
 
 	filer_window->message = NULL;
 	filer_window->minibuffer = NULL;
