@@ -677,11 +677,10 @@ void dir_merge_new(Directory *dir)
 	if (gone->len && new->len)
 		for (i = 0; i < new->len; i++)
 			for (j = gone->len; j--;)
-				if (new->pdata[i] == gone->pdata[j])
+				if (i < new->len && new->pdata[i] == gone->pdata[j])
 				{
 					j = gone->len;
 					g_ptr_array_remove_index_fast(new, i);
-					if (new->len == i) break;
 				}
 
 	for (list = dir->users; list; list = list->next)
