@@ -16,7 +16,7 @@ dnl -fno-stack-protector must be used to avoid GLIBC2.4 dependency,
 dnl but is only available from 4.1 onwards
 [
 if test "x$GCC" = "xyes"; then
-  CFLAGS="$CFLAGS -Wall -Wmissing-prototypes"
+  CFLAGS="$CFLAGS -pthread -Wall -Wmissing-prototypes"
 ]
   AC_MSG_CHECKING(for GCC version)
   if $CC --version | grep -i gcc > /dev/null; then 

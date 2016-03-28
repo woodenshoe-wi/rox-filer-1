@@ -135,6 +135,8 @@ struct _FilerWindow
 	MaskedPixmap *dir_icon;
 
 	gboolean	under_init;
+	gboolean	first_scan;
+	gboolean	req_sort;
 
 	/* for checking user resize */
 	gint	configured;

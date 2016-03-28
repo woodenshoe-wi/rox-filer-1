@@ -32,34 +32,6 @@
 
 #include "fscache.h"
 
-typedef struct _GFSCacheKey GFSCacheKey;
-typedef struct _GFSCacheData GFSCacheData;
-
-struct _GFSCache
-{
-	GHashTable	*inode_to_stats;
-	GFSLoadFunc	load;
-	GFSUpdateFunc	update;
-	gpointer	user_data;
-};
-
-struct _GFSCacheKey
-{
-	dev_t		device;
-	ino_t		inode;
-};
-
-struct _GFSCacheData
-{
-	GObject		*data;		/* The object from the file */
-	time_t		last_lookup;
-
-	/* Details of the file last time we checked it */
-	time_t		m_time, c_time;
-	off_t		length;
-	mode_t		mode;
-};
-
 #define UPTODATE(data, info)				\
 		(data->m_time == info.st_mtime		\
 		 && data->c_time == info.st_ctime	\

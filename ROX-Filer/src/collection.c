@@ -1145,6 +1145,8 @@ static void invert_wink(Collection *collection)
 			area.x, area.y,
 			collection->item_width - 1,
 			area.height - 1);
+
+	gdk_flush();
 }
 
 static gboolean wink_timeout(Collection *collection)
@@ -1498,7 +1500,7 @@ void collection_qsort(Collection *collection,
 		cursor_data = collection->items[cursor].data;
 	else
 		cursor = -1;
-	
+
 	cmp_callback = compar;
 	qsort(collection->items, items, sizeof(collection->items[0]),
 			order == GTK_SORT_ASCENDING ? collection_cmp
@@ -1524,7 +1526,7 @@ void collection_qsort(Collection *collection,
 			}
 		}
 	}
-	
+
 	gtk_widget_queue_draw(GTK_WIDGET(collection));
 }
 

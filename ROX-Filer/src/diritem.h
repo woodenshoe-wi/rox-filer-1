@@ -18,7 +18,7 @@ typedef enum
 	ITEM_FLAG_MOUNT_POINT  	= 0x04,	/* Is mounted or in fstab */
 	ITEM_FLAG_MOUNTED  	= 0x08,	/* Is mounted */
 	ITEM_FLAG_EXEC_FILE  	= 0x20,	/* File, and has an X bit set (or is a .desktop)*/
-	ITEM_FLAG_MAY_DELETE	= 0x40, /* Delete on finishing scan */
+	ITEM_FLAG_NOT_DELETE	= 0x40, /* Not Delete */
 	ITEM_FLAG_RECENT	= 0x80, /* [MC]-time is around now */
 
 	/* DirItems are created with this flag set. Restatting or queuing an
@@ -35,7 +35,6 @@ struct _DirItem
 {
 	char		*leafname;
 	CollateKey	*leafname_collate; /* Preprocessed for sorting */
-	gboolean	may_delete;	/* Not yet found, this scan */
 	int		base_type;
 	int		flags;
 	mode_t		mode;
@@ -52,15 +51,13 @@ struct _DirItem
 void diritem_init(void);
 DirItem *diritem_new(const guchar *leafname);
 void diritem_restat(const guchar *path, DirItem *item, struct stat *parent, gboolean examine_now);
-void _diritem_get_image(DirItem *item);
+MaskedPixmap *_diritem_get_image(DirItem *item);
 void diritem_free(DirItem *item);
 gboolean diritem_examine_dir(const guchar *path, DirItem *item);
 
 static inline MaskedPixmap *di_image(DirItem *item)
 {
-	if (!item->_image && item->base_type != TYPE_UNKNOWN)
-		_diritem_get_image(item);
-	return item->_image;
+	return _diritem_get_image(item);
 }
 
 #endif /* _DIRITEM_H */

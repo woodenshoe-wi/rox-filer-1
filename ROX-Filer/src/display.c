@@ -359,8 +359,7 @@ void draw_huge_icon(
 	gtk_icon_size_lookup(mount_icon_size, &mw, &mh);
 
 	image_x = area->x;
-
-	if (area->width < mw * 3 && area->height < mh * 3)
+	if (area->width < mw * 2 && area->height < mh * 2)
 	{
 		if (item->flags & ITEM_FLAG_MOUNT_POINT)
 		{

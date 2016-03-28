@@ -25,7 +25,7 @@ extern gboolean dnotify_wakeup_flag;
 #endif
 
 #define DIR_NOTIFY_TIME_FOR_SORT_DATA 1111
-#define DIR_NOTIFY_TIME 222
+#define DIR_NOTIFY_TIME 111
 
 typedef enum {
 	DIR_START_SCAN,	/* Set 'scanning' indicator */
@@ -70,6 +70,8 @@ struct _Directory
 	gboolean	notify_active;	/* Notify timeout is running */
 	int			notify_time;	/* Time of Notify timeout */
 	gint		idle_callback;	/* Idle callback ID */
+	gboolean	in_scan_thread, req_scan_off, req_notify;
+	GThread		*t_scan;
 
 	GHashTable 	*known_items;	/* What our users know about */
 	GPtrArray	*new_items;	/* New items to add in */
@@ -116,5 +118,6 @@ void dnotify_wakeup(void);
 #endif
 void dir_drop_all_notifies(void);
 void dir_queue_recheck(Directory *dir, DirItem *item);
+void dir_stop(void); /* stop all scan thread */
 
 #endif /* _DIR_H */
