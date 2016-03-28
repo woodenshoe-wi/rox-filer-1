@@ -624,16 +624,14 @@ end_image:
 
 	if (!sendi && view->image)
 	{
-		if (template.icon.width <= small_width &&
-				template.icon.height <= small_height)
+		if (fw->display_style == SMALL_ICONS)
 		{
 			if (!view->image->sm_pixbuf)
 				pixmap_make_small(view->image);
 
 			sendi = view->image->sm_pixbuf;
 		}
-		else if (template.icon.width <= ICON_WIDTH &&
-				template.icon.height <= ICON_HEIGHT)
+		else if (fw->display_style == LARGE_ICONS)
 			sendi = view->image->pixbuf;
 		else
 			sendi = view->image->src_pixbuf;
