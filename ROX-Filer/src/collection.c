@@ -807,26 +807,13 @@ static gint collection_key_press(GtkWidget *widget, GdkEventKey *event)
 	return TRUE;
 }
 
-/* Wheel mouse scrolling */
-static gint collection_scroll_event(GtkWidget *widget, GdkEventScroll *event)
-{
-	Collection    	*collection;
-	int		diff = 0;
+static int scrollbackorder = 0;
+static int scrollfunc = NULL;
+static gboolean scroll_idle(gpointer data) {
+	Collection *collection = COLLECTION(data);
+	int diff = scrollbackorder;
 
-	g_return_val_if_fail(widget != NULL, FALSE);
-	g_return_val_if_fail(IS_COLLECTION(widget), FALSE);
-	g_return_val_if_fail(event != NULL, FALSE);
-
-	collection = COLLECTION(widget);
-
-	if (event->direction == GDK_SCROLL_UP)
-		diff = -1;
-	else if (event->direction == GDK_SCROLL_DOWN)
-		diff = 1;
-	else
-		return FALSE;
-
-	if (diff)
+	if (collection->vadj && diff)
 	{
 		int	old_value = collection->vadj->value;
 		int	new_value = 0;
@@ -849,6 +836,36 @@ static gint collection_scroll_event(GtkWidget *widget, GdkEventScroll *event)
 				add_lasso_box(collection);
 		}
 	}
+
+	g_object_unref(collection);
+	scrollbackorder = 0;
+	g_source_remove(scrollfunc);
+	scrollfunc = 0;
+	return FALSE;
+}
+
+/* Wheel mouse scrolling */
+static gint collection_scroll_event(GtkWidget *widget, GdkEventScroll *event)
+{
+	g_return_val_if_fail(widget != NULL, FALSE);
+	g_return_val_if_fail(IS_COLLECTION(widget), FALSE);
+	g_return_val_if_fail(event != NULL, FALSE);
+
+	int diff = 0;
+
+	if (event->direction == GDK_SCROLL_UP)
+		diff = -1;
+	else if (event->direction == GDK_SCROLL_DOWN)
+		diff = 1;
+	else
+		return FALSE;
+
+	scrollbackorder += diff;
+	if (scrollfunc)
+		return TRUE;
+
+	g_object_ref(widget);
+	scrollfunc = g_idle_add(scroll_idle, widget);
 
 	return TRUE;
 }
