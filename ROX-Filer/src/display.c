@@ -114,6 +114,8 @@ void display_init()
 	option_add_int(&o_huge_size, "huge_size", HUGE_SIZE);
 
 	option_add_notify(options_changed);
+
+	huge_size = o_huge_size.int_value;
 }
 
 void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,

@@ -2152,7 +2152,7 @@ static void panel_style_changed(void)
 	if (o_override_redirect.has_changed)
 	{
 		gchar **names;
-		
+
 		names = g_new(char *, PANEL_NUMBER_OF_SIDES);
 
 		for (i = 0; i < PANEL_NUMBER_OF_SIDES; i++)
