@@ -2748,7 +2748,6 @@ static void filer_options_changed(void)
 	if (o_short_flag_names.has_changed)
 	{
 		GList *next;
-
 		for (next = all_filer_windows; next; next = next->next)
 		{
 			FilerWindow *filer_window = (FilerWindow *) next->data;

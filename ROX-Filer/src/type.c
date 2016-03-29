@@ -128,7 +128,7 @@ void type_init(void)
 	int	    i;
 
 	icon_theme = gtk_icon_theme_new();
-	
+
 	type_hash = g_hash_table_new(g_str_hash, g_str_equal);
 
 	text_plain = get_mime_type("text/plain", TRUE);
@@ -149,7 +149,7 @@ void type_init(void)
 	option_add_string(&o_icon_theme, "icon_theme", "ROX");
 	option_add_int(&o_display_colour_types, "display_colour_types", TRUE);
 	option_register_widget("icon-theme-chooser", build_icon_theme);
-	
+
 	for (i = 0; i < NUM_TYPE_COLOURS; i++)
 		option_add_string(&o_type_colours[i],
 				  opt_type_colours[i][0],
