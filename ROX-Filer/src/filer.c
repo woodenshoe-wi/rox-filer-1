@@ -211,7 +211,7 @@ void filer_init(void)
 	const gchar *ohost;
 	const gchar *dpy;
 	gchar *dpyhost, *tmp;
-  
+
 	option_add_int(&o_filer_size_limit, "filer_size_limit", 60);
 	option_add_int(&o_filer_width_limit, "filer_width_limit", 0);
 	option_add_int(&o_filer_auto_resize, "filer_auto_resize",
@@ -2748,7 +2748,6 @@ static void filer_options_changed(void)
 	if (o_short_flag_names.has_changed)
 	{
 		GList *next;
-
 		for (next = all_filer_windows; next; next = next->next)
 		{
 			FilerWindow *filer_window = (FilerWindow *) next->data;

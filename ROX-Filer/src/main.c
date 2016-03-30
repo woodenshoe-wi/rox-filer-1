@@ -611,9 +611,6 @@ int main(int argc, char **argv)
 	pinboard_init();
 	panel_init();
 
-	/* Let everyone update */
-	options_notify();
-
 	/* When we get a signal, we can't do much right then. Instead,
 	 * we send a char down this pipe, which causes the main loop to
 	 * deal with the event next time we're idle.

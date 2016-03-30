@@ -1003,7 +1003,7 @@ static void pinboard_check_options(void)
 			reload_backdrop(current_pinboard,
 					current_pinboard->backdrop,
 					current_pinboard->backdrop_style);
-			
+
 			reshape_all();
 		}
 

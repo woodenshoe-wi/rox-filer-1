@@ -380,10 +380,6 @@ xterm -e wget $1</entry>
 	  <spacer/>
         <numentry name='right_gap' label='Right gap:' unit='pixels' min='-99' max='999' width='3'>For the overrided auto-move in the auto-resize and the display settings.</numentry>
       </hbox>
-
-		<toggle name='fast_font_calc' label='Fast width calculating'>
-			If this option is on, in Small Icons mode, calculation of width of strings will be fast and irresponsible.
-		</toggle>
     </frame>
     <frame label='Drag and drop'>
       <toggle name='dnd_no_hostnames' label="Don't use hostnames">Some older applications don't support XDND fully and may need to have this option turned on. Use this if dragging files to an application shows a + sign on the pointer but the drop doesn't work.</toggle>
@@ -391,5 +387,10 @@ xterm -e wget $1</entry>
     <frame label='Extended attributes'>
       <toggle name='xattr_ignore' label="Don't use extended attributes">This disables the use of extended attributes available in newer operating systems and file systems.  With this option set the 'Set Type' menu entry is disabled, the MIME type of the file is only derived from the file name and the properties window does not report extended attributes.</toggle>
     </frame>
+	<frame label='etc'>
+		<toggle name='fast_font_calc' label='Fast width calculating'>
+			If this option is on, in Small Icons mode, calculation of width of strings will be fast and irresponsible.
+		</toggle>
+	</frame>
   </section>
 </options>

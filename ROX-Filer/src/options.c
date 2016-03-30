@@ -436,8 +436,6 @@ static void option_add(Option *option, const gchar *key)
 	/* Use the value loaded from the file, if any */
 	if (g_hash_table_lookup_extended(loading, key, &okey, &value))
 	{
-		option->has_changed = strcmp(option->value, value) != 0;
-			
 		g_free(option->value);
 		option->value = value;
 		option->int_value = atoi(value);

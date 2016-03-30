@@ -136,26 +136,30 @@ static void make_dir_thumb(const gchar *path);
 /****************************************************************
  *			EXTERNAL INTERFACE			*
  ****************************************************************/
-
-static void options_changed(){
+static void set_thumb_size()
+{
+	switch (thumb_size = o_pixmap_thumb_file_size.int_value) {
+	case 512:
+		thumb_dir = "huge";
+		break;
+	case 256:
+		thumb_dir = "large";
+		break;
+	case 128:
+		thumb_dir = "normal";
+		break;
+	case 64:
+		thumb_dir = "small";
+		break;
+	default:
+		thumb_dir = "fail";
+	}
+}
+static void options_changed()
+{
 	if (o_pixmap_thumb_file_size.has_changed)
 	{
-		switch (thumb_size = o_pixmap_thumb_file_size.int_value) {
-		case 512:
-			thumb_dir = "huge";
-			break;
-		case 256:
-			thumb_dir = "large";
-			break;
-		case 128:
-			thumb_dir = "normal";
-			break;
-		case 64:
-			thumb_dir = "small";
-			break;
-		default:
-			thumb_dir = "fail";
-		}
+		set_thumb_size();
 		g_fscache_purge(thumb_cache, 0);
 	}
 
@@ -211,7 +215,7 @@ void pixmaps_init(void)
 	mount_icon_size = gtk_icon_size_register("rox-mount-size", 14, 14);
 
 	load_default_pixmaps();
-
+	set_thumb_size();
 	option_register_widget("thumbs-purge-cache", thumbs_purge_cache);
 }
 

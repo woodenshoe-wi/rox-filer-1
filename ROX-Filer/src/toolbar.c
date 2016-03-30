@@ -206,8 +206,10 @@ void toolbar_init(void)
 					GTK_STOCK_CLOSE);
 	option_add_int(&o_toolbar_min_width, "toolbar_min_width", 1);
 	option_add_notify(option_notify);
-	
+
 	option_register_widget("tool-options", build_tool_options);
+
+	option_notify();
 }
 
 void toolbar_update_info(FilerWindow *filer_window)
@@ -1032,7 +1034,7 @@ static void option_notify(void)
 		for (next = all_filer_windows; next; next = next->next)
 		{
 			FilerWindow *filer_window = (FilerWindow *) next->data;
-			
+
 			toolbar_update_toolbar(filer_window);
 		}
 	}
