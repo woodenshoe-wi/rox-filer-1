@@ -121,6 +121,8 @@ static int updating_widgets = 0;	/* Ignore change signals when set */
 
 static GtkWidget *revert_widget = NULL;
 
+static GtkTreePath *lasttreepath = NULL;
+
 /* Static prototypes */
 static void save_options(void);
 static void revert_options(GtkWidget *widget, gpointer data);
@@ -313,12 +315,10 @@ GtkWidget *options_show(void)
 	}
 
 	g_hash_table_foreach(option_hash, store_backup, NULL);
-			
+
 	build_options_window();
 
 	update_option_widgets();
-	
-	gtk_widget_show_all(window);
 
 	return window;
 }
@@ -781,6 +781,37 @@ static void build_section(xmlNode *section, GtkWidget *notebook,
 	}
 }
 
+/* The cursor has been changed in the tree view, so switch to the new
+ * page in the notebook.
+ */
+static void tree_cursor_changed(GtkTreeView *tv, gpointer data)
+{
+	GtkTreePath	*path = NULL;
+	GtkNotebook	*nbook = GTK_NOTEBOOK(data);
+	GtkTreeModel	*model;
+	GtkWidget	*page = NULL;
+	GtkTreeIter	iter;
+
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (!path)
+		return;
+
+	model = gtk_tree_view_get_model(tv);
+	gtk_tree_model_get_iter(model, &iter, path);
+	if (lasttreepath)
+		gtk_tree_path_free(lasttreepath);
+	lasttreepath = path;
+
+	gtk_tree_model_get(model, &iter, 1, &page, -1);
+
+	if (page)
+	{
+		gtk_notebook_set_current_page(nbook,
+				gtk_notebook_page_num(nbook, page));
+		g_object_unref(page);
+	}
+}
+
 /* Parse <app_dir>/Options.xml to create the options window.
  * Sets the global 'window' variable.
  */
@@ -810,8 +841,6 @@ static void build_options_window(void)
 	options = xmlDocGetRootElement(options_doc);
 	if (strcmp(options->name, "options") == 0)
 	{
-		GtkTreePath *treepath;
-
 		store = (GtkTreeStore *) gtk_tree_view_get_model(tree);
 		section = options->xmlChildrenNode;
 		for (; section; section = section->next)
@@ -819,11 +848,17 @@ static void build_options_window(void)
 				build_section(section, notebook, store, NULL);
 
 		gtk_tree_view_expand_all(tree);
-		treepath = gtk_tree_path_new_first();
-		if (treepath)
+
+		gtk_widget_show_all(window);
+
+		if (lasttreepath)
 		{
-			gtk_tree_view_set_cursor(tree, treepath, NULL, FALSE);
-			gtk_tree_path_free(treepath);
+			gtk_tree_view_set_cursor(tree, lasttreepath, NULL, FALSE);
+		}
+		else
+		{
+			lasttreepath = gtk_tree_path_new_first();
+			gtk_tree_view_set_cursor(tree, lasttreepath, NULL, FALSE);
 		}
 	}
 
@@ -862,34 +897,6 @@ static void options_destroyed(GtkWidget *widget, gpointer data)
 			size_groups = NULL;
 			
 		}
-	}
-}
-
-/* The cursor has been changed in the tree view, so switch to the new
- * page in the notebook.
- */
-static void tree_cursor_changed(GtkTreeView *tv, gpointer data)
-{
-	GtkTreePath	*path = NULL;
-	GtkNotebook	*nbook = GTK_NOTEBOOK(data);
-	GtkTreeModel	*model;
-	GtkWidget	*page = NULL;
-	GtkTreeIter	iter;
-
-	gtk_tree_view_get_cursor(tv, &path, NULL);
-	if (!path)
-		return;
-
-	model = gtk_tree_view_get_model(tv);
-	gtk_tree_model_get_iter(model, &iter, path);
-	gtk_tree_path_free(path);
-	gtk_tree_model_get(model, &iter, 1, &page, -1);
-
-	if (page)
-	{
-		gtk_notebook_set_current_page(nbook,
-				gtk_notebook_page_num(nbook, page));
-		g_object_unref(page);
 	}
 }
 
@@ -1183,7 +1190,7 @@ static void update_cb(gpointer key, gpointer value, gpointer data)
 		return;
 
 	updating_widgets++;
-	
+
 	if (option->update_widget)
 		option->update_widget(option);
 
