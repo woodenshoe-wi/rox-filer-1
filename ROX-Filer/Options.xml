@@ -44,7 +44,9 @@
             <menu name='display_sort_by' label='Sort by:' sizegroup='disp-def'>
               <item label='Name' value='0'/>
               <item label='Type' value='1'/>
-              <item label='Date' value='2'/>
+              <item label='Date (m)' value='2'/>
+              <item label='Date (c)' value='6'/>
+              <item label='Date (a)' value='7'/>
               <item label='Size' value='3'/>
             </menu>
           </vbox><vbox>
