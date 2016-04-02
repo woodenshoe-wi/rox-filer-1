@@ -203,6 +203,7 @@ Option o_background_colour;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 static Option o_create_sub_dir_thumbs;
+static Option o_thumb_processes_num;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 
@@ -231,6 +232,7 @@ void filer_init(void)
 	option_add_int(&o_auto_move, "auto_move", FALSE);
 	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
 	option_add_int(&o_create_sub_dir_thumbs, "create_sub_dir_thumbs", FALSE);
+	option_add_int(&o_thumb_processes_num, "thumb_processes_num", 3);
 
 	option_add_notify(filer_options_changed);
 
@@ -1692,7 +1694,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->flags = (FilerFlags) 0;
 	filer_window->thumb_queue = g_queue_new();
 	filer_window->max_thumbs = 0;
-	filer_window->trying_thumbs = FALSE;
+	filer_window->trying_thumbs = 0;
 
 	filer_window->temp_filter_string = NULL;
 	filer_window->regexp = NULL;
@@ -2584,7 +2586,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 	if (g_queue_is_empty(filer_window->thumb_queue))
 	{
 		filer_cancel_thumbnails(filer_window);
-		filer_window->trying_thumbs = FALSE;
+		filer_window->trying_thumbs--;
 		g_object_unref(window);
 		return FALSE;
 	}
@@ -2666,13 +2668,15 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 
 static void start_thumb_scanning(FilerWindow *filer_window)
 {
-	if (filer_window->trying_thumbs)
+	if (filer_window->trying_thumbs >= o_thumb_processes_num.int_value)
 		return;		/* Already scanning */
 
-	filer_window->trying_thumbs = TRUE;
+	filer_window->trying_thumbs++;
 
 	g_object_ref(G_OBJECT(filer_window->window));
 	filer_next_thumb(G_OBJECT(filer_window->window), NULL);
+
+	start_thumb_scanning(filer_window);
 }
 
 /* Set this image to be loaded some time in the future */

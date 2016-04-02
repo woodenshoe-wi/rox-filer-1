@@ -105,7 +105,10 @@ struct _ChildThumbnail {
 	gpointer data;
 	pid_t	 child;
 	guint	 timeout;
+	guint	 order;
 };
+static guint ordered_num = 0;
+static guint next_order = 0;
 
 static const char *stocks[] = {
 	ROX_STOCK_SHOW_DETAILS,
@@ -353,7 +356,6 @@ static int thumb_prog_timeout(ChildThumbnail *info)
 	return FALSE;
 }
 
-
 /* Load image 'path' in the background and insert into pixmap_cache.
  * Call callback(data, path) when done (path is NULL => error).
  * If the image is already uptodate, or being created already, calls the
@@ -417,6 +419,7 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 	info->callback = callback;
 	info->data = data;
 	info->timeout = 0;
+	info->order = ordered_num++;
 
 	child = fork();
 	if (child == -1)
@@ -760,12 +763,9 @@ static void make_dir_thumb(const gchar *path)
 	g_free(dir);
 }
 
-static void thumbnail_done(ChildThumbnail *info)
+static void thumbnail_done_real(ChildThumbnail *info)
 {
 	GdkPixbuf *thumb;
-
-	if (info->timeout)
-		g_source_remove(info->timeout);
 
 	thumb = get_thumbnail_for(info->path);
 
@@ -787,6 +787,31 @@ static void thumbnail_done(ChildThumbnail *info)
 	g_free(info->path);
 	g_free(info);
 }
+static GSList *done_stack = NULL;
+static void thumbnail_done(ChildThumbnail *info)
+{
+	done_stack = g_slist_prepend(done_stack, info);
+
+	if (info->timeout)
+		g_source_remove(info->timeout);
+
+	if (next_order < info->order) return;
+
+	GSList *n = done_stack;
+	while (n)
+	{
+		if (((ChildThumbnail *)n->data)->order == next_order)
+		{
+			thumbnail_done_real(n->data);
+			next_order++;
+			n = done_stack =
+				g_slist_delete_link(done_stack, n);
+		}
+		else
+			n = n->next;
+	}
+}
+
 
 /* Check if we have an up-to-date thumbnail for this image.
  * If so, return it. Otherwise, returns NULL.
