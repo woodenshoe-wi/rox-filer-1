@@ -1493,10 +1493,6 @@ void filer_change_to(FilerWindow *filer_window,
 
 	g_return_if_fail(filer_window != NULL);
 
-	filer_window->under_init = TRUE;
-	filer_window->first_scan = TRUE;
-	filer_window->req_sort = FALSE;
-
 	filer_cancel_thumbnails(filer_window);
 
 	tooltip_show(NULL);
@@ -1513,6 +1509,11 @@ void filer_change_to(FilerWindow *filer_window,
 		g_free(sym_path);
 		return;
 	}
+
+
+	filer_window->under_init = TRUE;
+	filer_window->first_scan = TRUE;
+	filer_window->req_sort = FALSE;
 
 	if (o_unique_filer_windows.int_value && !spring_in_progress)
 	{
