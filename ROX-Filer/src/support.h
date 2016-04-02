@@ -53,6 +53,7 @@ void collate_key_free(CollateKey *key);
 int collate_key_cmp(const CollateKey *n1, const CollateKey *n2,
 		    gboolean caps_first);
 gboolean file_exists(const char *path);
+GPtrArray *list_dir_all(const guchar *path);
 GPtrArray *list_dir(const guchar *path);
 gint strcmp2(gconstpointer a, gconstpointer b);
 int stat_with_timeout(const char *path, struct stat *info);

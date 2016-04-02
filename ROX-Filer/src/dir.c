@@ -278,6 +278,14 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 			}
 # endif
 #endif
+
+//test code
+//#define PURGE_DIR_CACHE
+#ifdef PURGE_DIR_CACHE
+			if (!dir->users)
+				g_fscache_remove(dir_cache, dir->pathname);
+#endif
+
 			return;
 		}
 	}
@@ -923,10 +931,9 @@ static void update(Directory *dir, gchar *pathname, gpointer data)
  */
 static void set_idle_callback(Directory *dir)
 {
-	if (
+	if (dir->users &&
 			(!g_queue_is_empty(dir->recheck_list) ||
-			 !g_queue_is_empty(dir->examine_list)) &&
-			dir->users)
+			 !g_queue_is_empty(dir->examine_list)))
 	{
 		/* Work to do, and someone's watching */
 
