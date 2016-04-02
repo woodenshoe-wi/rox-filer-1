@@ -1500,8 +1500,6 @@ void collection_qsort(Collection *collection,
 		wink_on_map_data = collection->items[wink_on_map].data;
 		collection->wink_on_map = -1;
 	}
-	else
-		wink = -1;
 
 	wink = collection->wink_item;
 	if (wink >= 0 && wink < items)
