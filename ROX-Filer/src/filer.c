@@ -133,13 +133,12 @@ typedef struct {
 	FilerWindow *fw;
 	gchar *path;
 	gchar *thumb_path;
-	struct dirent **entlist;
-	int n;
+	GPtrArray *items;
 	int tried;
 	gboolean cancel;
 } SubDirInfo;
 
-static SubDirInfo sdinfo = {NULL, NULL, NULL, NULL, 0, 0, FALSE};
+static SubDirInfo sdinfo = {NULL, NULL, NULL, NULL, 0, TRUE};
 static GMutex m_dirthumb;
 
 /* Static prototypes */
@@ -203,6 +202,7 @@ Option o_background_colour;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 static Option o_create_sub_dir_thumbs;
+static Option o_thumb_processes_num;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 
@@ -231,6 +231,7 @@ void filer_init(void)
 	option_add_int(&o_auto_move, "auto_move", FALSE);
 	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
 	option_add_int(&o_create_sub_dir_thumbs, "create_sub_dir_thumbs", FALSE);
+	option_add_int(&o_thumb_processes_num, "thumb_processes_num", 3);
 
 	option_add_notify(filer_options_changed);
 
@@ -651,7 +652,7 @@ static void detach(FilerWindow *filer_window)
 
 	if (filer_window->mini_type == MINI_REG_SELECT)
 		minibuffer_hide(filer_window);
-	
+
 	dir_detach(filer_window->directory,
 			(DirCallback) update_display, filer_window);
 	g_object_unref(filer_window->directory);
@@ -1491,10 +1492,6 @@ void filer_change_to(FilerWindow *filer_window,
 
 	g_return_if_fail(filer_window != NULL);
 
-	filer_window->under_init = TRUE;
-	filer_window->first_scan = TRUE;
-	filer_window->req_sort = FALSE;
-
 	filer_cancel_thumbnails(filer_window);
 
 	tooltip_show(NULL);
@@ -1511,6 +1508,11 @@ void filer_change_to(FilerWindow *filer_window,
 		g_free(sym_path);
 		return;
 	}
+
+
+	filer_window->under_init = TRUE;
+	filer_window->first_scan = TRUE;
+	filer_window->req_sort = FALSE;
 
 	if (o_unique_filer_windows.int_value && !spring_in_progress)
 	{
@@ -1692,7 +1694,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->flags = (FilerFlags) 0;
 	filer_window->thumb_queue = g_queue_new();
 	filer_window->max_thumbs = 0;
-	filer_window->trying_thumbs = FALSE;
+	filer_window->trying_thumbs = 0;
 
 	filer_window->temp_filter_string = NULL;
 	filer_window->regexp = NULL;
@@ -2427,45 +2429,34 @@ static void free_subdir_info(void)
 	g_free(sdinfo.path);
 	g_free(sdinfo.thumb_path);
 
-	while (sdinfo.n--) free(sdinfo.entlist[sdinfo.n]);
-	free(sdinfo.entlist);
+	guint i = sdinfo.items->len;
+	while (i--) g_free(sdinfo.items->pdata[i]);
+	g_ptr_array_free(sdinfo.items, TRUE);
 
-	static const SubDirInfo clear = {NULL, NULL, NULL, NULL, 0, 0, FALSE};
+	static const SubDirInfo clear = {NULL, NULL, NULL, NULL, 0, TRUE};
 	sdinfo = clear;
 }
 
-static gpointer scandir_thread(SubDirInfo *info)
+static gpointer scandir_thread(gpointer data)
 {
 	//alphasort is not equal to rox's sort. Even doesn't check current settings.
-	info->cancel = FALSE;
-	info->tried = 0;
-	info->n = MAX(0, scandir(info->path, &info->entlist, 0, alphasort));
+	sdinfo.cancel = FALSE;
+	sdinfo.tried = 0;
+	sdinfo.items = list_dir_all(sdinfo.path);
 	g_mutex_unlock(&m_dirthumb);
 	return NULL;
 }
 
 static gboolean make_dir_thumb_link()
 {
-	FilerWindow *fw = sdinfo.fw;
 	gchar *path = sdinfo.path;
 	gchar *thumb_path = sdinfo.thumb_path;
-	struct dirent **entlist = sdinfo.entlist;
-	int n = sdinfo.n;
 
-	//this is quick-and-dirty work
-
-	if (n <= 0)
-	{
-		free_subdir_info();
-		return FALSE;
-	}
-
-	int tried = sdinfo.tried;
+	int i = sdinfo.tried;
 	sdinfo.tried += 3;
-	int end = MIN(n, 999);
+	int end = MIN(sdinfo.items->len, 999);
 	int loopend = end * 2;
 	int currentend = MIN(sdinfo.tried, loopend);
-	int i = tried;
 
 	for (; i < currentend; i++)
 	{
@@ -2474,13 +2465,9 @@ static gboolean make_dir_thumb_link()
 		if (stage > 0 && o_create_sub_dir_thumbs.int_value != 1)
 			break;
 
-		struct dirent *ent = entlist[i - end * stage];
+		const gchar *subpath = make_path(path,
+				sdinfo.items->pdata[i - end * stage]);
 
-		if (ent->d_name[0] == '.' && (ent->d_name[1] == '\0'
-			|| (ent->d_name[1] == '.' && ent->d_name[2] == '\0')))
-			continue;
-
-		const gchar *subpath = make_path(path, ent->d_name);
 		struct stat	info;
 		if (mc_lstat(subpath, &info) == -1 ||
 			mode_to_base_type(info.st_mode) != TYPE_FILE)
@@ -2496,7 +2483,7 @@ static gboolean make_dir_thumb_link()
 				g_object_unref(pixmap);
 
 			if (!found)
-				filer_create_thumb(fw, subpath);
+				filer_create_thumb(sdinfo.fw, subpath);
 
 			continue;
 		}
@@ -2570,7 +2557,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 		return FALSE;
 	}
 
-	if (!sdinfo.cancel && sdinfo.n)
+	if (!sdinfo.cancel && sdinfo.items->len)
 	{
 		if (make_dir_thumb_link())
 		{
@@ -2584,7 +2571,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 	if (g_queue_is_empty(filer_window->thumb_queue))
 	{
 		filer_cancel_thumbnails(filer_window);
-		filer_window->trying_thumbs = FALSE;
+		filer_window->trying_thumbs--;
 		g_object_unref(window);
 		return FALSE;
 	}
@@ -2605,9 +2592,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 				sdinfo.thumb_path = pixmap_make_thumb_path(path);
 				sdinfo.path = g_strdup(path);
 				g_mutex_lock(&m_dirthumb);
-				GThread *scd = g_thread_new("scandir_t",
-						(GThreadFunc) scandir_thread,
-						&sdinfo);
+				GThread *scd = g_thread_new("scandir_t", scandir_thread, NULL);
 
 				g_thread_unref(scd);
 			}
@@ -2666,13 +2651,15 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 
 static void start_thumb_scanning(FilerWindow *filer_window)
 {
-	if (filer_window->trying_thumbs)
+	if (filer_window->trying_thumbs >= o_thumb_processes_num.int_value)
 		return;		/* Already scanning */
 
-	filer_window->trying_thumbs = TRUE;
+	filer_window->trying_thumbs++;
 
 	g_object_ref(G_OBJECT(filer_window->window));
 	filer_next_thumb(G_OBJECT(filer_window->window), NULL);
+
+	start_thumb_scanning(filer_window);
 }
 
 /* Set this image to be loaded some time in the future */
@@ -3395,7 +3382,7 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 
 	filer_cancel_thumbnails(filer_window);
 
-	if (!sdinfo.cancel && sdinfo.n)
+	if (!sdinfo.cancel && sdinfo.items->len)
 		while (make_dir_thumb_link()) {}
 	else
 		free_subdir_info();
@@ -3433,9 +3420,7 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 			sdinfo.path = g_strdup(path);
 
 			g_mutex_lock(&m_dirthumb);
-			GThread *scd = g_thread_new("scandir_t",
-					(GThreadFunc) scandir_thread,
-					&sdinfo);
+			GThread *scd = g_thread_new("scandir_t", scandir_thread, NULL);
 			g_thread_join(scd);
 			while (make_dir_thumb_link()) {}
 		}

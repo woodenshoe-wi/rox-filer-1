@@ -1415,13 +1415,45 @@ gint strcmp2(gconstpointer a, gconstpointer b)
  * '.' and '..' are skipped.
  * On error, the error is reported with g_warning and NULL is returned.
  */
+GPtrArray *list_dir_all(const guchar *path)
+{
+	GDir *dir;
+	GError *error = NULL;
+	const char *leaf;
+	GPtrArray *names;
+
+	dir = g_dir_open(path, 0, &error);
+	if (error)
+	{
+		g_warning("Can't list directory:\n%s", error->message);
+		g_error_free(error);
+		return g_ptr_array_new();
+	}
+
+	names = g_ptr_array_new();
+
+	while ((leaf = g_dir_read_name(dir))) {
+		if (leaf[0] != '.' ||
+				(leaf[1] != '\0' &&
+				 (leaf[1] != '.' || leaf[2] != '\0'))
+		   )
+			g_ptr_array_add(names, g_strdup(leaf));
+	}
+
+	g_dir_close(dir);
+
+	g_ptr_array_sort(names, strcmp2);
+
+	return names;
+}
+
 GPtrArray *list_dir(const guchar *path)
 {
 	GDir *dir;
 	GError *error = NULL;
 	const char *leaf;
 	GPtrArray *names;
-	
+
 	dir = g_dir_open(path, 0, &error);
 	if (error)
 	{
