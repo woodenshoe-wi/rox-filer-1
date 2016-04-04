@@ -1425,7 +1425,6 @@ GPtrArray *list_dir_all(const guchar *path)
 	dir = g_dir_open(path, 0, &error);
 	if (error)
 	{
-		g_warning("Can't list directory:\n%s", error->message);
 		g_error_free(error);
 		return g_ptr_array_new();
 	}
