@@ -542,8 +542,7 @@ static gboolean details_get_sort_column_id(GtkTreeSortable *sortable,
 		case SORT_SIZE: col = COL_SIZE; break;
 		case SORT_OWNER: col = COL_OWNER; break;
 		case SORT_GROUP: col = COL_GROUP; break;
-		case SORT_DATEA:
-			break;
+		case SORT_DATEA: col = N_COLUMNS; break;
 		default:
 			g_warning("details_get_sort_column_id(): error!");
 			return FALSE;
