@@ -808,7 +808,7 @@ static gint collection_key_press(GtkWidget *widget, GdkEventKey *event)
 }
 
 static int scrollbackorder = 0;
-static int scrollfunc = NULL;
+static int scrollfunc = 0;
 static gboolean scroll_idle(gpointer data) {
 	Collection *collection = COLLECTION(data);
 	int diff = scrollbackorder;
