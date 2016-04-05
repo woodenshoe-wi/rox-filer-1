@@ -16,7 +16,7 @@ dnl -fno-stack-protector must be used to avoid GLIBC2.4 dependency,
 dnl but is only available from 4.1 onwards
 [
 if test "x$GCC" = "xyes"; then
-  CFLAGS="$CFLAGS -pthread -Wall -Wmissing-prototypes"
+  CFLAGS="$CFLAGS -Wall -Wmissing-prototypes"
 ]
   AC_MSG_CHECKING(for GCC version)
   if $CC --version | grep -i gcc > /dev/null; then 
@@ -183,6 +183,8 @@ AC_CHECK_FUNCS(getopt_long)
 dnl Check for extended attribute support
 AC_CHECK_FUNCS(attropen getxattr)
 AC_CHECK_HEADERS(attr/xattr.h sys/xattr.h)
+
+AC_FUNC_MMAP
 
 dnl Extract version info from AppInfo.xml
 AC_MSG_CHECKING(extracting version information)
