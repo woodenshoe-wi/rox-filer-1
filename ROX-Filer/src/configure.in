@@ -184,7 +184,7 @@ dnl Check for extended attribute support
 AC_CHECK_FUNCS(attropen getxattr)
 AC_CHECK_HEADERS(attr/xattr.h sys/xattr.h)
 
-AC_FUNC_MMAP
+dnl AC_FUNC_MMAP
 
 dnl Extract version info from AppInfo.xml
 AC_MSG_CHECKING(extracting version information)
