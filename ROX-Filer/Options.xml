@@ -97,7 +97,7 @@ indicator'>If this is on then files which have one or more extended attributes s
 		<spacer/>
 		<hbox>
 			<numentry name='view_alpha' label='Transparency:' unit='%' min='0' max='100' width='3'>
-			This depends on your environment. Basically if your windows have shadows, then you'll get transparent view.
+			This depends on your environment. Basically if your windows had shadows, then you'll get transparent view.
 			</numentry>
 		</hbox>
 	<spacer/>

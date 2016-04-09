@@ -36,6 +36,7 @@ struct _Panel {
 	/* Options */
 	int			style;		/* Possible values defined in panel.c */
 	int			width;
+	int			transparency;
 	gboolean	xinerama;
 	int			monitor;
 	gboolean	avoid;
