@@ -299,6 +299,7 @@ static void panel_load_options_from_xml(Panel *panel, xmlDocPtr doc)
 		return;
 	get_int_prop(options, "style", &panel->style);
 	get_int_prop(options, "width", &panel->width);
+	get_int_prop(options, "transparency", &panel->transparency);
 	get_int_prop(options, "avoid", &panel->avoid);
 	get_int_prop(options, "xinerama", &panel->xinerama);
 	get_int_prop(options, "monitor", &panel->monitor);
@@ -330,6 +331,26 @@ static void save_panels(void)
 	}
 	g_free(tmp);
 	g_free(filename);
+}
+
+
+static gboolean transparent_expose(GtkWidget *widget,
+			GdkEventExpose *event,
+			Panel *panel)
+{
+	if (widget->state == GTK_STATE_SELECTED ||
+			widget->state == GTK_STATE_PRELIGHT)
+		return FALSE;
+
+	cairo_t *cr = gdk_cairo_create(widget->window);
+
+	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+	gdk_cairo_region(cr, event->region);
+
+	cairo_paint_with_alpha(cr, panel->transparency / 100.0);
+
+	cairo_destroy(cr);
+	return FALSE;
 }
 
 /* 'name' may be NULL or "" to remove the panel */
@@ -409,11 +430,17 @@ Panel *panel_new(const gchar *name, PanelSide side)
 	panel->name = g_strdup(name);
 	panel->side = side;
 	panel->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	GdkScreen *screen = gtk_widget_get_screen(panel->window);
+	GdkColormap *rgba = gdk_screen_get_rgba_colormap(screen);
+	if (rgba)
+		gtk_widget_set_colormap(panel->window, rgba);
+
 	panel->autoscroll_speed = 0;
 
 	/* These are fallbacks from legacy global options */
 	panel->style = o_panel_style.int_value;
 	panel->width = o_panel_width.int_value;
+	panel->transparency = o_view_alpha.int_value;
 	panel->xinerama = o_panel_xinerama.int_value;
 	panel->monitor = o_panel_monitor.int_value;
 	panel->avoid = o_panel_avoid.int_value;
@@ -498,6 +525,9 @@ Panel *panel_new(const gchar *name, PanelSide side)
 
 	frame = make_insert_frame(panel);
 	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 4);
+
+	g_signal_connect(box, "expose-event",
+			 G_CALLBACK(transparent_expose), panel);
 
 	/* This is used so that we can find the middle easily! */
 	panel->gap = gtk_event_box_new();
@@ -908,6 +938,9 @@ static void panel_add_item(Panel *panel,
 		gtk_container_add(GTK_CONTAINER(pi->widget), pi->label);
 		gtk_misc_set_alignment(GTK_MISC(pi->label), 0.5, 1);
 		gtk_misc_set_padding(GTK_MISC(pi->label), 1, 2);
+
+		g_signal_connect(pi->label, "expose_event",
+				G_CALLBACK(transparent_expose), panel);
 	}
 
 	icon_set_shortcut(icon, shortcut);
@@ -1602,6 +1635,7 @@ void panel_save(Panel *panel)
 	options = xmlNewChild(root, NULL, "options", NULL);
 	set_int_prop(options, "style", panel->style);
 	set_int_prop(options, "width", panel->width);
+	set_int_prop(options, "transparency", panel->transparency);
 	set_int_prop(options, "avoid", panel->avoid);
 	set_int_prop(options, "xinerama", panel->xinerama);
 	set_int_prop(options, "monitor", panel->monitor);
@@ -2452,6 +2486,19 @@ static void panel_width_changed_cb(GtkSpinButton *widget)
 	}
 }
 
+static void panel_transparency_changed_cb(GtkSpinButton *widget)
+{
+	Panel *panel = panel_from_opts_widget(GTK_WIDGET(widget));
+	int tpcy = gtk_spin_button_get_value_as_int(widget);
+
+	if (tpcy != panel->transparency)
+	{
+		panel->transparency = tpcy;
+		panel_update(panel);
+		panel_save(panel);
+	}
+}
+
 static void panel_avoid_toggled_cb(GtkToggleButton *widget)
 {
 	Panel *panel = panel_from_opts_widget(GTK_WIDGET(widget));
@@ -2533,6 +2580,8 @@ static void panel_connect_dialog_signal_handlers(GtkBuilder *builder,
 		fn = panel_style_radio_2_toggled_cb;
 	else if (strcmp(handler_name, "panel_width_changed_cb") == 0)
 		fn = panel_width_changed_cb;
+	else if (strcmp(handler_name, "panel_transparency_changed_cb") == 0)
+		fn = panel_transparency_changed_cb;
 	else if (strcmp(handler_name, "panel_avoid_toggled_cb") == 0)
 		fn = panel_avoid_toggled_cb;
 	else if (strcmp(handler_name, "panel_xinerama_confine_toggled_cb") == 0)
@@ -2571,6 +2620,9 @@ static void panel_setup_options_dialog(GtkBuilder *builder, Panel *panel)
 	gtk_spin_button_set_value(
 		GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "panel_width")),
 		panel->width);
+	gtk_spin_button_set_value(
+		GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "transparency")),
+		panel->transparency);
 	gtk_toggle_button_set_active(
 		GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "panel_avoid")),
 		panel->avoid);
@@ -2612,7 +2664,7 @@ static void panel_show_options(Panel *panel)
 	GtkWidget *dialog;
 	gboolean already_showing = FALSE;
 	GtkBuilder *builder;
-	gchar *ids[] = {"adjustment1", "adjustment2", "Panel Options", NULL};
+	gchar *ids[] = {"adjustment1", "adjustment2", "adjustment3", "Panel Options", NULL};
 	
 	builder = get_gtk_builder(ids);
 

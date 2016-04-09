@@ -29,6 +29,8 @@
 
 #undef HAVE_REGEX_H
 
+#undef HAVE_MMAP
+
 #undef HAVE_GETXATTR
 #undef HAVE_ATTROPEN
 #undef HAVE_SYS_XATTR_H
