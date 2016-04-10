@@ -701,6 +701,33 @@ static void toolbar_select_clicked(GtkWidget *widget, FilerWindow *filer_window)
 	gdk_event_free(event);
 }
 
+static gint bar_pressed(GtkWidget *widget,
+				GdkEventButton *event,
+				FilerWindow *filer_window)
+{
+	GtkWindow *win = GTK_WINDOW(gtk_widget_get_toplevel(widget));
+
+	switch (event->button)
+	{
+	case 1:
+		gtk_window_begin_move_drag(win,
+				event->button, event->x_root, event->y_root, event->time);
+		break;
+	case 2:
+		view_autosize(filer_window->view);
+		break;
+	case 3:
+		gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
+				event->button, event->x_root, event->y_root, event->time);
+		break;
+
+	default:
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 /* If filer_window is NULL, the toolbar is for the options window */
 static GtkWidget *create_toolbar(FilerWindow *filer_window)
 {
@@ -753,6 +780,10 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 					0, 0.5);
 		gtk_toolbar_append_widget(GTK_TOOLBAR(bar),
 				filer_window->toolbar_text, NULL, NULL);
+
+
+		g_signal_connect(bar, "button_press_event",
+			G_CALLBACK(bar_pressed), filer_window);
 	}
 
 	return bar;
