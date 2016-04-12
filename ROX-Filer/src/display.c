@@ -105,8 +105,8 @@ void display_init()
 	option_add_int(&o_display_show_headers, "display_show_headers", TRUE);
 	option_add_int(&o_display_show_full_type, "display_show_full_type", FALSE);
 	option_add_int(&o_display_inherit_options,
-		       "display_inherit_options", FALSE); 
-	option_add_int(&o_filer_change_size_num, "filer_change_size_num", 30); 
+		       "display_inherit_options", FALSE);
+	option_add_int(&o_filer_change_size_num, "filer_change_size_num", 30);
 	option_add_int(&o_vertical_order_small, "vertical_order_small", FALSE);
 	option_add_int(&o_vertical_order_large, "vertical_order_large", FALSE);
 	option_add_int(&o_xattr_show, "xattr_show", TRUE);
@@ -157,7 +157,7 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 				-1, -1,
 				GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
 				GDK_RGB_DITHER_NORMAL, 0, 0);
-	
+
 	*x+=gdk_pixbuf_get_width(pixbuf)+1;
 	g_object_unref(pixbuf);
 }
@@ -476,7 +476,7 @@ int sort_by_type(const void *item1, const void *item2)
 
 	m1 = i1->mime_type;
 	m2 = i2->mime_type;
-	
+
 	if (m1 && m2)
 	{
 		diff = strcmp(m1->media_type, m2->media_type);
@@ -490,7 +490,7 @@ int sort_by_type(const void *item1, const void *item2)
 
 	if (diff)
 		return diff > 0 ? 1 : -1;
-	
+
 	return sort_by_name(item1, item2);
 }
 
@@ -606,7 +606,7 @@ void display_set_layout(FilerWindow  *filer_window,
 	details_changed = filer_window->details_type != details;
 	style_changed = details_changed ||
 				filer_window->display_style_wanted != style;
-	  
+
 	display_style_set(filer_window, style);
 	display_details_set(filer_window, details);
 
@@ -705,7 +705,7 @@ void display_set_filter(FilerWindow *filer_window, FilterType type,
 void display_set_autoselect(FilerWindow *filer_window, const gchar *leaf)
 {
 	gchar *new;
-	
+
 	g_return_if_fail(filer_window != NULL);
 	g_return_if_fail(leaf != NULL);
 
@@ -869,7 +869,7 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 	else if (filer_window->details_type == DETAILS_TIMES)
 	{
 		guchar	*ctime, *mtime, *atime;
-		
+
 		ctime = pretty_time(&item->ctime);
 		mtime = pretty_time(&item->mtime);
 		atime = pretty_time(&item->atime);
@@ -930,7 +930,7 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 		else
 			buf = g_strdup("-");
 	}
-		
+
 	return buf;
 }
 
@@ -1139,7 +1139,7 @@ static void display_set_actual_size_real(FilerWindow *filer_window)
 {
 	DisplayStyle size = filer_window->display_style_wanted;
 	int n;
-	
+
 	g_return_if_fail(filer_window != NULL);
 
 	if (size == AUTO_SIZE_ICONS)
@@ -1151,6 +1151,6 @@ static void display_set_actual_size_real(FilerWindow *filer_window)
 		else
 			size = LARGE_ICONS;
 	}
-	
+
 	filer_window->display_style = size;
 }

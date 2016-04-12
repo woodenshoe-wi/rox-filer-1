@@ -147,7 +147,7 @@ static inline int collection_get_rows(const Collection *collection)
  * such as moving the cursor to detect the last column.  */
 static inline int collection_get_cols(const Collection *collection)
 {
-	if (collection->vertical_order) 
+	if (collection->vertical_order)
 	{
 		int rows = collection_get_rows(collection);
 		int cols = (collection->number_of_items + rows - 1) / rows;
@@ -188,7 +188,7 @@ static void draw_one_item(Collection *collection, int item, GdkRectangle *area)
 				item,
 				area, collection->cb_user_data);
 	}
-	
+
 	if (item == collection->cursor_item)
 		draw_focus_at(collection, area);
 }
@@ -239,7 +239,7 @@ static void collection_class_init(GObjectClass *gclass, gpointer data)
 	widget_class->size_allocate = collection_size_allocate;
 
 	widget_class->key_press_event = collection_key_press;
-	
+
 	widget_class->motion_notify_event = collection_motion_notify;
 	widget_class->map = collection_map;
 	widget_class->scroll_event = collection_scroll_event;
@@ -369,7 +369,7 @@ static void collection_finalize(GObject *object)
 static void collection_map(GtkWidget *widget)
 {
 	Collection *collection = COLLECTION(widget);
-	
+
 	if (GTK_WIDGET_CLASS(parent_class)->map)
 		(*GTK_WIDGET_CLASS(parent_class)->map)(widget);
 
@@ -411,7 +411,7 @@ static void collection_realize(GtkWidget *widget)
 	attributes.height = widget->allocation.height;
 	attributes.wclass = GDK_INPUT_OUTPUT;
 	attributes.window_type = GDK_WINDOW_CHILD;
-	attributes.event_mask = gtk_widget_get_events(widget) | 
+	attributes.event_mask = gtk_widget_get_events(widget) |
 		GDK_EXPOSURE_MASK |
 		GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
 		GDK_BUTTON1_MOTION_MASK | GDK_BUTTON2_MOTION_MASK |
@@ -589,7 +589,7 @@ static gint collection_expose(GtkWidget *widget, GdkEventExpose *event)
 	 * Clear the background only if we have a background pixmap.
 	 */
 	if (widget->style->bg_pixmap[GTK_STATE_NORMAL])
-		gtk_paint_flat_box(widget->style, widget->window, GTK_STATE_NORMAL, 
+		gtk_paint_flat_box(widget->style, widget->window, GTK_STATE_NORMAL,
 				   GTK_SHADOW_NONE, &event->area,
 				   widget, "collection", 0, 0, -1, -1);
 
@@ -620,10 +620,10 @@ static gint collection_expose(GtkWidget *widget, GdkEventExpose *event)
 		last_col = phys_last_col;
 
 
-	for(row = start_row; row <= last_row; row++) 
-		for(col = start_col; col <= last_col; col++) 
+	for(row = start_row; row <= last_row; row++)
+		for(col = start_col; col <= last_col; col++)
 	{
-			item = collection_rowcol_to_item(collection, row, col);	      
+			item = collection_rowcol_to_item(collection, row, col);
 			if (item == 0 || item < collection->number_of_items) {
 				collection_get_item_area(collection,
 							 row, col, &item_area);
@@ -763,7 +763,7 @@ static gint collection_key_press(GtkWidget *widget, GdkEventKey *event)
 		else
 			return FALSE;
 	}
-	
+
 	switch (key)
 	{
 		case GDK_Left:
@@ -820,7 +820,7 @@ static gboolean scroll_idle(gpointer data) {
 		gboolean box = collection->lasso_box;
 		int	step = collection->vadj->page_increment / 6;
 
-		new_value = CLAMP(old_value + diff * step, 0.0, 
+		new_value = CLAMP(old_value + diff * step, 0.0,
 				collection->vadj->upper
 				- collection->vadj->page_size);
 		diff = new_value - old_value;
@@ -953,7 +953,7 @@ static void collection_process_area(Collection	 *collection,
 			if (item < collection->number_of_items) {
 			if (fn == GDK_INVERT)
 					collection_item_set_selected(
-					    collection, item, 
+					    collection, item,
 					    !collection-> items[item].selected,
 					FALSE);
 			else
@@ -972,7 +972,7 @@ static void collection_process_area(Collection	 *collection,
 		g_signal_emit(collection,
 				collection_signals[LOSE_SELECTION], 0,
 				current_event_time);
-	
+
 	collection_unblock_selection_changed(collection,
 					current_event_time, changed);
 	current_event_time = stacked_time;
@@ -1022,7 +1022,7 @@ static void draw_lasso_box(Collection *collection)
 {
 	GtkWidget	*widget;
 	int		x, y, width, height;
-	
+
 	widget = GTK_WIDGET(collection);
 
 	x = MIN(collection->drag_box_x[0], collection->drag_box_x[1]);
@@ -1153,7 +1153,7 @@ static void invert_wink(Collection *collection)
 	if (!GTK_WIDGET_REALIZED(GTK_WIDGET(collection)))
 		return;
 
-	collection_item_to_rowcol(collection, collection->wink_item, 
+	collection_item_to_rowcol(collection, collection->wink_item,
 				  &row, &col);
 	collection_get_item_area(collection, row, col, &area);
 
@@ -1247,7 +1247,7 @@ void collection_clear(Collection *collection)
 gint collection_insert(Collection *collection, gpointer data, gpointer view)
 {
 	int	item;
-	
+
 	/* g_return_val_if_fail(IS_COLLECTION(collection), -1); (slow) */
 
 	item = collection->number_of_items;
@@ -1284,7 +1284,7 @@ void collection_toggle_item(Collection *collection, gint item)
 void collection_select_all(Collection *collection)
 {
 	int		item = 0;
-	
+
 	g_return_if_fail(collection != NULL);
 	g_return_if_fail(IS_COLLECTION(collection));
 
@@ -1299,7 +1299,7 @@ void collection_select_all(Collection *collection)
 		collection->items[item].selected = TRUE;
 		collection_draw_item(collection, item, TRUE);
 		item++;
-		
+
 		collection->number_selected++;
 	}
 
@@ -1312,7 +1312,7 @@ void collection_select_all(Collection *collection)
 void collection_invert_selection(Collection *collection)
 {
 	int		item;
-	
+
 	g_return_if_fail(collection != NULL);
 	g_return_if_fail(IS_COLLECTION(collection));
 
@@ -1333,10 +1333,10 @@ void collection_invert_selection(Collection *collection)
 
 	collection->number_selected = collection->number_of_items -
 				      collection->number_selected;
-	
+
 	/* Have to redraw everything... */
 	gtk_widget_queue_draw(GTK_WIDGET(collection));
-	
+
 	EMIT_SELECTION_CHANGED(collection, current_event_time);
 }
 
@@ -1371,7 +1371,7 @@ void collection_clear_except(Collection *collection, gint item)
 		collection->items[i].selected = FALSE;
 		collection_draw_item(collection, i, TRUE);
 		i++;
-		
+
 		collection->number_selected--;
 	}
 
@@ -1473,7 +1473,7 @@ void collection_qsort(Collection *collection,
 	CollectionItem *array;
 	int	i;
 	int	mul = order == GTK_SORT_ASCENDING ? 1 : -1;
-	
+
 	g_return_if_fail(collection != NULL);
 	g_return_if_fail(IS_COLLECTION(collection));
 	g_return_if_fail(compar != NULL);
@@ -1631,7 +1631,7 @@ void collection_set_cursor_item(Collection *collection, gint item,
 				gboolean may_scroll)
 {
 	int	old_item;
-	
+
 	g_return_if_fail(collection != NULL);
 	g_return_if_fail(IS_COLLECTION(collection));
 	g_return_if_fail(item >= -1 &&
@@ -1641,9 +1641,9 @@ void collection_set_cursor_item(Collection *collection, gint item,
 
 	if (old_item == item)
 		return;
-	
+
 	collection->cursor_item = item;
-	
+
 	if (old_item != -1)
 		collection_draw_item(collection, old_item, TRUE);
 
@@ -1729,13 +1729,13 @@ void collection_delete_if(Collection *collection,
 				collection->items[in].view_data;
 			out++;
 		}
-		else 
+		else
 		{
 			/* Remove item */
 			if (collection->free_item)
 				collection->free_item(collection,
 							&collection->items[in]);
-			
+
 			if (collection->cursor_item >= in)
 				cursor--;
 		}
@@ -1751,7 +1751,7 @@ void collection_delete_if(Collection *collection,
 			collection->wink_item = -1;
 			g_source_remove(collection->wink_timeout);
 		}
-		
+
 		collection->number_of_items = out;
 		if (collection->number_selected && !selected)
 		{
@@ -1797,14 +1797,14 @@ void collection_move_cursor(Collection *collection, int drow, int dcol, int even
 
 	if (item == -1)
 		item = MIN(collection->cursor_item_old,
-			collection->number_of_items - 1); 
+			collection->number_of_items - 1);
 
 	if (item == -1)
 	{
 		if (drow > 0 || dcol > 0)
 		{
 			row = first;
-			col = 0;	
+			col = 0;
 		}
 		else
 		{
@@ -1818,14 +1818,14 @@ void collection_move_cursor(Collection *collection, int drow, int dcol, int even
 
 		if (event_state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK))
 		{
-			collection_item_set_selected(collection, item, 
+			collection_item_set_selected(collection, item,
 					!(collection->items[item].selected &&
 						(event_state & GDK_CONTROL_MASK)),
 					TRUE);
 		}
 
 		col += dcol;
-		if (collection->vertical_order) 
+		if (collection->vertical_order)
 		{
 			col = MAX(0,col);
 			col = MIN(col, total_cols - 1);
@@ -1836,7 +1836,7 @@ void collection_move_cursor(Collection *collection, int drow, int dcol, int even
 		else if (row > last)
 			row = last;
 		else {
-			if (collection->vertical_order) 
+			if (collection->vertical_order)
 			{
 				if (drow > 0 && row == total_rows - 1)
 				{
@@ -1856,13 +1856,13 @@ void collection_move_cursor(Collection *collection, int drow, int dcol, int even
 				}
 				else
 					row += drow;
-				
+
 				row = CLAMP(row, 0, total_rows - 1);
 			}
-			else 
+			else
 			{
 				row += drow;
-				row = MAX(row, 0); 
+				row = MAX(row, 0);
 				row = MIN(row, total_rows - 1);
 			}
 		}
@@ -1874,7 +1874,7 @@ void collection_move_cursor(Collection *collection, int drow, int dcol, int even
 	item = MIN(item, collection->number_of_items-1);
 
 	if (event_state & GDK_SHIFT_MASK)
-		collection_item_set_selected(collection, item, 
+		collection_item_set_selected(collection, item,
 				TRUE,
 				TRUE);
 
@@ -1932,12 +1932,12 @@ void collection_unblock_selection_changed(Collection	*collection,
 void    collection_item_to_rowcol       (const Collection *collection,
 					 int item, int *row, int *col)
 {
-	if (!collection->vertical_order) 
+	if (!collection->vertical_order)
 	{
 		*row = item / collection->columns;
-		*col = item % collection->columns; 
+		*col = item % collection->columns;
 	}
-	else 
+	else
 	{
 		int rows = collection_get_rows(collection);
 		*row = item % rows;
@@ -1952,9 +1952,9 @@ void    collection_item_to_rowcol       (const Collection *collection,
  */
 int collection_rowcol_to_item(const Collection *collection, int row, int col)
 {
-	if (!collection->vertical_order) 
+	if (!collection->vertical_order)
 		return row * collection->columns + col;
-	else 
+	else
 	{
 		int rows = collection_get_rows(collection);
 		if (row >= rows)

@@ -94,7 +94,7 @@ static GHashTable *window_with_id = NULL;
 static FilerWindow *window_with_primary = NULL;
 
 static GHashTable *settings_table=NULL;
-	
+
 typedef struct {
 	gchar *path;
 
@@ -221,7 +221,7 @@ void filer_init(void)
 	option_add_int(&o_short_flag_names, "filer_short_flag_names", FALSE);
 
 	option_add_int(&o_filer_view_type, "filer_view_type",
-			VIEW_TYPE_COLLECTION); 
+			VIEW_TYPE_COLLECTION);
 
 	option_add_int(&o_view_alpha, "view_alpha", 0);
 	option_add_int(&o_use_background_colour, "use_background_colour", 0);
@@ -248,7 +248,7 @@ void filer_init(void)
 	dpy = gdk_get_display();
 	dpyhost = g_strdup(dpy);
 	tmp = strchr(dpyhost, ':');
-	if (tmp) 
+	if (tmp)
 	        *tmp = '\0';
 
 	if (dpyhost[0] && strcmp(ohost, dpyhost) != 0)
@@ -257,12 +257,12 @@ void filer_init(void)
 		 * in support.c).
 		 */
 	        struct hostent *ent;
-		
+
 		ent = gethostbyname(dpyhost);
 		if (!ent || strcmp(ohost, ent->h_name) != 0)
 		        not_local = TRUE;
 	}
-	
+
 	g_free(dpyhost);
 
 	load_settings();
@@ -366,8 +366,8 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 			}
 			else
 			{ /* todo: There is no clue to get the size of decorations */
-				lx -= 0;	
-				ly -= 0;	
+				lx -= 0;
+				ly -= 0;
 				x = filer_window->reqx;
 				y = filer_window->reqy;
 			}
@@ -695,7 +695,7 @@ static void unmount_dialog_response(GtkWidget *dialog,
 {
 	GList *list = NULL;
 	UnmountPrompt prompt_val = UNMOUNT_PROMPT_ASK;
-	
+
 	switch (response)
 	{
 	case GTK_RESPONSE_OK:
@@ -722,7 +722,7 @@ static void unmount_dialog_response(GtkWidget *dialog,
 	{
 	    filer_set_unmount_action(mount, prompt_val);
 	}
-					
+
 	g_free(mount);
 
 	gtk_widget_destroy(dialog);
@@ -741,7 +741,7 @@ static void may_offer_unmount(FilerWindow *filer_window, char *mount)
 	GtkWidget *dialog, *button, *unmount_mem_btn;
 	GList	*next;
 	int len;
-	
+
 	len = strlen(mount);
 
 	for (next = all_filer_windows; next; next = next->next)
@@ -767,24 +767,24 @@ static void may_offer_unmount(FilerWindow *filer_window, char *mount)
 		g_free(mount);
 		return;
 	}
-	
+
 	if (unmount_prompt_actions)
 	{
 		GList *list = NULL;
 		UnmountPrompt unmount_val = filer_get_unmount_action(mount);
-				
+
 		switch (unmount_val)
 		{
 		case UNMOUNT_PROMPT_UNMOUNT:
 			list = g_list_prepend(NULL, mount);
 			action_mount(list, FALSE, FALSE, TRUE);
 			break;
-		
+
 		case UNMOUNT_PROMPT_EJECT:
 			list = g_list_prepend(NULL, mount);
 			action_eject(list);
 			break;
-		
+
 		default:
 			break;
 		}
@@ -798,11 +798,11 @@ static void may_offer_unmount(FilerWindow *filer_window, char *mount)
 	}
 
 	dialog = gtk_message_dialog_new(NULL, 0, GTK_MESSAGE_QUESTION,
-			GTK_BUTTONS_NONE, 
+			GTK_BUTTONS_NONE,
 			_("Do you want to unmount this device?\n\n"
 			"Unmounting a device makes it safe to remove "
 			"the disk."));
-	
+
 	unmount_mem_btn = gtk_check_button_new_with_label(
 			_("Perform the same action in future for this mount point"));
 	gtk_widget_show(unmount_mem_btn);
@@ -868,7 +868,7 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 
 	if (window_with_primary == filer_window)
 		window_with_primary = NULL;
-	
+
 	if (window_with_focus == filer_window)
 	{
 		menu_popdown();
@@ -926,7 +926,7 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 static gboolean may_rescan(FilerWindow *filer_window, gboolean warning)
 {
 	Directory *dir;
-	
+
 	g_return_val_if_fail(filer_window != NULL, FALSE);
 
 	/* We do a fresh lookup (rather than update) because the inode may
@@ -970,7 +970,7 @@ static void filer_lost_primary(GtkWidget *window,
 		        gpointer user_data)
 {
 	FilerWindow *filer_window = (FilerWindow *) user_data;
-	
+
 	if (window_with_primary && window_with_primary == filer_window)
 	{
 		window_with_primary = NULL;
@@ -1099,7 +1099,7 @@ void filer_next_selected(FilerWindow *filer_window, int dir)
 
 	view_get_iter(view, &iter,
 			VIEW_ITER_SELECTED |
-			(have_cursor ? VIEW_ITER_FROM_CURSOR : 0) | 
+			(have_cursor ? VIEW_ITER_FROM_CURSOR : 0) |
 			(dir < 0 ? VIEW_ITER_BACKWARDS : 0));
 
 	if (have_cursor && view_get_selected(view, &cursor))
@@ -1240,7 +1240,7 @@ static gboolean group_restore_cb(ViewIter *iter, gpointer data)
 	return g_hash_table_lookup(in_group,
 				   iter->peek(iter)->leafname) != NULL;
 }
-	
+
 static void group_restore(FilerWindow *filer_window, char *name)
 {
 	GHashTable *in_group;
@@ -1286,7 +1286,7 @@ static void group_restore(FilerWindow *filer_window, char *name)
 	}
 
 	view_select_if(filer_window->view, &group_restore_cb, in_group);
-	
+
 	g_hash_table_foreach(in_group, (GHFunc) g_free, NULL);
 	g_hash_table_destroy(in_group);
 }
@@ -1436,7 +1436,7 @@ void filer_open_parent(FilerWindow *filer_window)
 
 	if (current[0] == '/' && current[1] == '\0')
 		return;		/* Already in the root */
-	
+
 	dir = g_path_get_dirname(current);
 	filer_opendir(dir, filer_window, NULL);
 	g_free(dir);
@@ -1466,7 +1466,7 @@ void change_to_parent(FilerWindow *filer_window)
 static void tidy_sympath(gchar *path)
 {
 	int l;
-	
+
 	g_return_if_fail(path != NULL);
 
 	l = strlen(path);
@@ -1597,7 +1597,7 @@ DirItem *filer_selected_item(FilerWindow *filer_window)
 	DirItem		*item;
 
 	view_get_iter(filer_window->view, &iter, VIEW_ITER_SELECTED);
-		
+
 	item = iter.next(&iter);
 	g_return_val_if_fail(item != NULL, NULL);
 	g_return_val_if_fail(iter.next(&iter) == NULL, NULL);
@@ -1620,7 +1620,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	if (o_unique_filer_windows.int_value && !spring_in_progress)
 	{
 		FilerWindow	*same_dir_window;
-		
+
 		same_dir_window = find_filer_window(path, NULL);
 
 		if (same_dir_window)
@@ -1774,7 +1774,7 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 	GtkWidget *view = NULL;
 	Directory *dir = NULL;
 	GHashTable *selected = NULL;
-	
+
 	g_return_if_fail(filer_window != NULL);
 
 	motion_window = NULL;
@@ -1943,7 +1943,7 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 
 	vbox = gtk_vbox_new(FALSE, 0);
 	gtk_container_add(GTK_CONTAINER(filer_window->window), vbox);
-	
+
 	filer_window->toplevel_vbox = GTK_BOX(vbox);
 
 	/* If there's a message that should be displayed in each window (eg
@@ -1966,7 +1966,7 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 	gtk_box_pack_end(GTK_BOX(hbox),
 			filer_window->scrollbar, FALSE, TRUE, 0);
 	gtk_widget_show(hbox);
-	
+
 	/* If we want a toolbar, create it now */
 	toolbar_update_toolbar(filer_window);
 
@@ -1984,7 +1984,7 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 				FALSE, TRUE, 0);
 
 		filer_window->thumb_progress = gtk_progress_bar_new();
-		
+
 		gtk_box_pack_start(GTK_BOX(filer_window->thumb_bar),
 				filer_window->thumb_progress, TRUE, TRUE, 0);
 
@@ -2000,7 +2000,7 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 	gtk_widget_show(vbox);
 	gtk_widget_show(filer_window->scrollbar);
 	gtk_widget_realize(filer_window->window);
-	
+
 	gdk_window_set_role(filer_window->window->window,
 			    filer_window->sym_path);
 }
@@ -2138,7 +2138,7 @@ static FilerWindow *find_filer_window(const char *sym_path, FilerWindow *diff)
 		    	strcmp(sym_path, filer_window->sym_path) == 0)
 			return filer_window;
 	}
-	
+
 	return NULL;
 }
 
@@ -2336,14 +2336,14 @@ void filer_set_title(FilerWindow *filer_window)
 	if (not_local)
 	        title = g_strconcat("//", our_host_name(),
 			    filer_window->sym_path, flags, NULL);
-	
+
 	if (!title)
 	{
 		gchar *cpath = collapse_path(filer_window->sym_path);
 		title = g_strconcat(cpath, flags, NULL);
 		g_free(cpath);
 	}
-	
+
 	ensure_utf8(&title);
 
 	if (filer_window->directory->error)
@@ -2368,7 +2368,7 @@ void filer_set_title(FilerWindow *filer_window)
 void filer_detach_rescan(FilerWindow *filer_window)
 {
 	Directory *dir = filer_window->directory;
-	
+
 	g_object_ref(dir);
 	detach(filer_window);
 	filer_window->directory = dir;
@@ -2792,7 +2792,7 @@ void filer_add_tip_details(FilerWindow *filer_window,
 			g_free(target);
 		}
 	}
-	
+
 	if (item->flags & ITEM_FLAG_APPDIR)
 	{
 		XMLwrapper *info;
@@ -2856,7 +2856,7 @@ static guchar *filer_create_uri_list(FilerWindow *filer_window)
 	{
 		EscapedPath *uri;
 		char *path;
-		
+
 		path = g_strconcat(leader->str, item->leafname, NULL);
 		uri = encode_path_as_uri(path);
 		g_string_append(string, (char *) uri);
@@ -2896,7 +2896,7 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 	{
 		/* Possibly a really slow DnD operation? */
 		filer_window->temp_item_selected = FALSE;
-		
+
 		filer_selection_changed(filer_window, event->time);
 		return;
 	}
@@ -2953,7 +2953,7 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 			view_clear_selection(view);
 			break;
 		case ACT_TOGGLE_SELECTED:
-			view_set_selected(view, &iter, 
+			view_set_selected(view, &iter,
 				!view_get_selected(view, &iter));
 			break;
 		case ACT_SELECT_EXCL:
@@ -2987,7 +2987,7 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 			dnd_motion_start(MOTION_READY_FOR_DND);
 			break;
 		case ACT_PRIME_AND_TOGGLE:
-			view_set_selected(view, &iter, 
+			view_set_selected(view, &iter,
 				!view_get_selected(view, &iter));
 			dnd_motion_start(MOTION_READY_FOR_DND);
 			break;
@@ -3063,7 +3063,7 @@ static gboolean tooltip_activate(GtkWidget *window)
 	if (tip->len > 1)
 	{
 		g_string_truncate(tip, tip->len - 1);
-		
+
 		tooltip_show(tip->str);
 	}
 
@@ -3081,7 +3081,7 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 
 	view_get_iter_at_point(view, &iter, event->window, event->x, event->y);
 	item = iter.peek(&iter);
-	
+
 	if (item)
 	{
 		if (item != tip_item)
@@ -3115,7 +3115,7 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 		return FALSE;
 
 	view_wink_item(view, NULL);
-	
+
 	if (!view_get_selected(view, &iter))
 	{
 		/* If we drag an unselected item, select it only.
@@ -3163,7 +3163,7 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	else
 	{
 		guchar *uris;
-	
+
 		uris = filer_create_uri_list(filer_window);
 		drag_selection(GTK_WIDGET(view), event, uris);
 		g_free(uris);
@@ -3285,7 +3285,7 @@ static gboolean drag_motion(GtkWidget		*widget,
 	/* Don't ask about dragging to an application! */
 	if (type == drop_dest_prog && action == GDK_ACTION_ASK)
 		action = GDK_ACTION_COPY;
-	
+
 	g_dataset_set_data(context, "drop_dest_type", (gpointer) type);
 	if (type)
 	{
@@ -3611,53 +3611,53 @@ static void store_settings(Settings *set)
 static void load_from_node(Settings *set, xmlDocPtr doc, xmlNodePtr node)
 {
 	xmlChar *str=NULL;
-	
+
 	str=xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-	
+
 	if(strcmp(node->name, "X") == 0) {
 		set->x=atoi(str);
-		set->flags|=SET_POSITION;		
+		set->flags|=SET_POSITION;
 	} else if(strcmp(node->name, "Y") == 0) {
 		set->y=atoi(str);
-		set->flags|=SET_POSITION;		
+		set->flags|=SET_POSITION;
 	} else if(strcmp(node->name, "Width") == 0) {
 		set->width=atoi(str);
-		set->flags|=SET_SIZE;		
+		set->flags|=SET_SIZE;
 	} else if(strcmp(node->name, "Height") == 0) {
 		set->height=atoi(str);
-		set->flags|=SET_SIZE;		
+		set->flags|=SET_SIZE;
 	} else if(strcmp(node->name, "ShowHidden") == 0) {
 		set->show_hidden=atoi(str);
-		set->flags|=SET_HIDDEN;		
+		set->flags|=SET_HIDDEN;
 	} else if(strcmp(node->name, "ViewType") == 0) {
 		set->view_type=atoi(str);
-		set->flags|=SET_DETAILS;		
+		set->flags|=SET_DETAILS;
 	} else if(strcmp(node->name, "DetailsType") == 0) {
 		set->details_type=atoi(str);
-		set->flags|=SET_DETAILS;		
+		set->flags|=SET_DETAILS;
 	} else if(strcmp(node->name, "SortType") == 0) {
 		set->sort_type=atoi(str);
-		set->flags|=SET_SORT;		
+		set->flags|=SET_SORT;
 	} else if(strcmp(node->name, "SortOrder") == 0) {
 		set->sort_order=atoi(str);
-		set->flags|=SET_SORT;		
+		set->flags|=SET_SORT;
 	} else if(strcmp(node->name, "DisplayStyle") == 0) {
 		set->display_style=atoi(str);
-		set->flags|=SET_STYLE;		
+		set->flags|=SET_STYLE;
 	} else if(strcmp(node->name, "ShowThumbs") == 0) {
 		set->show_thumbs=atoi(str);
-		set->flags|=SET_THUMBS;		
+		set->flags|=SET_THUMBS;
 	} else if(strcmp(node->name, "FilterType") == 0) {
 		set->filter_type=atoi(str);
-		set->flags|=SET_FILTER;		
+		set->flags|=SET_FILTER;
 	} else if(strcmp(node->name, "Filter") == 0) {
 		set->filter=g_strdup(str);
-		set->flags|=SET_FILTER;		
+		set->flags|=SET_FILTER;
 	} else if(strcmp(node->name, "FilterDirectories") == 0) {
 		set->filter_directories=atoi(str);
-		set->flags|=SET_FILTER;		
+		set->flags|=SET_FILTER;
 	}
-	
+
 	if(str)
 		xmlFree(str);
 }
@@ -3669,7 +3669,7 @@ static void load_learnt_mounts(void)
 	gsize len = 0;
 	gchar **entries;
 	int n;
-			
+
 	unmount_prompt_actions = g_hash_table_new_full(g_str_hash,
 			g_str_equal, g_free, NULL);
 
@@ -3691,7 +3691,7 @@ static void load_learnt_mounts(void)
 		g_free(buffer);
 		return;
 	}
-	
+
 	entries = g_strsplit(buffer, "\n", 0);
 	g_free(buffer);
 	for (n = 0; entries[n]; ++n)
@@ -3716,7 +3716,7 @@ static void save_mount(char *path, gpointer value, FILE **pfp)
 	{
 		gchar *spath = choices_find_xdg_path_save("Mounts",
 				PROJECT, SITE, TRUE);
-		
+
 		if (!spath)
 			return;
 		*pfp = fopen(spath, "w");
@@ -3732,7 +3732,7 @@ static void save_mount(char *path, gpointer value, FILE **pfp)
 static void save_learnt_mounts(void)
 {
 	FILE *fp = NULL;
-	
+
 	/* A GHashTableIter would be easier, but it's a relatively new feature */
 	if (unmount_prompt_actions)
 		g_hash_table_foreach(unmount_prompt_actions, (GHFunc) save_mount, &fp);
@@ -3763,7 +3763,7 @@ static void load_settings(void)
 		{
 			Settings *set;
 			xmlChar *path;
-			
+
 			if (node->type != XML_ELEMENT_NODE)
 				continue;
 			if (strcmp(node->name, "FilerWindow") != 0)
@@ -3775,7 +3775,7 @@ static void load_settings(void)
 
 			for (subnode=node->xmlChildrenNode; subnode;
 			     subnode=subnode->next) {
-				
+
 				if (subnode->type != XML_ELEMENT_NODE)
 					continue;
 				load_from_node(set, settings_doc->doc,
@@ -3798,7 +3798,7 @@ static void add_nodes(gpointer key, gpointer value, gpointer data)
 	sub=xmlNewChild(node, NULL, "FilerWindow", NULL);
 
 	xmlSetProp(sub, "path", set->path);
-	
+
 	if(set->flags & SET_POSITION) {
 		tmp=g_strdup_printf("%d", set->x);
 		xmlNewChild(sub, NULL, "X", tmp);
@@ -3851,7 +3851,7 @@ static void add_nodes(gpointer key, gpointer value, gpointer data)
 		xmlNewChild(sub, NULL, "FilterType", tmp);
 		g_free(tmp);
 		if(set->filter && set->filter[0])
-			xmlNewChild(sub, NULL, "Filter", set->filter);	
+			xmlNewChild(sub, NULL, "Filter", set->filter);
 		tmp=g_strdup_printf("%d", set->filter_directories);
 		xmlNewChild(sub, NULL, "FilterDirectories", tmp);
 	}
@@ -3866,12 +3866,12 @@ static void save_settings(void)
 		xmlDocPtr doc = xmlNewDoc("1.0");
 		xmlDocSetRootElement(doc, xmlNewDocNode(doc, NULL,
 							"Settings", NULL));
-		
+
 		g_hash_table_foreach(settings_table, add_nodes,
 					    xmlDocGetRootElement(doc));
-		
+
 		save_xml_file(doc, path);
-		
+
 		g_free(path);
 		xmlFreeDoc(doc);
 	}
@@ -3963,7 +3963,7 @@ static gboolean check_settings(FilerWindow *filer_window, gboolean onlycheck)
 
 	if (set->flags & SET_THUMBS)
 		filer_window->show_thumbs = set->show_thumbs;
-	
+
 	if (set->flags & SET_FILTER)
 	{
 		filer_set_filter(filer_window,
@@ -3979,7 +3979,7 @@ static gboolean check_settings(FilerWindow *filer_window, gboolean onlycheck)
 		 filer_window->view_type    != vtype ||
 		 filer_window->details_type != dtype))
 		force_resize = TRUE;
-	
+
 	if (set->flags & SET_POSITION)
 	{
 		filer_window->reqx = set->x;
@@ -3998,7 +3998,7 @@ static gboolean check_settings(FilerWindow *filer_window, gboolean onlycheck)
 			force_resize = TRUE;
 		}
 	}
-	
+
 	if (set->flags & SET_SIZE)
 	{
 		force_resize = TRUE;
@@ -4184,12 +4184,12 @@ void filer_save_settings(FilerWindow *fwin, gboolean parent)
 	gtk_box_pack_start(GTK_BOX(vbox), set_win->pos, FALSE, FALSE, 2);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(set_win->pos),
 				     set->flags & SET_POSITION);
-	
+
 	set_win->size=gtk_check_button_new_with_label(_("Window size"));
 	gtk_box_pack_start(GTK_BOX(vbox), set_win->size, FALSE, FALSE, 2);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(set_win->size),
 				     set->flags & SET_SIZE);
-	
+
 	set_win->hidden=gtk_check_button_new_with_label(_("Show hidden"));
 	gtk_box_pack_start(GTK_BOX(vbox), set_win->hidden,
 			   FALSE, FALSE, 2);
@@ -4206,12 +4206,12 @@ void filer_save_settings(FilerWindow *fwin, gboolean parent)
 	gtk_box_pack_start(GTK_BOX(vbox), set_win->sort, FALSE, FALSE, 2);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(set_win->sort),
 				     set->flags & SET_SORT);
-	
+
 	set_win->details=gtk_check_button_new_with_label(_("Details"));
 	gtk_box_pack_start(GTK_BOX(vbox), set_win->details, FALSE, FALSE, 2);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(set_win->details),
 				     set->flags & SET_DETAILS);
-	
+
 	set_win->thumbs=gtk_check_button_new_with_label(_("Thumbnails"));
 	gtk_box_pack_start(GTK_BOX(vbox), set_win->thumbs,
 			   FALSE, FALSE, 2);

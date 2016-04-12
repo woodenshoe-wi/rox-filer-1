@@ -116,19 +116,19 @@ static Tool all_tools[] = {
 	{N_("Close"), GTK_STOCK_CLOSE, N_("Close filer window"),
 	 toolbar_close_clicked, DROP_NONE, FALSE,
 	 FALSE},
-	 
+
 	{N_("Up"), GTK_STOCK_GO_UP, N_("Change to parent directory\n"
 						"  Right: Open parent directory\n"
 						"  Middle: Change to parent in real path"),
 	 toolbar_up_clicked, DROP_TO_PARENT, TRUE,
 	 FALSE},
-	 
+
 	{N_("Home"), GTK_STOCK_HOME, N_("Change to home directory\n"
 						"  Right: Open home directory\n"
 						"  Middle: Change to first bookmark"),
 	 toolbar_home_clicked, DROP_TO_HOME, TRUE,
 	 FALSE},
-	
+
 	{N_("Jump"), ROX_STOCK_BOOKMARKS, N_("Bookmarks menu\n"
 						"  Right: Edit Bookmarks\n"
 						"  Middle: Jump to last visited directory"),
@@ -139,7 +139,7 @@ static Tool all_tools[] = {
 						"  Middle: Delete/re-create thumb cache"),
 	 toolbar_refresh_clicked, DROP_NONE, TRUE,
 	 FALSE},
-	
+
 	{N_("Size┼"), GTK_STOCK_ZOOM_IN, N_("Change icon size\n"
 						"  Right: Change to smaller\n"
 						"  Middle: Change to Auto Size\n"
@@ -147,26 +147,26 @@ static Tool all_tools[] = {
 						"Status: ┘Huge, ┤Large, ┐Small, ├Auto"),
 	 toolbar_size_clicked, DROP_NONE, TRUE,
 	 FALSE},
-	
+
 	{N_("Auto"), GTK_STOCK_ZOOM_FIT, N_("Automatic size mode"),
 	 toolbar_autosize_clicked, DROP_NONE, TRUE,
 	 FALSE},
-	
+
 	{N_("List"), ROX_STOCK_SHOW_DETAILS, N_("Show extra details\n"
 						"  Right: Rotate Icons with details\n"
 						"  Middle: Return to normal Icons View"),
 	 toolbar_details_clicked, DROP_NONE, TRUE,
 	 FALSE},
-	
+
 	{N_("Sort"), GTK_STOCK_SORT_ASCENDING, N_("Change sort criteria"),
 	 toolbar_sort_clicked, DROP_NONE, FALSE,
 	 FALSE},
-	
+
 	{N_("Hidden"), ROX_STOCK_SHOW_HIDDEN, N_("Left: Show/hide hidden files\n"
 						 "Right: Show/hide thumbnails"),
 	 toolbar_hidden_clicked, DROP_NONE, TRUE,
 	 FALSE},
-	
+
 	{N_("Dirs"), GTK_STOCK_DIRECTORY, N_("Left: Show only directories\n"
 						 "Right: Show only files"),
 	 toolbar_dirs_clicked, DROP_NONE, FALSE,
@@ -175,7 +175,7 @@ static Tool all_tools[] = {
 	{N_("Select"), GTK_STOCK_SELECT_ALL, N_("Select all/invert selection"),
 	 toolbar_select_clicked, DROP_NONE, FALSE,
 	 FALSE},
- 	
+
 	{N_("○"), GTK_STOCK_SAVE, N_("Save Current Display Settings...\n"
 						"  Right: for parent/* \n"
 						"  Middle: Clear to default settings\n"
@@ -509,7 +509,7 @@ static void toolbar_size_clicked(GtkWidget *widget, FilerWindow *filer_window)
 	bev = (GdkEventButton *) get_current_event(GDK_BUTTON_RELEASE);
 	if (bev->type == GDK_BUTTON_RELEASE)
 	{
-		if (bev->button == 2)	
+		if (bev->button == 2)
 			display_set_layout(filer_window,
 				AUTO_SIZE_ICONS, filer_window->details_type, TRUE);
 		else
@@ -529,11 +529,11 @@ static void toolbar_sort_clicked(GtkWidget *widget,
 
 	static const SortType sorts[]={
 		SORT_NAME, SORT_TYPE, SORT_DATEC, SORT_SIZE,
-		SORT_OWNER, SORT_GROUP, 
+		SORT_OWNER, SORT_GROUP,
 	};
 	static const char *sort_names[] = {
-		N_("Sort by name"), N_("Sort by type"), N_("Sort by date"), 
-		N_("Sort by size"), N_("Sort by owner"), N_("Sort by group"), 
+		N_("Sort by name"), N_("Sort by type"), N_("Sort by date"),
+		N_("Sort by size"), N_("Sort by owner"), N_("Sort by group"),
 	};
 
 	bev = (GdkEventButton *) get_current_event(GDK_BUTTON_RELEASE);
@@ -566,7 +566,7 @@ static void toolbar_sort_clicked(GtkWidget *widget,
 
 	display_set_sort_type(filer_window, sorts[next_wrapped], dir);
  	tip = g_strconcat(_(sort_names[next_wrapped]), ", ",
-			dir == GTK_SORT_ASCENDING 
+			dir == GTK_SORT_ASCENDING
 				? _("ascending") : _("descending"),
 			NULL);
 	tooltip_show(tip);
@@ -615,7 +615,7 @@ static void toolbar_details_clicked(GtkWidget *widget,
 				default:
 					action = DETAILS_NONE;
 					break;
-			}	
+			}
 
 		if (filer_window->view_type != VIEW_TYPE_COLLECTION)
 			filer_set_view_type(filer_window, VIEW_TYPE_COLLECTION);
@@ -754,7 +754,7 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 			continue;
 
 		b = add_button(bar, tool, filer_window);
-		
+
 		if (filer_window && tool->drop_action != DROP_NONE)
 			handle_drops(filer_window, b, tool->drop_action);
 	}
@@ -774,7 +774,7 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 		} else {
 			gtk_widget_set_size_request(bar, 100, -1);
 		}
-		
+
 		filer_window->toolbar_text = gtk_label_new("");
 		gtk_misc_set_alignment(GTK_MISC(filer_window->toolbar_text),
 					0, 0.5);
@@ -838,7 +838,7 @@ static gint toolbar_button_scroll(GtkButton *button,
 	gfloat
 		step_pix = MAX((huge_size - ICON_HEIGHT) / 4.0, ICON_HEIGHT - SMALL_WIDTH),
 		start = (ICON_HEIGHT + step_pix - 1) / huge_size,
-		step  = step_pix / huge_size,	
+		step  = step_pix / huge_size,
 		end   = HUGE_LIMIT_F / huge_size;
 
 	gtk_widget_set_has_tooltip((GtkWidget *) button, FALSE);
@@ -914,7 +914,7 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 			   NULL, NULL,	/* CB, userdata */
 			   GTK_TOOLBAR(bar)->num_children);
 	GTK_WIDGET_UNSET_FLAGS(button, GTK_CAN_FOCUS);
-	
+
 	g_object_set_data(G_OBJECT(button), "rox-tool", tool);
 
 	if (filer_window)
@@ -1001,10 +1001,10 @@ static gboolean drag_motion(GtkWidget		*widget,
 		g_dataset_set_data_full(context, "drop_dest_path",
 				g_path_get_dirname(filer_window->sym_path),
 				g_free);
-	
+
 	g_dataset_set_data(context, "drop_dest_type", type);
 	gdk_drag_status(context, action, time);
-	
+
 	dnd_spring_load(context, filer_window);
 	gtk_button_set_relief(GTK_BUTTON(widget), GTK_RELIEF_NORMAL);
 
@@ -1085,7 +1085,7 @@ static void update_tools(Option *option)
 		name = g_object_get_data(G_OBJECT(kid), "tool_name");
 
 		g_return_if_fail(name != NULL);
-		
+
 		gtk_toggle_button_set_active(kid,
 					 !in_list(name, option->value));
 	}

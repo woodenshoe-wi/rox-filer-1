@@ -29,7 +29,7 @@
  * added and existing items are updated if they've changed.
  *
  * When a whole directory is to be rescanned:
- * 
+ *
  * - A list of all filenames in the directory is fetched, without any
  *   of the extra details.
  * - This list is compared to the current DirItems, removing any that are now
@@ -129,7 +129,7 @@ void dir_init(void)
 	inotify_channel = g_io_channel_unix_new(inotify_fd);
 	g_io_add_watch(inotify_channel, G_IO_IN, inotify_handler, NULL);
 # endif
-	
+
 # ifdef USE_DNOTIFY
 	{
 		struct sigaction act;
@@ -183,7 +183,7 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 		fd = inotify_add_watch( inotify_fd,
 					dir->pathname,
 					IN_CREATE | IN_DELETE | IN_MOVE |
-					IN_ATTRIB); 
+					IN_ATTRIB);
 
 		g_return_if_fail(g_hash_table_lookup(notify_fd_to_dir,
 						 GINT_TO_POINTER(fd)) == NULL);
@@ -327,7 +327,7 @@ void dir_check_this(const guchar *path)
 		g_free(base);
 		g_object_unref(dir);
 	}
-	
+
 	g_free(real_path);
 }
 
@@ -376,7 +376,7 @@ void dir_force_update_path(const gchar *path)
 		g_free(base);
 		g_object_unref(dir);
 	}
-	
+
 	g_free(dir_path);
 }
 
@@ -1075,7 +1075,7 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 	dir->req_notify = FALSE;
 	dir->scanning = FALSE;
 	dir->have_scanned = FALSE;
-	
+
 	dir->users = NULL;
 	dir->needs_update = TRUE;
 	dir->notify_active = FALSE;
@@ -1128,7 +1128,7 @@ static Directory *dir_new(const char *pathname)
 	dir = g_object_new(dir_get_type(), NULL);
 
 	dir->pathname = g_strdup(pathname);
-	
+
 	return dir;
 }
 
@@ -1292,7 +1292,7 @@ static gboolean inotify_handler(GIOChannel *source, GIOCondition condition,
 					  GINT_TO_POINTER(event->wd));
 		if (dir)
 			dir_rescan_soon(dir);
-    
+
 		i += sizeof(*event)+event->len;
 	}
 
