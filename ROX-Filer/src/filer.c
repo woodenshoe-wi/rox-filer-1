@@ -4250,7 +4250,7 @@ void filer_save_settings(FilerWindow *fwin, gboolean parent)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(set_win->hidden),
 				     set->flags & SET_HIDDEN);
 
-	set_win->style=gtk_check_button_new_with_label(_("Display style"));
+	set_win->style=gtk_check_button_new_with_label(_("Display style (Icon size)"));
 	gtk_box_pack_start(GTK_BOX(vbox), set_win->style,
 			   FALSE, FALSE, 2);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(set_win->style),
