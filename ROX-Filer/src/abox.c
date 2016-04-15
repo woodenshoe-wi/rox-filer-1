@@ -249,7 +249,7 @@ GtkWidget *abox_add_flag(ABox *abox, const gchar *label, const gchar *tip,
 	GtkWidget	*check;
 
 	check = gtk_check_button_new_with_label(label);
-	gtk_tooltips_set_tip(tooltips, check, tip, NULL);
+	gtk_widget_set_tooltip_text(check, tip);
 	g_object_set_data(G_OBJECT(check), "abox-response",
 			  GINT_TO_POINTER(response));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), default_value);

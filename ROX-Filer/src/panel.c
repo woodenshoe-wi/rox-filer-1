@@ -841,18 +841,18 @@ static void panel_icon_set_tip(PanelIcon *pi)
 				node->xmlChildrenNode, 1);
 		if (str)
 		{
-			gtk_tooltips_set_tip(tooltips, pi->widget, str, NULL);
+			gtk_widget_set_tooltip_text(pi->widget, str);
 			g_free(str);
 		}
 	}
 	else if ((!panel_want_show_text(pi)) && !pi->socket)
 	{
 		if (icon->item->leafname && icon->item->leafname[0])
-			gtk_tooltips_set_tip(tooltips, pi->widget,
-					icon->item->leafname, NULL);
+			gtk_widget_set_tooltip_text(pi->widget,
+					icon->item->leafname);
 	}
 	else
-		gtk_tooltips_set_tip(tooltips, pi->widget, NULL, NULL);
+		gtk_widget_set_tooltip_text(pi->widget, NULL);
 
 	if (ai)
 		g_object_unref(ai);

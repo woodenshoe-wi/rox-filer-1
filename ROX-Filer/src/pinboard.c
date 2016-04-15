@@ -2223,12 +2223,12 @@ static void pin_icon_set_tip(PinIcon *pi)
 				node->xmlChildrenNode, 1);
 		if (str)
 		{
-			gtk_tooltips_set_tip(tooltips, pi->win, str, NULL);
+			gtk_widget_set_tooltip_text(pi->win, str);
 			g_free(str);
 		}
 	}
 	else
-		gtk_tooltips_set_tip(tooltips, pi->widget, NULL, NULL);
+		gtk_widget_set_tooltip_text(pi->widget, NULL);
 
 	if (ai)
 		g_object_unref(ai);

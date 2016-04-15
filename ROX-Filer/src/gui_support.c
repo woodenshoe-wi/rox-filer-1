@@ -1030,7 +1030,7 @@ void radios_add(Radios *radios, const gchar *tip, gint value,
 	gtk_label_set_line_wrap(GTK_LABEL(GTK_BIN(radio)->child), TRUE);
 	gtk_widget_show(radio);
 	if (tip)
-		gtk_tooltips_set_tip(tooltips, radio, tip, NULL);
+		gtk_widget_set_tooltip_text(radio, tip);
 	if (!group)
 		g_signal_connect(G_OBJECT(radio), "destroy",
 				G_CALLBACK(radios_free), radios);

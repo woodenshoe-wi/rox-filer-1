@@ -114,8 +114,8 @@ GtkWidget *drop_box_new(const char *message)
 	g_signal_connect(button, "clicked",
 			G_CALLBACK(open_dir_clicked), drop_box);
 
-	gtk_tooltips_set_tip(tooltips, button,
-			_("Show the current choice in a filer window"), NULL);
+	gtk_widget_set_tooltip_text(button,
+			_("Show the current choice in a filer window"));
 
 	drop_box_set_path(drop_box, NULL);
 
