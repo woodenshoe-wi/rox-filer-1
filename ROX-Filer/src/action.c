@@ -196,7 +196,7 @@ void show_condition_help(gpointer data)
 
 	text = gtk_label_new(NULL);
 	gtk_misc_set_padding(GTK_MISC(text), 2, 2);
-	gtk_box_pack_start_defaults(GTK_BOX(GTK_DIALOG(help)->vbox), text);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(help)->vbox), text, TRUE, TRUE, 0);
 	gtk_label_set_selectable(GTK_LABEL(text), TRUE);
 	gtk_label_set_markup(GTK_LABEL(text), _(
 "<u>Quick Start</u>\n"
@@ -254,7 +254,7 @@ static void show_chmod_help(gpointer data)
 
 	text = gtk_label_new(NULL);
 	gtk_misc_set_padding(GTK_MISC(text), 2, 2);
-	gtk_box_pack_start_defaults(GTK_BOX(GTK_DIALOG(help)->vbox), text);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(help)->vbox), text, TRUE, TRUE, 0);
 	gtk_label_set_selectable(GTK_LABEL(text), TRUE);
 	gtk_label_set_markup(GTK_LABEL(text), _(
 "Normally, you can just select a command from the menu (click \n"
@@ -306,7 +306,7 @@ static void show_settype_help(gpointer data)
 
 	text = gtk_label_new(NULL);
 	gtk_misc_set_padding(GTK_MISC(text), 2, 2);
-	gtk_box_pack_start_defaults(GTK_BOX(GTK_DIALOG(help)->vbox), text);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(help)->vbox), text, TRUE, TRUE, 0);
 	gtk_label_set_selectable(GTK_LABEL(text), TRUE);
 	gtk_label_set_markup(GTK_LABEL(text), _(
 "Normally ROX-Filer determines the type of a regular file\n"
@@ -324,7 +324,7 @@ static void show_settype_help(gpointer data)
 
 	text = gtk_label_new(_(ATTR_MAN_PAGE));
 	gtk_misc_set_padding(GTK_MISC(text), 2, 2);
-	gtk_box_pack_start_defaults(GTK_BOX(GTK_DIALOG(help)->vbox), text);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(help)->vbox), text, TRUE, TRUE, 0);
 
 	g_signal_connect(help, "response",
 			G_CALLBACK(gtk_widget_destroy), NULL);
