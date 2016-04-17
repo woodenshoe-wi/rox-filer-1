@@ -2696,6 +2696,11 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 	if (path)
 		dir_force_update_path(path);
 
+	if (filer_window->trying_thumbs > o_thumb_processes_num.int_value) {
+		filer_window->trying_thumbs--;
+		return;
+	}
+
 //	if (filer_window->max_thumbs > filer_window->tried_thumbs)
 //		g_idle_add((GSourceFunc) filer_next_thumb_real, window);
 //		filer_next_thumb_real(window);
