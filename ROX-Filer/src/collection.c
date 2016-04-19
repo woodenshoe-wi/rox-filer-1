@@ -622,14 +622,14 @@ static gint collection_expose(GtkWidget *widget, GdkEventExpose *event)
 
 	for(row = start_row; row <= last_row; row++)
 		for(col = start_col; col <= last_col; col++)
-	{
+		{
 			item = collection_rowcol_to_item(collection, row, col);
 			if (item == 0 || item < collection->number_of_items) {
 				collection_get_item_area(collection,
-							 row, col, &item_area);
-		draw_one_item(collection, item, &item_area);
+						row, col, &item_area);
+				draw_one_item(collection, item, &item_area);
+			}
 		}
-	}
 
 	if (collection->lasso_box)
 		draw_lasso_box(collection);
@@ -1432,9 +1432,9 @@ void collection_set_item_size(Collection *collection, int width, int height)
 
 	if (GTK_WIDGET_REALIZED(widget))
 	{
-		gint		window_width;
+		int window_width;
 
-		gdk_drawable_get_size(widget->window, &window_width, NULL);
+		window_width = gdk_window_get_width(widget->window);
 		collection->columns = MAX(window_width / collection->item_width,
 					  1);
 		if (collection->cursor_item != -1)

@@ -1948,7 +1948,6 @@ void pinboard_move_icons(void)
 {
 	int	x = shadow_x, y = shadow_y;
 	PinIcon	*pi = (PinIcon *) pinboard_drag_in_progress;
-	int	width, height;
 	int	dx, dy;
 	GList	*next;
 
@@ -1982,7 +1981,6 @@ void pinboard_move_icons(void)
 		nx = pi->x;
 		ny = pi->y;
 
-		gdk_drawable_get_size(pi->win->window, &width, &height);
 		offset_from_centre(pi, &nx, &ny);
 
 		fixed_move_fast(GTK_FIXED(current_pinboard->fixed),

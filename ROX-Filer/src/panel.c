@@ -1082,7 +1082,8 @@ static gint draw_icon(GtkWidget *widget, GdkRectangle *badarea, PanelIcon *pi)
 	GdkPixbuf	*image;
 	int		text_height = 0;
 
-	gdk_drawable_get_size(widget->window, &area.width, &area.height);
+	area.width = gdk_window_get_width(widget->window);
+	area.height = gdk_window_get_height(widget->window);
 
 	if (panel_want_show_text(pi))
 		text_height = pi->label->requisition.height;
@@ -1863,7 +1864,8 @@ static gint icon_motion_event(GtkWidget *widget,
 
 		gdk_window_get_origin(next->window, &x, &y);
 
-		gdk_drawable_get_size(next->window, &w, &h);
+		w = gdk_window_get_width(next->window);
+		h = gdk_window_get_height(next->window);
 
 		x += w;
 		y += h;

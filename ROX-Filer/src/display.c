@@ -150,13 +150,10 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 		g_object_unref(ctemp);
 	}
 
-	gdk_pixbuf_render_to_drawable_alpha(pixbuf,
-				window,
-				0, 0, 				/* src */
-				*x, y,		                /* dest */
-				-1, -1,
-				GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
-				GDK_RGB_DITHER_NORMAL, 0, 0);
+	cairo_t *cr = gdk_cairo_create(window);
+	gdk_cairo_set_source_pixbuf(cr, pixbuf, *x, y);
+	cairo_paint(cr);
+	cairo_destroy(cr);
 
 	*x+=gdk_pixbuf_get_width(pixbuf)+1;
 	g_object_unref(pixbuf);
@@ -225,13 +222,10 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 		dx = gdk_pixbuf_get_width(scaled);
 	}
 
-	gdk_draw_pixbuf(window,
-				NULL,
-				scaled,
-				0, 0, /* src */
-				*x - 1, y + dy + 1, /* dest */
-				-1, -1,
-				GDK_RGB_DITHER_NORMAL, 0, 0);
+	cairo_t *cr = gdk_cairo_create(window);
+	gdk_cairo_set_source_pixbuf(cr, scaled, *x - 1, y + dy + 1);
+	cairo_paint(cr);
+	cairo_destroy(cr);
 
 	*x += dx * 2 / 3;
 }
@@ -343,14 +337,10 @@ void draw_huge_icon(
 			? create_spotlight_pixbuf(scaled, colour)
 			: scaled;
 
-	gdk_pixbuf_render_to_drawable_alpha(
-			pixbuf,
-			window,
-			0, 0, 				/* src */
-			image_x, image_y,	/* dest */
-			width, height,
-			GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
-			GDK_RGB_DITHER_NORMAL, 0, 0);
+	cairo_t *cr = gdk_cairo_create(window);
+	gdk_cairo_set_source_pixbuf(cr, pixbuf, image_x, image_y);
+	cairo_paint(cr);
+	cairo_destroy(cr);
 
 	if (scale != 1.0)
 		g_object_unref(scaled);

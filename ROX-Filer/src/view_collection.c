@@ -1966,7 +1966,7 @@ static gboolean view_collection_auto_scroll_callback(ViewIface *view)
 	int		diff = 0;
 
 	gdk_window_get_pointer(window, &x, &y, &mask);
-	gdk_drawable_get_size(window, &w, NULL);
+	w = gdk_window_get_width(window);
 
 	h = collection->vadj->page_size;
 	y -= collection->vadj->value;

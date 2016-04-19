@@ -591,8 +591,8 @@ void centre_window(GdkWindow *window, int x, int y)
 	g_return_if_fail(window != NULL);
 
 	m = gdk_screen_get_monitor_at_point(gdk_screen_get_default(), x, y);
-
-	gdk_drawable_get_size(window, &w, &h);
+	w = gdk_window_get_width(window);
+	h = gdk_window_get_height(window);
 
 	x -= w / 2;
 	y -= h / 2;
@@ -1322,7 +1322,7 @@ static void gui_get_monitor_adjacent(int monitor, MonitorAdjacent *adj)
 static void rox_wmspec_change_state(gboolean add, GdkWindow *window,
 				    GdkAtom state1, GdkAtom state2)
 {
-	GdkDisplay *display = gdk_drawable_get_display(GDK_DRAWABLE(window));
+	GdkDisplay *display = gdk_window_get_display(window);
 	XEvent xev;
 
 #define _NET_WM_STATE_REMOVE        0    /* remove/unset property */

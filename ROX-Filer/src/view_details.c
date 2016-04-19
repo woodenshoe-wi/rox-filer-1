@@ -1985,7 +1985,7 @@ static gboolean view_details_auto_scroll_callback(ViewIface *view)
 	window = gtk_tree_view_get_bin_window(tree);
 
 	gdk_window_get_pointer(window, &x, &y, &mask);
-	gdk_drawable_get_size(window, &w, NULL);
+	w = gdk_window_get_width(window);
 
 	adj = gtk_range_get_adjustment(scrollbar);
 	h = adj->page_size;
