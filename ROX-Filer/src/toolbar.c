@@ -64,10 +64,10 @@ static FilerWindow *filer_window_being_counted;
 /* TRUE if the button presses (or released) should open a new window,
  * rather than reusing the existing one.
  */
-#define NEW_WIN_BUTTON(button_event)	\
-  (o_new_button_1.int_value		\
-   	? ((GdkEventButton *) button_event)->button == 1	\
-	: ((GdkEventButton *) button_event)->button != 1)
+#define NEW_WIN_BUTTON(button_i) \
+  (o_new_button_1.int_value \
+	? button_i == 1 \
+	: button_i != 1)
 
 /* Static prototypes */
 static void toolbar_close_clicked(GtkWidget *widget, FilerWindow *filer_window);
@@ -348,23 +348,35 @@ static GdkEvent *get_current_event(int default_type)
 	return event;
 }
 
-static void toolbar_help_clicked(GtkWidget *widget, FilerWindow *filer_window)
+static gint get_release()
 {
-	GdkEvent	*event;
+	gint ret = 0;
+	GdkEvent *event = get_current_event(GDK_BUTTON_RELEASE);
 
 	event = get_current_event(GDK_BUTTON_RELEASE);
-	if (event->type == GDK_BUTTON_RELEASE &&
-			((GdkEventButton *) event)->button != 1)
+	if (event->type == GDK_BUTTON_RELEASE)
+	{
+		ret = ((GdkEventButton *) event)->button;
+		if (ret == 1 && ((GdkEventButton *) event)->state & GDK_MOD1_MASK)
+			ret = 2;
+	}
+
+	gdk_event_free(event);
+
+	return ret;
+}
+
+static void toolbar_help_clicked(GtkWidget *widget, FilerWindow *filer_window)
+{
+	if (get_release() != 1)
 		menu_rox_help(NULL, HELP_MANUAL, NULL);
 	else
 		filer_opendir(make_path(app_dir, "Help"), NULL, NULL);
-	gdk_event_free(event);
 }
 
 static void toolbar_settings_clicked(GtkWidget *widget, FilerWindow *fw)
 {
-	GdkEvent *event = get_current_event(GDK_BUTTON_RELEASE);
-	gint eb = ((GdkEventButton *) event)->button;
+	gint eb = get_release();
 
 	if (eb == 1)
 		filer_save_settings(fw, FALSE);
@@ -375,48 +387,39 @@ static void toolbar_settings_clicked(GtkWidget *widget, FilerWindow *fw)
 	}
 	else
 		filer_save_settings(fw, TRUE);
-
-	gdk_event_free(event);
 }
 
 static void toolbar_refresh_clicked(GtkWidget *widget,
 				    FilerWindow *filer_window)
 {
-	GdkEvent	*event;
+	gint eb = get_release();
 
-	event = get_current_event(GDK_BUTTON_RELEASE);
-	if (event->type == GDK_BUTTON_RELEASE &&
-			((GdkEventButton *) event)->button == 2)
+	if (eb == 2)
 		filer_refresh_thumbs(filer_window);
-	else if (event->type == GDK_BUTTON_RELEASE &&
-			((GdkEventButton *) event)->button != 1)
+	else if (eb != 1)
 	{
 		filer_opendir(filer_window->sym_path, filer_window, NULL);
 	}
 	else
 		filer_refresh(filer_window);
-	gdk_event_free(event);
 }
 
 static void toolbar_home_clicked(GtkWidget *widget, FilerWindow *filer_window)
 {
-	GdkEvent	*event;
+	gint eb = get_release();
 
-	event = get_current_event(GDK_BUTTON_RELEASE);
-	if (event->type == GDK_BUTTON_RELEASE &&
-			((GdkEventButton *) event)->button == 2)
+	if (eb == 2)
 	{
 		gchar *staticret = bookmarks_get_top();
 		if (staticret)
 			filer_change_to(filer_window, staticret, NULL);
 	}
-	else if (event->type == GDK_BUTTON_RELEASE && NEW_WIN_BUTTON(event))
+	else if (NEW_WIN_BUTTON(eb))
 	{
 		filer_opendir(home_dir, filer_window, NULL);
 	}
 	else
 		filer_change_to(filer_window, home_dir, NULL);
-	gdk_event_free(event);
 }
 
 static void toolbar_bookmarks_clicked(GtkWidget *widget,
@@ -434,12 +437,13 @@ static void toolbar_bookmarks_clicked(GtkWidget *widget,
 	}
 	else if (event->type == GDK_BUTTON_RELEASE)
 	{
-		if (((GdkEventButton *) event)->button == 2)
+		gint eb = get_release();
+		if (eb == 2)
 		{
 			if (bookmarks_get_recent())
 				filer_change_to(filer_window, bookmarks_get_recent(), NULL);
 		}
-		else if (((GdkEventButton *) event)->button != 1)
+		else if (eb != 1)
 			bookmarks_edit();
 	}
 	gdk_event_free(event);
@@ -447,81 +451,61 @@ static void toolbar_bookmarks_clicked(GtkWidget *widget,
 
 static void toolbar_close_clicked(GtkWidget *widget, FilerWindow *filer_window)
 {
-	GdkEvent	*event;
-
 	g_return_if_fail(filer_window != NULL);
 
-	event = get_current_event(GDK_BUTTON_RELEASE);
-	if (event->type == GDK_BUTTON_RELEASE &&
-			((GdkEventButton *) event)->button != 1)
+	gint eb = get_release();
+	if (eb != 1)
 	{
 		filer_opendir(filer_window->sym_path, filer_window, NULL);
 	}
 	else if (!filer_window_delete(filer_window->window, NULL, filer_window))
 		gtk_widget_destroy(filer_window->window);
-	gdk_event_free(event);
 }
 
 static void toolbar_up_clicked(GtkWidget *widget, FilerWindow *filer_window)
 {
-	GdkEvent	*event;
+	gint eb = get_release();
 
-	event = get_current_event(GDK_BUTTON_RELEASE);
-	if (event->type == GDK_BUTTON_RELEASE && NEW_WIN_BUTTON(event))
+	if (eb == 2)
 	{
-		if (((GdkEventButton *)event)->button == 2)
-		{
-			if (strcmp(filer_window->real_path, filer_window->sym_path) == 0)
-				change_to_parent(filer_window);
-			else
-			{ /* to realpath parent */
-				gchar *dir = g_path_get_dirname(filer_window->real_path);
-				gchar *base = g_path_get_basename(filer_window->real_path);
-				filer_change_to(filer_window, dir, base);
-				g_free(dir);
-				g_free(base);
-			}
-		} else
-			filer_open_parent(filer_window);
+		if (strcmp(filer_window->real_path, filer_window->sym_path) == 0)
+			change_to_parent(filer_window);
+		else
+		{ /* to realpath parent */
+			gchar *dir = g_path_get_dirname(filer_window->real_path);
+			gchar *base = g_path_get_basename(filer_window->real_path);
+			filer_change_to(filer_window, dir, base);
+			g_free(dir);
+			g_free(base);
+		}
 	}
+	else if (NEW_WIN_BUTTON(eb))
+		filer_open_parent(filer_window);
 	else
 		change_to_parent(filer_window);
-	gdk_event_free(event);
 }
 
 static void toolbar_autosize_clicked(GtkWidget *widget, FilerWindow *filer_window)
 {
-	GdkEventButton	*bev;
-
-	bev = (GdkEventButton *) get_current_event(GDK_BUTTON_RELEASE);
-	if (bev->type == GDK_BUTTON_RELEASE)
-	{
-		display_set_layout(filer_window, AUTO_SIZE_ICONS, filer_window->details_type,
-				TRUE);
-	}
-	gdk_event_free((GdkEvent *) bev);
+	display_set_layout(filer_window, AUTO_SIZE_ICONS, filer_window->details_type,
+			TRUE);
 }
 
 static void toolbar_size_clicked(GtkWidget *widget, FilerWindow *filer_window)
 {
-	GdkEventButton	*bev;
+	gint eb = get_release();
 
-	bev = (GdkEventButton *) get_current_event(GDK_BUTTON_RELEASE);
-	if (bev->type == GDK_BUTTON_RELEASE)
-	{
-		if (bev->button == 2)
-			display_set_layout(filer_window,
-				AUTO_SIZE_ICONS, filer_window->details_type, TRUE);
-		else
-			display_change_size(filer_window, bev->button == 1);
-	}
-	gdk_event_free((GdkEvent *) bev);
+	if (eb == 2)
+		display_set_layout(filer_window,
+			AUTO_SIZE_ICONS, filer_window->details_type, TRUE);
+	else
+		display_change_size(filer_window, eb == 1);
 }
 
 static void toolbar_sort_clicked(GtkWidget *widget,
 				    FilerWindow *filer_window)
 {
-	GdkEventButton	*bev;
+	gint eb = get_release();
 	int i, current, next, next_wrapped;
 	gboolean adjust;
 	GtkSortType dir;
@@ -536,9 +520,7 @@ static void toolbar_sort_clicked(GtkWidget *widget,
 		N_("Sort by size"), N_("Sort by owner"), N_("Sort by group"),
 	};
 
-	bev = (GdkEventButton *) get_current_event(GDK_BUTTON_RELEASE);
-	adjust = (bev->button != 1) && bev->type == GDK_BUTTON_RELEASE;
-	gdk_event_free((GdkEvent *) bev);
+	adjust = (eb != 1) && eb != 0;
 
 	current = -1;
 	dir = filer_window->sort_order;
@@ -576,10 +558,9 @@ static void toolbar_sort_clicked(GtkWidget *widget,
 static void toolbar_details_clicked(GtkWidget *widget,
 				    FilerWindow *filer_window)
 {
-	GdkEvent *event = get_current_event(GDK_BUTTON_RELEASE);
+	gint eb = get_release();
 
-	if (event->type == GDK_BUTTON_RELEASE &&
-		((GdkEventButton *)event)->button == 1)
+	if (eb == 1)
 	{
 		if (filer_window->view_type == VIEW_TYPE_DETAILS)
 			filer_set_view_type(filer_window, VIEW_TYPE_COLLECTION);
@@ -590,7 +571,7 @@ static void toolbar_details_clicked(GtkWidget *widget,
 	{
 		DetailsType action;
 
-		if (((GdkEventButton *)event)->button == 2)
+		if (eb == 2)
 			action = DETAILS_NONE;
 		else if (filer_window->view_type != VIEW_TYPE_COLLECTION)
 			action = filer_window->details_type;
@@ -626,21 +607,18 @@ static void toolbar_details_clicked(GtkWidget *widget,
 					action,
 					FALSE);
 	}
-
-	gdk_event_free(event);
 }
 
 static void toolbar_hidden_clicked(GtkWidget *widget,
 				   FilerWindow *filer_window)
 {
-	GdkEvent	*event;
+	gint eb = get_release();
 
-	event = get_current_event(GDK_BUTTON_RELEASE);
-	if (event->type == GDK_BUTTON_RELEASE)
+	if (eb != 0)
 	{
-		if (((GdkEventButton *) event)->button == 1)
+		if (eb == 1)
 			display_set_hidden(filer_window, !filer_window->show_hidden);
-		else if (((GdkEventButton *) event)->button == 2)
+		else if (eb == 2)
 		{
 			display_set_thumbs(filer_window, o_display_show_thumbs.int_value);
 			display_set_hidden(filer_window, o_display_show_hidden.int_value);
@@ -648,35 +626,26 @@ static void toolbar_hidden_clicked(GtkWidget *widget,
 		else
 			display_set_thumbs(filer_window, !filer_window->show_thumbs);
 	}
-
-	gdk_event_free(event);
 }
 
 static void toolbar_dirs_clicked(GtkWidget *widget,
 				   FilerWindow *filer_window)
 {
-	GdkEvent *event = get_current_event(GDK_BUTTON_RELEASE);
-
-	if (event->type == GDK_BUTTON_RELEASE)
+	switch (get_release())
 	{
-		switch (((GdkEventButton *) event)->button)
-		{
-			case 1:
-				filer_window->dirs_only = !filer_window->dirs_only;
-				filer_window->files_only = FALSE;
-				break;
-			case 2:
-				filer_window->dirs_only = FALSE;
-				filer_window->files_only = FALSE;
-				break;
-			default:
-				filer_window->dirs_only = FALSE;
-				filer_window->files_only = !filer_window->files_only;
-		}
-		display_update_hidden(filer_window);
+	case 1:
+		filer_window->dirs_only = !filer_window->dirs_only;
+		filer_window->files_only = FALSE;
+		break;
+	case 2:
+		filer_window->dirs_only = FALSE;
+		filer_window->files_only = FALSE;
+		break;
+	default:
+		filer_window->dirs_only = FALSE;
+		filer_window->files_only = !filer_window->files_only;
 	}
-
-	gdk_event_free(event);
+	display_update_hidden(filer_window);
 }
 
 static gboolean invert_cb(ViewIter *iter, gpointer data)
@@ -686,19 +655,17 @@ static gboolean invert_cb(ViewIter *iter, gpointer data)
 
 static void toolbar_select_clicked(GtkWidget *widget, FilerWindow *filer_window)
 {
-	GdkEvent	*event;
+	gint eb = get_release();
 
-	event = get_current_event(GDK_BUTTON_RELEASE);
-	if (event->type == GDK_BUTTON_RELEASE)
+	if (eb != 0)
 	{
-		if (((GdkEventButton *) event)->button == 1)
+		if (eb == 1)
 			view_select_all(filer_window->view);
 		else
 			view_select_if(filer_window->view, invert_cb,
 				       filer_window->view);
 	}
 	filer_window->temp_item_selected = FALSE;
-	gdk_event_free(event);
 }
 
 static gint bar_pressed(GtkWidget *widget,
@@ -803,7 +770,8 @@ static gint toolbar_button_pressed(GtkButton *button,
 	tool = g_object_get_data(G_OBJECT(button), "rox-tool");
 	g_return_val_if_fail(tool != NULL, TRUE);
 
-	if (tool->menu && b == 1)
+	if (tool->menu && b == 1 &&
+			!(((GdkEventButton *) event)->state & GDK_MOD1_MASK))
 	{
 		tool->clicked((GtkWidget *) button, filer_window);
 		return TRUE;
