@@ -1193,16 +1193,9 @@ void null_g_free(gpointer p)
 	*(gpointer *)p = NULL;
 }
 
-typedef struct _CollatePart CollatePart;
-
 struct _CollateKey {
-	CollatePart *parts;
+	guchar *text;
 	gboolean caps;
-};
-
-struct _CollatePart {
-	guchar *text;	/* NULL => end of list */
-	long number;
 };
 
 /* Break 'name' (a UTF-8 string) down into a list of (text, number) pairs.
@@ -1212,16 +1205,10 @@ struct _CollatePart {
  */
 CollateKey *collate_key_new(const guchar *name)
 {
-	const guchar *i;
-	guchar *to_free = NULL;
-	GArray *array;
-	CollatePart new;
 	CollateKey *retval;
-	char *tmp;
+	gchar *to_free = NULL;
 
 	g_return_val_if_fail(name != NULL, NULL);
-
-	array = g_array_new(FALSE, FALSE, sizeof(CollatePart));
 
 	/* Ensure valid UTF-8 */
 	if (!g_utf8_validate(name, -1, NULL))
@@ -1233,46 +1220,9 @@ CollateKey *collate_key_new(const guchar *name)
 	retval = g_new(CollateKey, 1);
 	retval->caps = g_unichar_isupper(g_utf8_get_char(name));
 
-	for (i = name; *i; i = g_utf8_next_char(i))
-	{
-		gunichar first_char;
-
-		/* We're in a (possibly blank) text section starting at 'name'.
-		 * Find the end of it (the next digit, or end of string).
-		 * Note: g_ascii_isdigit takes char, not unichar, while
-		 * g_unicode_isdigit returns true for non ASCII digits.
-		 */
-		first_char = g_utf8_get_char(i);
-		if (first_char >= '0' && first_char <= '9')
-		{
-			char *endp;
-
-			/* i -> first digit character */
-			tmp = g_utf8_strdown(name, i - name);
-			new.text = g_utf8_collate_key(tmp, -1);
-			g_free(tmp);
-			new.number = strtol(i, &endp, 10);
-
-			g_array_append_val(array, new);
-
-			g_return_val_if_fail(endp > (char *) i, NULL);
-
-			name = endp;
-			i = name - 1;
-		}
-	}
-
-	tmp = g_utf8_strdown(name, i - name);
-	new.text = g_utf8_collate_key(tmp, -1);
+	gchar *tmp = g_utf8_strdown(name, -1);
+	retval->text = g_utf8_collate_key_for_filename(tmp, -1);
 	g_free(tmp);
-	new.number = -1;
-	g_array_append_val(array, new);
-
-	new.text = NULL;
-	g_array_append_val(array, new);
-
-	retval->parts = (CollatePart *) array->data;
-	g_array_free(array, FALSE);
 
 	if (to_free)
 		g_free(to_free);	/* Only taken for invalid UTF-8 */
@@ -1282,21 +1232,13 @@ CollateKey *collate_key_new(const guchar *name)
 
 void collate_key_free(CollateKey *key)
 {
-	CollatePart *part;
-
-	for (part = key->parts; part->text; part++)
-		g_free(part->text);
-	g_free(key->parts);
+	g_free(key->text);
 	g_free(key);
 }
 
 int collate_key_cmp(const CollateKey *key1, const CollateKey *key2,
 		    gboolean caps_first)
 {
-	CollatePart *n1 = key1->parts;
-	CollatePart *n2 = key2->parts;
-	int r;
-
 	if (caps_first)
 	{
 		if (key1->caps && !key2->caps)
@@ -1305,24 +1247,7 @@ int collate_key_cmp(const CollateKey *key1, const CollateKey *key2,
 			return 1;
 	}
 
-	while (1)
-	{
-		if (!n1->text)
-			return n2->text ? -1 : 0;
-		if (!n2->text)
-			return 1;
-		r = strcmp(n1->text, n2->text);
-		if (r)
-			return r;
-
-		if (n1->number < n2->number)
-			return -1;
-		if (n1->number > n2->number)
-			return 1;
-
-		n1++;
-		n2++;
-	}
+	return strcmp(key1->text, key2->text);
 }
 
 /* Returns TRUE if the object exists, FALSE if it doesn't.
