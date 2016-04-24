@@ -30,6 +30,7 @@
 #include "run.h"
 #include "support.h"
 #include "gui_support.h"
+#include "options.h"
 #include "filer.h"
 #include "display.h"
 #include "main.h"
@@ -46,7 +47,7 @@ static gboolean follow_symlink(const char *full_path,
 			       FilerWindow *filer_window,
 			       FilerWindow *src_window);
 static gboolean open_file(const guchar *path, MIME_type *type);
-static void open_mountpoint(const guchar *full_path, DirItem *item,
+static FilerWindow *open_mountpoint(const guchar *full_path, DirItem *item,
 			    FilerWindow *filer_window, FilerWindow *src_window,
 			    gboolean edit);
 static gboolean run_desktop(const char *full_path,
@@ -269,15 +270,35 @@ gboolean run_diritem(const guchar *full_path,
 				return TRUE;
 			}
 
+			FilerWindow *tfw = filer_window;
+			if (src_window && !tfw) {
+				tfw = src_window->right_link;
+				if (tfw)
+					filer_clear_settings(tfw);
+			}
+
 			if (item->flags & ITEM_FLAG_MOUNT_POINT)
 			{
-				open_mountpoint(full_path, item,
-						filer_window, src_window, edit);
+				tfw = open_mountpoint(full_path, item,
+						tfw, src_window, edit);
 			}
-			else if (filer_window)
-				filer_change_to(filer_window, full_path, NULL);
+			else if (tfw)
+				filer_change_to(tfw, full_path, NULL);
 			else
-				filer_opendir(full_path, src_window, NULL);
+			{
+				tfw = filer_opendir(full_path, src_window, NULL);
+			}
+
+			if (!filer_window && o_window_link.int_value && src_window)
+			{
+				src_window->right_link = tfw;
+				filer_set_title(src_window);
+				tfw->left_link = src_window;
+				filer_set_title(tfw);
+
+				filer_link(src_window, tfw);
+			}
+
 			return TRUE;
 		case TYPE_FILE:
 			if (EXECUTABLE_FILE(item) && !edit)
@@ -585,7 +606,7 @@ static gboolean open_file(const guchar *path, MIME_type *type)
 }
 
 /* Called like run_diritem, when a mount-point is opened */
-static void open_mountpoint(const guchar *full_path, DirItem *item,
+static FilerWindow *open_mountpoint(const guchar *full_path, DirItem *item,
 			    FilerWindow *filer_window, FilerWindow *src_window,
 			    gboolean edit)
 {
@@ -606,8 +627,10 @@ static void open_mountpoint(const guchar *full_path, DirItem *item,
 		if (filer_window)
 			filer_change_to(filer_window, full_path, NULL);
 		else
-			filer_opendir(full_path, src_window, NULL);
+			return filer_opendir(full_path, src_window, NULL);
 	}
+
+	return filer_window;
 }
 
 /* full_path is a .desktop file. Execute the application, using the Exec line

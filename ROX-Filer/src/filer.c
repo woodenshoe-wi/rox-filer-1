@@ -203,6 +203,7 @@ Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 static Option o_create_sub_dir_thumbs;
 static Option o_thumb_processes_num;
+Option o_window_link;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 
@@ -232,6 +233,7 @@ void filer_init(void)
 	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
 	option_add_int(&o_create_sub_dir_thumbs, "create_sub_dir_thumbs", FALSE);
 	option_add_int(&o_thumb_processes_num, "thumb_processes_num", 3);
+	option_add_int(&o_window_link, "window_link", 1);
 
 	option_add_notify(filer_options_changed);
 
@@ -448,6 +450,19 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 		 	gdk_event_free(event);
 		}
 	}
+}
+
+void filer_link(FilerWindow *left, FilerWindow *right)
+{
+
+	GdkRectangle frect = {0, 0, 0, 0};
+	gdk_window_get_frame_extents(left->window->window, &frect);
+	gtk_window_move(GTK_WINDOW(right->window),
+			frect.x + frect.width,
+			frect.y);
+
+	gtk_window_present(GTK_WINDOW(right->window));
+
 }
 
 /* Called on a timeout while scanning or when scanning ends
@@ -860,9 +875,32 @@ gboolean filer_window_delete(GtkWidget *window,
 	return FALSE;
 }
 
+static void cut_links(FilerWindow *fw, gboolean left_only)
+{
+	if (!fw->left_link && !fw->right_link) return;
+
+	if (fw->left_link)
+	{
+		fw->left_link->right_link = NULL;
+		filer_set_title(fw->left_link);
+		fw->left_link = NULL;
+	}
+
+	if (!left_only && fw->right_link)
+	{
+		gtk_widget_destroy(fw->right_link->window);
+		fw->right_link = NULL;
+	}
+
+	filer_set_title(fw);
+}
+
+
 static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 {
 	all_filer_windows = g_list_remove(all_filer_windows, filer_window);
+
+	cut_links(filer_window, FALSE);
 
 	g_object_set_data(G_OBJECT(widget), "filer_window", NULL);
 
@@ -1533,7 +1571,7 @@ static void tidy_sympath(gchar *path)
  * simply wink 'from' (if not NULL).
  * If the cause was a key event and we resize, warp the pointer.
  */
-void filer_change_to(FilerWindow *filer_window,
+void filer_change_to(FilerWindow *fw,
 			const char *path, const char *from)
 {
 	char	*from_dup;
@@ -1541,9 +1579,9 @@ void filer_change_to(FilerWindow *filer_window,
 	Directory *new_dir;
 	gboolean force_resize;
 
-	g_return_if_fail(filer_window != NULL);
+	g_return_if_fail(fw != NULL);
 
-	filer_cancel_thumbnails(filer_window);
+	filer_cancel_thumbnails(fw);
 
 	tooltip_show(NULL);
 
@@ -1560,65 +1598,66 @@ void filer_change_to(FilerWindow *filer_window,
 		return;
 	}
 
+	cut_links(fw, FALSE);
 
-	filer_window->under_init = TRUE;
-	filer_window->first_scan = TRUE;
-	filer_window->req_sort = FALSE;
+	fw->under_init = TRUE;
+	fw->first_scan = TRUE;
+	fw->req_sort = FALSE;
 
 	if (o_unique_filer_windows.int_value && !spring_in_progress)
 	{
-		FilerWindow *fw;
+		FilerWindow *fwd;
 
-		fw = find_filer_window(sym_path, filer_window);
-		if (fw)
-			gtk_widget_destroy(fw->window);
+		fwd = find_filer_window(sym_path, fw);
+		if (fwd)
+			gtk_widget_destroy(fwd->window);
 	}
 
 	from_dup = from && *from ? g_strdup(from) : NULL;
 
-	detach(filer_window);
-	g_free(filer_window->real_path);
-	g_free(filer_window->sym_path);
-	filer_window->real_path = real_path;
-	filer_window->sym_path = sym_path;
-	tidy_sympath(filer_window->sym_path);
-	if (filer_window->regexp)
+	detach(fw);
+	g_free(fw->real_path);
+	g_free(fw->sym_path);
+	fw->real_path = real_path;
+	fw->sym_path = sym_path;
+	tidy_sympath(fw->sym_path);
+	if (fw->regexp)
 	{
-		regfree((regex_t *) filer_window->regexp);
-		g_free(filer_window->regexp);
-		filer_window->regexp = NULL;
-		g_free(filer_window->temp_filter_string);
-		filer_window->temp_filter_string = NULL;
+		regfree((regex_t *) fw->regexp);
+		g_free(fw->regexp);
+		fw->regexp = NULL;
+		g_free(fw->temp_filter_string);
+		fw->temp_filter_string = NULL;
 	}
-	if (filer_window->mini_type == MINI_TEMP_FILTER)
-		minibuffer_hide(filer_window);
+	if (fw->mini_type == MINI_TEMP_FILTER)
+		minibuffer_hide(fw);
 
-	filer_window->directory = new_dir;
+	fw->directory = new_dir;
 
-	g_free(filer_window->auto_select);
-	filer_window->auto_select = NULL;
+	g_free(fw->auto_select);
+	fw->auto_select = NULL;
 
-	force_resize = check_settings(filer_window, FALSE);
+	force_resize = check_settings(fw, FALSE);
 
-	filer_window->had_cursor = filer_window->had_cursor ||
-			view_cursor_visible(filer_window->view);
+	fw->had_cursor = fw->had_cursor ||
+			view_cursor_visible(fw->view);
 
-	if (filer_window->window->window)
-		gdk_window_set_role(filer_window->window->window,
-				    filer_window->sym_path);
-	view_cursor_to_iter(filer_window->view, NULL);
+	if (fw->window->window)
+		gdk_window_set_role(fw->window->window,
+				    fw->sym_path);
+	view_cursor_to_iter(fw->view, NULL);
 
-	attach(filer_window);
+	attach(fw);
 
 	if (from_dup)
-		display_set_autoselect(filer_window, from_dup);
+		display_set_autoselect(fw, from_dup);
 	g_free(from_dup);
 
-	filer_window->under_init = FALSE;
-	display_set_actual_size(filer_window, force_resize);
+	fw->under_init = FALSE;
+	display_set_actual_size(fw, force_resize);
 
-	if (filer_window->mini_type == MINI_PATH)
-		g_idle_add((GSourceFunc) minibuffer_show_cb, filer_window);
+	if (fw->mini_type == MINI_PATH)
+		g_idle_add((GSourceFunc) minibuffer_show_cb, fw);
 }
 
 /* Returns a list containing the full (sym) pathname of every selected item.
@@ -1724,6 +1763,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->last_width = -1;
 	filer_window->last_height = -1;
 	filer_window->dir_icon = NULL;
+	filer_window->right_link = NULL;
+	filer_window->left_link = NULL;
 
 	tidy_sympath(filer_window->sym_path);
 
@@ -2056,9 +2097,25 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 			    filer_window->sym_path);
 }
 
-static gboolean configure_cb(FilerWindow *filer_window)
+static gboolean configure_cb(
+		GtkWidget *widget,
+		GdkEvent *event,
+		FilerWindow *fw)
 {
-	filer_window->configured = 1;
+	fw->configured = 1;
+
+	if (fw->left_link && gtk_window_is_active(GTK_WINDOW(fw->window)))
+	{
+		GdkRectangle frect = {0, 0, 0, 0};
+		gdk_window_get_frame_extents(
+				fw->left_link->window->window, &frect);
+
+		if (event->configure.x != frect.x + frect.width)
+			cut_links(fw, TRUE);
+	}
+
+	if (fw->right_link)
+		filer_link(fw, fw->right_link);
 
 	return FALSE;
 }
@@ -2103,7 +2160,7 @@ static void filer_add_signals(FilerWindow *filer_window)
 	g_signal_connect_swapped(filer_window->window, "style_set",
 			G_CALLBACK(set_font), filer_window->window);
 
-	g_signal_connect_swapped(filer_window->window, "configure-event",
+	g_signal_connect(filer_window->window, "configure-event",
 			G_CALLBACK(configure_cb), filer_window);
 
 	gtk_window_add_accel_group(GTK_WINDOW(filer_window->window),
@@ -2407,6 +2464,18 @@ void filer_set_title(FilerWindow *filer_window)
 				    NULL);
 		g_free(old);
 	}
+
+	if (filer_window->right_link) {
+		gchar *old = title;
+		title = g_strconcat(old, "  ☛☛", NULL);
+		g_free(old);
+	}
+	if (filer_window->left_link) {
+		gchar *old = title;
+		title = g_strconcat("☚☚  ", old, NULL);
+		g_free(old);
+	}
+
 
 	gtk_window_set_title(GTK_WINDOW(filer_window->window), title);
 
@@ -3022,10 +3091,16 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 			flags |= OPEN_SHIFT;
 			/* (no break) */
 		case ACT_OPEN_ITEM:
-			if (event->button != 1 || event->state & GDK_MOD1_MASK)
+			if (
+					(item->base_type == TYPE_DIRECTORY &&
+						(filer_window->right_link || filer_window->left_link))
+					!=
+					(event->button != 1 || event->state & GDK_MOD1_MASK)
+					)
 				flags |= OPEN_CLOSE_WINDOW;
 			else
 				flags |= OPEN_SAME_WINDOW;
+
 			if (o_new_button_1.int_value)
 				flags ^= OPEN_SAME_WINDOW;
 			if (event->type == GDK_2BUTTON_PRESS)

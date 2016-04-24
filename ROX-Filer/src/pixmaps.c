@@ -176,8 +176,9 @@ void pixmaps_init(void)
 	int i;
 
 	option_add_int(&o_pixmap_thumb_file_size, "thumb_file_size", PIXMAP_THUMB_SIZE);
-	option_add_int(&o_purge_time, "purge_time", PIXMAP_PURGE_TIME);
-	option_add_int(&o_jpeg_thumbs, "jpeg_thumbs", FALSE);
+//	option_add_int(&o_purge_time, "purge_time", PIXMAP_PURGE_TIME);
+	option_add_int(&o_purge_time, "purge_time", 0);
+	option_add_int(&o_jpeg_thumbs, "jpeg_thumbs", TRUE);
 	option_add_notify(options_changed);
 
 	gtk_widget_push_colormap(gdk_rgb_get_colormap());
