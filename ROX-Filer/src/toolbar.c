@@ -185,7 +185,7 @@ static Tool all_tools[] = {
 						"  ▶: Parent settings\n"
 						"  ▷: Far parent settings"
 						),
-	 toolbar_settings_clicked, DROP_NONE, FALSE,
+	 toolbar_settings_clicked, DROP_NONE, TRUE,
 	 FALSE},
 
 	{N_("Help"), GTK_STOCK_HELP, N_("Show ROX-Filer help"),
@@ -353,7 +353,6 @@ static gint get_release()
 	gint ret = 0;
 	GdkEvent *event = get_current_event(GDK_BUTTON_RELEASE);
 
-	event = get_current_event(GDK_BUTTON_RELEASE);
 	if (event->type == GDK_BUTTON_RELEASE)
 	{
 		ret = ((GdkEventButton *) event)->button;

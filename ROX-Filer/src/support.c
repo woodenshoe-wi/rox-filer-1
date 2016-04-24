@@ -1198,11 +1198,6 @@ struct _CollateKey {
 	gboolean caps;
 };
 
-/* Break 'name' (a UTF-8 string) down into a list of (text, number) pairs.
- * The text parts processed for collating. This allows any two names to be
- * quickly compared later for intelligent sorting (comparing names is
- * speed-critical).
- */
 CollateKey *collate_key_new(const guchar *name)
 {
 	CollateKey *retval;

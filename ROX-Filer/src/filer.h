@@ -112,7 +112,10 @@ struct _FilerWindow
 	gint		open_timeout;	/* Will resize and show window... */
 
 	GtkStateType	selection_state;	/* for drawing selection */
-	
+
+	FilerWindow *right_link;
+	FilerWindow *left_link;
+
 	gboolean	show_thumbs;
 	GQueue		*thumb_queue;		/* paths to thumbnail */
 	GtkWidget	*thumb_bar, *thumb_progress;
@@ -154,6 +157,7 @@ extern Option		o_view_alpha;
 extern Option		o_use_background_colour;
 extern Option		o_background_colour;
 extern Option		o_fast_font_calc;
+extern Option		o_window_link;
 extern gint 		fw_font_height;
 extern gint 		fw_font_widths[0x7f];
 
@@ -211,6 +215,7 @@ void filer_set_hidden(FilerWindow *fwin, gboolean hidden);
 void filer_next_selected(FilerWindow *filer_window, int dir);
 void filer_save_settings(FilerWindow *fwin, gboolean parent);
 void filer_clear_settings(FilerWindow *fwin);
+void filer_link(FilerWindow *left, FilerWindow *right);
 
 UnmountPrompt filer_get_unmount_action(const char *path);
 void filer_set_unmount_action(const char *path, UnmountPrompt action);
