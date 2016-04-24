@@ -142,6 +142,7 @@ static void filter_directories(gpointer data, guint action, GtkWidget *widget);
 static void hidden(gpointer data, guint action, GtkWidget *widget);
 static void show_thumbs(gpointer data, guint action, GtkWidget *widget);
 static void refresh(gpointer data, guint action, GtkWidget *widget);
+static void refresh_thumbs(gpointer data, guint action, GtkWidget *widget);
 static void save_settings(gpointer data, guint action, GtkWidget *widget);
 static void save_settings_parent(gpointer data, guint action, GtkWidget *widget);
 
@@ -235,6 +236,7 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">" N_("Filter Directories With Files"),	NULL, filter_directories, 0, "<ToggleItem>"},
 {">" N_("Show Thumbnails"),	NULL, show_thumbs, 0, "<ToggleItem>"},
 {">" N_("Refresh"),		NULL, refresh, 0, "<StockItem>", GTK_STOCK_REFRESH},
+{">" N_("Refresh Thumbs"),		NULL, refresh_thumbs, 0, "<StockItem>", GTK_STOCK_REFRESH},
 {">" N_("Save Current Display Settings..."),	 NULL, save_settings, 0, NULL},
 {">" N_("Save Current Display Settings to parent ..."),	 NULL, save_settings_parent, 0, NULL},
 {N_("File"),			NULL, NULL, 0, "<Branch>"},
@@ -1092,6 +1094,13 @@ static void refresh(gpointer data, guint action, GtkWidget *widget)
 	g_return_if_fail(window_with_focus != NULL);
 
 	filer_refresh(window_with_focus);
+}
+
+static void refresh_thumbs(gpointer data, guint action, GtkWidget *widget)
+{
+	g_return_if_fail(window_with_focus != NULL);
+
+	filer_refresh_thumbs(window_with_focus);
 }
 
 static void save_settings(gpointer data, guint action, GtkWidget *widget)
