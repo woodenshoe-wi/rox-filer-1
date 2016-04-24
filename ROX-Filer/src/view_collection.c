@@ -186,7 +186,7 @@ GtkWidget *view_collection_new(FilerWindow *filer_window)
 	 */
 	gtk_viewport_set_vadjustment(GTK_VIEWPORT(view_collection),
 				 view_collection->collection->vadj);
-				 
+
 	gtk_range_set_adjustment(GTK_RANGE(filer_window->scrollbar),
 				 view_collection->collection->vadj);
 
@@ -567,7 +567,7 @@ static void draw_item(GtkWidget *widget,
 	if (view->may_thumb)
 	{
 		//delay loading in scroll is not good,
-		//because half of view is blank and also too blink. 
+		//because half of view is blank and also too blink.
 		if (
 				fw->display_style != HUGE_ICONS ||
 				fw->scanning ||
@@ -1042,7 +1042,7 @@ static void view_collection_extend_tip(ViewIface *view, ViewIter *iter,
 	ViewData *view_data = (ViewData *) colitem->view_data;
 	GdkRectangle area;
 	int row,col;
-	
+
 	collection_item_to_rowcol(collection, i, &row, &col);
 
 	g_return_if_fail(iter->view == (ViewIface *) view_collection);
@@ -1275,7 +1275,7 @@ static void update_item(ViewCollection *view_collection, int i)
 			(ViewData *) colitem->view_data,
 			FALSE);
 
-	calc_size(filer_window, colitem, &w, &h); 
+	calc_size(filer_window, colitem, &w, &h);
 	if (w > old_w || h > old_h)
 		collection_set_item_size(collection,
 					 MAX(old_w, w),
@@ -1301,10 +1301,10 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 		height = ICON_HEIGHT;
 
 	view_collection->collection->vertical_order = FALSE;
-	if (filer_window->display_style == SMALL_ICONS && 
+	if (filer_window->display_style == SMALL_ICONS &&
 	    o_vertical_order_small.int_value)
 	  view_collection->collection->vertical_order = TRUE;
-	if (filer_window->display_style != SMALL_ICONS && 
+	if (filer_window->display_style != SMALL_ICONS &&
 	    o_vertical_order_large.int_value)
 	  view_collection->collection->vertical_order = TRUE;
 
@@ -1388,7 +1388,7 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 		reti = collection_insert(collection, item,
 					display_create_viewdata(filer_window, item));
 
-		calc_size(filer_window, &collection->items[reti], &w, &h); 
+		calc_size(filer_window, &collection->items[reti], &w, &h);
 		mw = MAX(mw, w);
 		mh = MAX(mh, h);
 	}
@@ -1474,7 +1474,7 @@ static void view_collection_select_all(ViewIface *view)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	collection_select_all(collection);
 }
 
@@ -1482,7 +1482,7 @@ static void view_collection_clear_selection(ViewIface *view)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	collection_clear_selection(collection);
 }
 
@@ -1490,7 +1490,7 @@ static int view_collection_count_items(ViewIface *view)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	return collection->number_of_items;
 }
 
@@ -1498,7 +1498,7 @@ static int view_collection_count_selected(ViewIface *view)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	return collection->number_selected;
 }
 
@@ -1532,7 +1532,7 @@ static DirItem *iter_init(ViewIter *iter)
 	}
 	else if (flags & VIEW_ITER_FROM_BASE)
 		i = view_collection->cursor_base;
-	
+
 	if (i < 0 || i >= n)
 	{
 		/* Either a normal iteration, or an iteration from an
@@ -1569,7 +1569,7 @@ static DirItem *iter_next(ViewIter *iter)
 	/* i is the last item returned (always valid) */
 
 	g_return_val_if_fail(i >= 0 && i < n, NULL);
-	
+
 	while (iter->n_remaining)
 	{
 		i++;
@@ -1587,7 +1587,7 @@ static DirItem *iter_next(ViewIter *iter)
 		iter->i = i;
 		return collection->items[i].data;
 	}
-	
+
 	iter->i = -1;
 	return NULL;
 }
@@ -1622,7 +1622,7 @@ static DirItem *iter_prev(ViewIter *iter)
 		iter->i = i;
 		return collection->items[i].data;
 	}
-	
+
 	iter->i = -1;
 	return NULL;
 }
@@ -1634,7 +1634,7 @@ static DirItem *iter_peek(ViewIter *iter)
 
 	if (i == -1)
 		return NULL;
-	
+
 	g_return_val_if_fail(i >= 0 && i < collection->number_of_items, NULL);
 
 	return collection->items[i].data;
@@ -1721,7 +1721,7 @@ static void view_collection_set_selected(ViewIface *view,
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	g_return_if_fail(iter != NULL &&
 			 iter->view == (ViewIface *) view_collection);
 	g_return_if_fail(iter->i >= 0 && iter->i < collection->number_of_items);
@@ -1741,7 +1741,7 @@ static gboolean view_collection_get_selected(ViewIface *view, ViewIter *iter)
 			iter->view == (ViewIface *) view_collection, FALSE);
 	g_return_val_if_fail(iter->i >= 0 &&
 				iter->i < collection->number_of_items, FALSE);
-	
+
 	return collection->items[iter->i].selected;
 }
 
@@ -1864,7 +1864,7 @@ static void view_collection_autosize(ViewIface *view)
 	 * 	   sqrt(rt.rt + ...) > rt
 	 *
 	 * So, the +/- must be +:
-	 * 	
+	 *
 	 *	=> x = (rt + sqrt(rt.rt + 4hr(nw - 1))) / 2
 	 */
 
@@ -1966,7 +1966,7 @@ static gboolean view_collection_auto_scroll_callback(ViewIface *view)
 	int		diff = 0;
 
 	gdk_window_get_pointer(window, &x, &y, &mask);
-	gdk_drawable_get_size(window, &w, NULL);
+	w = gdk_window_get_width(window);
 
 	h = collection->vadj->page_size;
 	y -= collection->vadj->value;

@@ -18,7 +18,7 @@
  */
 
 
-/* 
+/*
  * xtypes.c - Extended filesystem attribute support for MIME types
  */
 
@@ -66,7 +66,7 @@ static int (*dyn_removexattr)(const char *path,
 void xattr_init(void)
 {
 	void *libc;
-	
+
 	libc = dlopen("libc.so.6", RTLD_LAZY | RTLD_NOLOAD);
 	if (!libc)
 	{
@@ -81,7 +81,7 @@ void xattr_init(void)
 	dyn_getxattr = (void *) dlsym(libc, "getxattr");
 	dyn_listxattr = (void *) dlsym(libc, "listxattr");
 	dyn_removexattr = (void *) dlsym(libc, "removexattr");
-	
+
 	option_add_int(&o_xattr_ignore, "xattr_ignore", FALSE);
 }
 
@@ -89,9 +89,9 @@ int xattr_supported(const char *path)
 {
 	char buf[1];
 	ssize_t nent;
-	
+
 	RETURN_IF_IGNORED(FALSE);
-	
+
 	if (!dyn_getxattr)
 		return FALSE;
 
@@ -109,9 +109,9 @@ int xattr_supported(const char *path)
 int xattr_have(const char *path)
 {
 	ssize_t nent;
-	
+
 	RETURN_IF_IGNORED(FALSE);
-	
+
 	if (!dyn_listxattr)
 		return FALSE;
 
@@ -120,7 +120,7 @@ int xattr_have(const char *path)
 
 	if(nent<0 && errno==ERANGE)
 		return TRUE;
-	
+
 	return (nent>0);
 }
 
@@ -130,7 +130,7 @@ gchar *xattr_get(const char *path, const char *attr, int *len)
 	gchar *buf;
 
 	RETURN_IF_IGNORED(NULL);
-	
+
 	if (!dyn_getxattr)
 		return NULL;
 
@@ -145,7 +145,7 @@ gchar *xattr_get(const char *path, const char *attr, int *len)
 		if(size == new_size)
 		{
 			buf[size] = '\0';
-			
+
 			if(len)
 				*len=(int) size;
 
@@ -204,7 +204,7 @@ int xattr_rem(const char *path, const char *attr)
 /* Solaris 9 implementation */
 
 void xattr_init(void)
-{	
+{
 	option_add_int(&o_xattr_ignore, "xattr_ignore", FALSE);
 }
 
@@ -214,7 +214,7 @@ int xattr_supported(const char *path)
 #ifdef _PC_XATTR_ENABLED
 	if(!path)
 		return TRUE;
-	
+
 	return pathconf(path, _PC_XATTR_ENABLED);
 #else
 	return FALSE;
@@ -246,7 +246,7 @@ gchar *xattr_get(const char *path, const char *attr, int *len)
 #endif
 
 	fd=attropen(path, attr, O_RDONLY);
-  
+
 	if(fd>=0) {
 		buf = g_new(gchar, MAX_ATTR_SIZE);
 		nb=read(fd, buf, MAX_ATTR_SIZE);
@@ -279,7 +279,7 @@ int xattr_set(const char *path, const char *attr,
 
 	fd=attropen(path, attr, O_WRONLY|O_CREAT, 0644);
 	if(fd>0) {
-		
+
 		nb=write(fd, value, value_len);
 		if(nb==value_len)
 			ftruncate(fd, (off_t) nb);
@@ -289,7 +289,7 @@ int xattr_set(const char *path, const char *attr,
 		if(nb>0)
 			return 0;
 	}
-  
+
 	return 1; /* Set type failed */
 }
 
@@ -306,7 +306,7 @@ int xattr_rem(const char *path, const char *attr)
 
 	fd=attropen(path, ".", O_WRONLY);
 	if(fd>0) {
-	
+
 		er=unlinkat(fd, attr, 0);
 		close(fd);
 
@@ -682,7 +682,7 @@ static void remove_item(GtkWidget *button, gpointer data)
 		gint i;
 		GtkTreePath *path;
 		gboolean edit;
-		
+
 		gtk_tree_model_get(model, &iter, COLUMN_EDVAL, &edit, -1);
 		if(edit == TRUE) {
 			path = gtk_tree_model_get_path(model, &iter);
@@ -727,7 +727,7 @@ static void cell_edited(GtkCellRendererText *cell, const gchar *path_string, con
 
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter, column,
 					g_array_index(arr, XAttr, i).name, -1);
-		
+
 		}
 		break;
 
@@ -796,7 +796,7 @@ void xattrs_browser(DirItem *item, const guchar *path)
 	gtk_label_set_line_wrap(GTK_LABEL(name), TRUE);
 	gtk_label_set_line_wrap_mode(GTK_LABEL(name), PANGO_WRAP_WORD_CHAR);
 	gtk_box_pack_start(GTK_BOX(hbox), name, FALSE, TRUE, 4);
-	
+
 	make_heading(name, PANGO_SCALE_X_LARGE);
 
 	sw = gtk_scrolled_window_new(NULL,NULL);

@@ -189,7 +189,7 @@ void diritem_restat(
 		}
 		else
 			item->mime_type = type_from_path(path);
-	
+
 		/* Note: for symlinks we need the mode of the target */
 		if (info.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
 		{
@@ -209,7 +209,7 @@ void diritem_restat(
 			{
 				item->mime_type = application_x_shellscript;
 			}
-		}		
+		}
 		else if (item->mime_type == application_x_desktop)
 		{
 			item->flags |= ITEM_FLAG_EXEC_FILE;
@@ -222,7 +222,9 @@ void diritem_restat(
 
 		if (item->mime_type == application_x_desktop && item->_image == NULL)
 		{
+			g_mutex_lock(&m_diritems);
 			item->_image = g_fscache_lookup(desktop_icon_cache, path);
+			g_mutex_unlock(&m_diritems);
 		}
 	}
 	else

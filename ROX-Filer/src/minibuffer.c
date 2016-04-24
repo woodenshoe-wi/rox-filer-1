@@ -31,7 +31,7 @@
 
 #include <sys/types.h>
 #include <pwd.h>
- 
+
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
@@ -92,7 +92,7 @@ void create_minibuffer(FilerWindow *filer_window)
 	GtkWidget *hbox, *label, *mini;
 
 	hbox = gtk_hbox_new(FALSE, 0);
-	
+
 	gtk_box_pack_start(GTK_BOX(hbox),
 			new_help_button((HelpFunc) show_help, filer_window),
 			FALSE, TRUE, 0);
@@ -121,7 +121,7 @@ void minibuffer_show(FilerWindow *filer_window, MiniType mini_type, guint keyval
 	GtkEntry	*mini;
 	int		pos = -1;
 	ViewIter	cursor;
-	
+
 	g_return_if_fail(filer_window != NULL);
 	g_return_if_fail(filer_window->minibuffer != NULL);
 
@@ -232,7 +232,7 @@ void minibuffer_show(FilerWindow *filer_window, MiniType mini_type, guint keyval
 			g_warning("Bad minibuffer type\n");
 			return;
 	}
-	
+
 	filer_window->mini_type = mini_type;
 
 	gtk_editable_set_position(GTK_EDITABLE(mini), pos);
@@ -377,7 +377,7 @@ static void path_return_pressed(FilerWindow *filer_window, GdkEventKey *event)
 		return;
 	}
 	g_free(base);
-	
+
 	if ((event->state & GDK_SHIFT_MASK) != 0)
 		flags |= OPEN_SHIFT;
 
@@ -422,7 +422,7 @@ static void complete(FilerWindow *filer_window)
 		gdk_beep();
 		return;
 	}
-	
+
 	current_stem = strlen(leaf);
 
 	/* Find the longest other match of this name. If it's longer than
@@ -464,7 +464,7 @@ static void complete(FilerWindow *filer_window)
 	else if (current_stem < shortest_stem)
 	{
 		gint tmp_pos;
-		
+
 		/* Have to replace the leafname text in the minibuffer rather
 		 * than just append to it.  Here's an example:
 		 * Suppose we have two dirs, /tmp and /TMP.
@@ -479,7 +479,7 @@ static void complete(FilerWindow *filer_window)
 		gtk_editable_insert_text(GTK_EDITABLE(entry),
 					 item->leafname, shortest_stem,
 					 &tmp_pos);
-		
+
 		gtk_editable_set_position(GTK_EDITABLE(entry), -1);
 
 		if (o_filer_beep_multi.int_value)
@@ -528,8 +528,8 @@ static void path_changed(FilerWindow *filer_window)
 	case '~':
 		if (!rawnew[1] || rawnew[1]=='/')
 		{
-			new=g_strconcat(g_get_home_dir(), "/", 
-					     rawnew[1]? rawnew+2: "", "/", 
+			new=g_strconcat(g_get_home_dir(), "/",
+					     rawnew[1]? rawnew+2: "", "/",
 					     NULL);
 		}
 		else
@@ -538,7 +538,7 @@ static void path_changed(FilerWindow *filer_window)
 			gchar *username;
 			struct passwd *passwd;
 
-			
+
 			/* Need to lookup user name */
 			for(sl=rawnew+2; *sl && *sl!='/'; sl++)
 				;
@@ -548,8 +548,8 @@ static void path_changed(FilerWindow *filer_window)
 
 			if(passwd)
 			{
-				new=g_strconcat(passwd->pw_dir, "/", 
-					     sl+1, "/", 
+				new=g_strconcat(passwd->pw_dir, "/",
+					     sl+1, "/",
 					     NULL);
 			}
 			else
@@ -561,7 +561,7 @@ static void path_changed(FilerWindow *filer_window)
 		new=g_strdup(rawnew);
 		break;
 	}
-		
+
 
 	base = g_path_get_basename(new);
 	leaf = base;
@@ -590,12 +590,12 @@ static void path_changed(FilerWindow *filer_window)
 			filer_window->temp_show_hidden = TRUE;
 			display_update_hidden(filer_window);
 		}
-		
+
 		if (find_exact_match(filer_window, leaf) == FALSE &&
 		    find_next_match(filer_window, leaf, 0) == FALSE)
 			error = TRUE;
 	}
-		
+
 	g_free(new);
 	g_free(path);
 	g_free(base);
@@ -674,9 +674,9 @@ static gboolean find_next_match(FilerWindow *filer_window,
 static gboolean matches(ViewIter *iter, const char *pattern)
 {
 	DirItem *item;
-	
+
 	item = iter->peek(iter);
-	
+
 	return strncasecmp(item->leafname, pattern, strlen(pattern)) == 0;
 }
 
@@ -690,7 +690,7 @@ static void search_in_dir(FilerWindow *filer_window, int dir)
 	path = gtk_entry_get_text(GTK_ENTRY(filer_window->minibuffer));
 	base = g_path_get_basename(path);
 	pattern = base;
-	
+
 	view_get_cursor(filer_window->view, &iter);
 	view_set_base(filer_window->view, &iter);
 	find_next_match(filer_window, pattern, dir);
@@ -704,12 +704,12 @@ static void search_in_dir(FilerWindow *filer_window, int dir)
 static void add_to_history(const gchar *line)
 {
 	guchar 	*last;
-	
+
 	last = shell_history ? (guchar *) shell_history->data : NULL;
 
 	if (last && strcmp(last, line) == 0)
 		return;			/* Duplicating last entry */
-	
+
 	shell_history = g_list_prepend(shell_history, g_strdup(line));
 }
 
@@ -760,7 +760,7 @@ static guchar *best_match(FilerWindow *filer_window, glob_t *matches)
 		g_free(tmp);
 		return path;
 	}
-	
+
 	return tmp;
 }
 
@@ -772,7 +772,7 @@ static void shell_tab(FilerWindow *filer_window)
 	GString	*leaf;
 	glob_t	matches;
 	int	leaf_start;
-	
+
 	entry = gtk_entry_get_text(GTK_ENTRY(filer_window->minibuffer));
 	pos = gtk_editable_get_position(GTK_EDITABLE(filer_window->minibuffer));
 	leaf = g_string_new(NULL);
@@ -780,7 +780,7 @@ static void shell_tab(FilerWindow *filer_window)
 	for (i = 0; i < pos; i++)
 	{
 		guchar	c = entry[i];
-		
+
 		if (leaf->len == 0)
 			leaf_start = i;
 
@@ -805,7 +805,7 @@ static void shell_tab(FilerWindow *filer_window)
 			}
 			continue;
 		}
-		
+
 		g_string_append_c(leaf, c);
 	}
 
@@ -886,7 +886,7 @@ static void shell_return_pressed(FilerWindow *filer_window)
 		if (view_get_selected(filer_window->view, &iter))
 			g_ptr_array_add(argv, item->leafname);
 	}
-	
+
 	g_ptr_array_add(argv, NULL);
 
 	if (!g_spawn_async_with_pipes(filer_window->sym_path,
@@ -1041,7 +1041,7 @@ static gint key_press_event(GtkWidget	*widget,
 		if (filer_window->mini_type == MINI_SHELL)
 		{
 			const gchar *line;
-			
+
 			line = mini_contents(filer_window);
 			if (line)
 				add_to_history(line);
@@ -1286,7 +1286,7 @@ static void changed(GtkEditable *mini, FilerWindow *filer_window)
 			path_changed(filer_window);
 			return;
 		case MINI_SELECT_IF:
-			set_find_string_colour(GTK_WIDGET(mini), 
+			set_find_string_colour(GTK_WIDGET(mini),
 				gtk_entry_get_text(
 					GTK_ENTRY(filer_window->minibuffer)));
 			return;
@@ -1336,7 +1336,7 @@ static const gchar *mini_contents(FilerWindow *filer_window)
 static gboolean grab_focus(GtkWidget *minibuffer)
 {
 	GtkWidgetClass *class;
-	
+
 	class = GTK_WIDGET_CLASS(gtk_type_class(GTK_TYPE_WIDGET));
 
 	class->grab_focus(minibuffer);

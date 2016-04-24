@@ -229,7 +229,7 @@ MaskedPixmap *load_pixmap(const char *name)
 {
 	guchar *path;
 	MaskedPixmap *retval;
-	
+
 	path = g_strconcat(app_dir, "/images/", name, ".png", NULL);
 	retval = image_from_file(path);
 	g_free(path);
@@ -254,7 +254,7 @@ static MaskedPixmap *mp_from_stock(const char *stock_id, int size)
 					     stock_id);
 	if (!icon_set)
 		return get_bad_image();
-	
+
 	pixbuf = gtk_icon_set_render_icon(icon_set,
                                      gtk_widget_get_default_style(), /* Gtk bug */
                                      GTK_TEXT_DIR_LTR,
@@ -497,7 +497,7 @@ GdkPixbuf *pixmap_try_thumb(const gchar *path, gboolean can_load)
 	{
 		struct stat info1, info2;
 		char *dir;
-		
+
 		/* Skip zero-byte files. They're either empty, or
 		 * special (may cause us to hang, e.g. /proc/kmsg). */
 		if (mc_stat(path, &info1) == 0 && info1.st_size == 0) {
@@ -505,7 +505,7 @@ GdkPixbuf *pixmap_try_thumb(const gchar *path, gboolean can_load)
 		}
 
 		dir = g_path_get_dirname(path);
-		
+
 		/* If the image itself is in ~/.cache/thumbnails, load it now
 		 * (ie, don't create thumbnails for thumbnails!).
 		 */
@@ -577,7 +577,7 @@ static void save_thumbnail(const char *pathname, GdkPixbuf *full)
 	        uri = g_strconcat("file://", path, NULL);
 	md5 = md5_hash(uri);
 	g_free(path);
-		
+
 	to = g_string_new(home_dir);
 	g_string_append(to, "/.cache");
 	mkdir(to->str, 0700);
@@ -643,12 +643,12 @@ static gchar *thumbnail_path(const char *path)
 	gchar *uri, *md5;
 	GString *to;
 	gchar *ans;
-	
+
 	uri = g_filename_to_uri(path, NULL, NULL);
 	if(!uri)
 	       uri = g_strconcat("file://", path, NULL);
 	md5 = md5_hash(uri);
-		
+
 	to = g_string_new(home_dir);
 	g_string_append(to, "/.cache");
 	mkdir(to->str, 0700);
@@ -888,7 +888,7 @@ static MaskedPixmap *image_from_file(const char *path)
 	GdkPixbuf	*pixbuf;
 	MaskedPixmap	*image;
 	GError		*error = NULL;
-	
+
 	pixbuf = gdk_pixbuf_new_from_file(path, &error);
 	if (!pixbuf)
 	{
@@ -936,7 +936,7 @@ static MaskedPixmap *image_from_desktop_file(const char *path)
 		 * Remove them.
 		 */
 		extension = strrchr(icon, '.');
-		if (extension && (strcmp(extension, ".png") == 0 
+		if (extension && (strcmp(extension, ".png") == 0
 						|| strcmp(extension, ".xpm") == 0
 						|| strcmp(extension, ".svg") == 0))
 		{
@@ -986,7 +986,7 @@ GdkPixbuf *scale_pixbuf(GdkPixbuf *src, int max_w, int max_h)
 		float scale = MAX(scale_x, scale_y);
 		int dest_w = w / scale;
 		int dest_h = h / scale;
-		
+
 		return gdk_pixbuf_scale_simple(src,
 						MAX(dest_w, 1),
 						MAX(dest_h, 1),
@@ -1001,7 +1001,7 @@ static MaskedPixmap *get_bad_image(void)
 {
 	GdkPixbuf *bad;
 	MaskedPixmap *mp;
-	
+
 	bad = gdk_pixbuf_new_from_xpm_data(bad_xpm);
 	mp = masked_pixmap_new(bad);
 	g_object_unref(bad);
@@ -1137,7 +1137,7 @@ static void load_default_pixmaps(void)
 				 GTK_ICON_SIZE_DIALOG);
 	im_unknown = mp_from_stock(GTK_STOCK_DIALOG_QUESTION,
 				   GTK_ICON_SIZE_DIALOG);
-	
+
 	im_dirs = load_pixmap("dirs");
 	im_appdir = load_pixmap("application");
 
@@ -1148,8 +1148,8 @@ static void load_default_pixmaps(void)
  		0,
  		NULL
  		);
- 
- 	if (!pixbuf)	
+
+ 	if (!pixbuf)
 		pixbuf = gdk_pixbuf_new_from_file(
 			make_path(app_dir, ".DirIcon"), &error);
 	if (pixbuf)
@@ -1215,7 +1215,7 @@ static GList *thumbs_purge_cache(Option *option, xmlNode *node, guchar *label)
 	GtkWidget *button, *align;
 
 	g_return_val_if_fail(option == NULL, NULL);
-	
+
 	align = gtk_alignment_new(0, 0.5, 0, 0);
 	button = button_new_mixed(GTK_STOCK_CLEAR,
 				  _("Purge thumbnails disk cache"));
@@ -1253,7 +1253,7 @@ static inline long long s2n_intel(const unsigned char *p, int len)
 {
     long long a=0;
     int i;
-  
+
     for(i=0; i<len; i++)
         a=a | (((int) p[i]) << (i*8));
 

@@ -12,8 +12,6 @@
 typedef struct _Callback Callback;
 typedef void (*CallbackFn)(gpointer data);
 
-extern GtkTooltips *tooltips;
-
 struct _Callback
 {
 	CallbackFn	callback;

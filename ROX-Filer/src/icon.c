@@ -97,7 +97,7 @@ static Icon *menu_icon = NULL;	/* Item clicked if there is no selection */
 static void rename_activate(GtkWidget *dialog);
 static void menu_closed(GtkWidget *widget);
 static void lose_selection(GtkClipboard *primary, gpointer data);
-static void selection_get(GtkClipboard *primary, 
+static void selection_get(GtkClipboard *primary,
 		       GtkSelectionData *selection_data,
 		       guint      info,
 		       gpointer   data);
@@ -199,9 +199,9 @@ struct _CheckData {
 static void check_has(gpointer key, GList *icons, CheckData *check)
 {
 	Icon	*icon;
-	
+
 	g_return_if_fail(icons != NULL);
-	
+
 	icon = icons->data;
 
 	if (is_sub_dir(icon->path, check->path))
@@ -291,7 +291,7 @@ void icon_prepare_menu(Icon *icon, GtkWidget *options_item, ...)
 		gtk_widget_show(trailing);
 	}
 	va_end(ap);
-	
+
 	/* Shade Remove Item(s) if any item is locked or nothing is selected */
 	if (icon_selection)
 		shaded = any_selected_item_is_locked();
@@ -299,7 +299,7 @@ void icon_prepare_menu(Icon *icon, GtkWidget *options_item, ...)
 		shaded = menu_icon->locked;
 	else
 		shaded = TRUE;
-	
+
 	menu_set_items_shaded(icon_menu, shaded, 4, 1);
 
 	menu_show_shift_action(file_shift_item, icon ? icon->item : NULL,
@@ -359,7 +359,7 @@ void icon_set_selected(Icon *icon, gboolean selected)
 void icon_select_only(Icon *select)
 {
 	GList	*to_clear, *next;
-	
+
 	if (select)
 		icon_set_selected_int(select, TRUE);
 
@@ -367,7 +367,7 @@ void icon_select_only(Icon *select)
 
 	if (select)
 		to_clear = g_list_remove(to_clear, select);
-		
+
 	for (next = to_clear; next; next = next->next)
 		icon_set_selected_int((Icon *) next->data, FALSE);
 
@@ -407,7 +407,7 @@ gchar *icon_create_uri_list(void)
 
 	retval = tmp->str;
 	g_string_free(tmp, FALSE);
-	
+
 	return retval;
 }
 
@@ -549,7 +549,7 @@ static void icon_unhash_path(Icon *icon)
 	g_return_if_fail(icon != NULL);
 
 	/* g_print("[ unhashing '%s' ]\n", icon->path); */
-	
+
 	list = g_hash_table_lookup(icons_hash, icon->path);
 	g_return_if_fail(list != NULL);
 
@@ -568,7 +568,7 @@ static void rename_activate(GtkWidget *dialog)
 	Icon *icon;
 	const guchar *new_name, *new_src, *new_shortcut, *new_args;
 	gboolean new_lock_state;
-	
+
 	entry = g_object_get_data(G_OBJECT(dialog), "new_name");
 	icon = g_object_get_data(G_OBJECT(dialog), "callback_icon");
 	src = g_object_get_data(G_OBJECT(dialog), "new_path");
@@ -664,7 +664,7 @@ static void remove_items(gpointer data, guint action, GtkWidget *widget)
 		}
 		icon_set_selected(menu_icon, TRUE);
 	}
-	
+
 	if (!icon_selection)
 	{
 		delayed_error(
@@ -761,7 +761,7 @@ static GdkFilterReturn filter_get_key(GdkXEvent *xevent,
 			m & SuperMask ? "Super+" : "",
 			m & HyperMask ? "Hyper+" : "",
 			XKeysymToString(sym));
-			
+
 		g_object_set_data(G_OBJECT(popup), "chosen-key", str);
 	}
 
@@ -861,7 +861,7 @@ static void show_rename_box(Icon *icon)
 			G_CALLBACK(gtk_widget_destroyed), &icon->dialog);
 
 	dialog = GTK_DIALOG(icon->dialog);
-	
+
 	vbox = GTK_BOX(gtk_vbox_new(FALSE, 1));
 	gtk_box_pack_start(GTK_BOX(dialog->vbox), (GtkWidget *) vbox,
 			   TRUE, TRUE, 0);
@@ -902,7 +902,7 @@ static void show_rename_box(Icon *icon)
 	gtk_widget_grab_focus(entry);
 	g_object_set_data(G_OBJECT(dialog), "new_name", entry);
 	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
-	
+
 	spacer = gtk_drawing_area_new();
 	gtk_widget_set_size_request(spacer, 4, 4);
 	gtk_box_pack_start(vbox, spacer, FALSE, FALSE, 0);
@@ -926,14 +926,13 @@ static void show_rename_box(Icon *icon)
 	g_signal_connect(button2, "clicked",
 			G_CALLBACK(clear_shortcut),
 			GTK_BIN(button)->child);
-			
+
 	lock_state = gtk_check_button_new_with_label(_("Locked"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lock_state), icon->locked);
 	gtk_box_pack_start(vbox, lock_state, TRUE, TRUE, 0);
 	g_object_set_data(G_OBJECT(dialog), "new_lock_state", lock_state);
-	gtk_tooltips_set_tip(tooltips, lock_state,
-			_("Locking an item prevents it from being accidentally removed"),
-			NULL);
+	gtk_widget_set_tooltip_text(lock_state,
+			_("Locking an item prevents it from being accidentally removed"));
 
 	g_object_set_data(G_OBJECT(dialog), "callback_icon", icon);
 
@@ -944,7 +943,7 @@ static void show_rename_box(Icon *icon)
 	gtk_dialog_set_default_response(dialog, GTK_RESPONSE_OK);
 
 	g_signal_connect(dialog, "response", G_CALLBACK(edit_response), NULL);
-	
+
 	gtk_widget_show_all(GTK_WIDGET(dialog));
 }
 
@@ -1153,7 +1152,7 @@ static void initModifiers(void)
 
 	if(MetaMask == AltMask)
 		MetaMask = 0;
-	
+
 	if (AltMask != 0 && MetaMask == Mod1Mask)
 	{
 		MetaMask = AltMask;
@@ -1243,7 +1242,7 @@ static GdkFilterReturn filter_keys(GdkXEvent *xevent,
 			icon_run(icon);
 		}
 	}
-	
+
 	return GDK_FILTER_CONTINUE;
 }
 
@@ -1255,7 +1254,7 @@ static GdkFilterReturn filter_keys(GdkXEvent *xevent,
 static guint mykey_hash(gconstpointer key)
 {
 	MyKey *k = (MyKey *) key;
-	
+
 	return (k->keycode << 8) + k->modifier;
 }
 
@@ -1326,7 +1325,7 @@ static gboolean ungrabKey(MyKey *key)
 static void ungrab_key(Icon *icon)
 {
 	int *count;
-	
+
 	g_return_if_fail(icon != NULL);
 
 	if (!icon->shortcut_key.keycode)
@@ -1341,7 +1340,7 @@ static void ungrab_key(Icon *icon)
 
 	if (*count > 0)
 		return;
-	
+
 	g_hash_table_remove(grab_counter, &icon->shortcut_key);
 
 	if (!ungrabKey(&icon->shortcut_key))
@@ -1353,7 +1352,7 @@ static void grab_key(Icon *icon)
 {
 	MyKey *hash_key;
 	int   *count;
-		
+
 	g_return_if_fail(icon != NULL);
 
 	g_return_if_fail(g_list_find(icon_shortcuts, icon) == NULL);
@@ -1384,7 +1383,7 @@ static void grab_key(Icon *icon)
 		g_warning("Failed to grab shortcut '%s' for '%s' icon.\n"
 			  "Some other application may be already using it!\n",
 			  icon->shortcut, icon->item->leafname);
-	
+
 }
 
 static void icon_wink(Icon *icon)
