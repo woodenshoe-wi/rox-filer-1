@@ -272,9 +272,8 @@ gboolean run_diritem(const guchar *full_path,
 
 			FilerWindow *tfw = filer_window;
 			if (src_window && !tfw) {
-				tfw = src_window->right_link;
-				if (tfw)
-					filer_clear_settings(tfw);
+				if (src_window->right_link)
+					gtk_widget_destroy(src_window->right_link->window);
 			}
 
 			if (item->flags & ITEM_FLAG_MOUNT_POINT)
