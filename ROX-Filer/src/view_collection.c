@@ -97,7 +97,8 @@ static void draw_string(GtkWidget *widget,
 		int 	width,		/* Width of the full string */
 		int 	height,		/* height of the full string */
 		GtkStateType selection_state,
-		gboolean box);
+		gboolean box,
+		gboolean link);
 static void view_collection_iface_init(gpointer giface, gpointer iface_data);
 static gint coll_motion_notify(GtkWidget *widget,
 			       GdkEventMotion *event,
@@ -652,12 +653,18 @@ end_image:
 
 	layout = make_layout(fw, item);
 
+	gboolean link = fw->right_link
+		? strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
+				item->leafname) ? FALSE : TRUE
+		: FALSE;
+
 	draw_string(widget, layout,
 			&template.leafname,
 			view->name_width,
 			view->name_height,
 			selection_state,
-			TRUE);
+			TRUE,
+			link);
 
 	if (fw->details_type != DETAILS_NONE &&
 		view->details && item->base_type != TYPE_UNKNOWN)
@@ -666,7 +673,8 @@ end_image:
 				template.details.width,
 				0,
 				selection_state,
-				TRUE);
+				TRUE,
+				FALSE);
 
 	g_object_unref(G_OBJECT(layout));
 }
@@ -953,7 +961,8 @@ static void draw_string(GtkWidget *widget,
 		int 	width,		/* Width of the full string */
 		int 	height,		/* height of the full string */
 		GtkStateType selection_state,
-		gboolean box)
+		gboolean box,
+		gboolean link)
 {
 	if (width > area->width || height > area->height)
 	{
@@ -967,7 +976,7 @@ static void draw_string(GtkWidget *widget,
 	else
 		gdk_draw_layout(widget->window, type_gc, area->x, area->y, layout);
 
-	if (width > area->width || height > area->height)
+	if (width > area->width || height > area->height || link)
 	{
 		static GdkGC *red_gc = NULL;
 
@@ -990,6 +999,11 @@ static void draw_string(GtkWidget *widget,
 			gdk_draw_rectangle(widget->window, red_gc, TRUE,
 				area->x + area->width - small_width, area->y + area->height - 1,
 				small_width, 1);
+
+		if (link)
+			gdk_draw_rectangle(widget->window, red_gc, TRUE,
+				area->x, area->y + area->height,
+				area->width, 3);
 
 		gdk_gc_set_clip_rectangle(type_gc, NULL);
 	}
