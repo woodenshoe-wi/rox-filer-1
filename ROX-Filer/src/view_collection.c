@@ -1002,7 +1002,7 @@ static void draw_string(GtkWidget *widget,
 
 		if (link)
 			gdk_draw_rectangle(widget->window, red_gc, TRUE,
-				area->x, area->y + area->height,
+				area->x, area->y + area->height - 3,
 				area->width, 3);
 
 		gdk_gc_set_clip_rectangle(type_gc, NULL);
