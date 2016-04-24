@@ -2110,7 +2110,10 @@ static gboolean configure_cb(
 		gdk_window_get_frame_extents(
 				fw->left_link->window->window, &frect);
 
-		if (event->configure.x != frect.x + frect.width)
+	if (
+			event->configure.x + 33 < frect.x + frect.width ||
+			event->configure.x - 33 > frect.x + frect.width
+				)
 			cut_links(fw, TRUE);
 	}
 
