@@ -2104,16 +2104,16 @@ static gboolean configure_cb(
 {
 	fw->configured = 1;
 
-	if (fw->left_link && gtk_window_is_active(GTK_WINDOW(fw->window)))
+	if (fw->left_link && gtk_window_has_toplevel_focus(GTK_WINDOW(fw->window)))
 	{
 		GdkRectangle frect = {0, 0, 0, 0};
 		gdk_window_get_frame_extents(
 				fw->left_link->window->window, &frect);
 
-	if (
-			event->configure.x + 33 < frect.x + frect.width ||
-			event->configure.x - 33 > frect.x + frect.width
-				)
+		if (
+				event->configure.x + 33 < frect.x + frect.width ||
+				event->configure.x - 33 > frect.x + frect.width
+		   )
 			cut_links(fw, TRUE);
 	}
 
