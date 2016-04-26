@@ -1764,7 +1764,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->dir_icon = NULL;
 	filer_window->right_link = NULL;
 	filer_window->left_link = NULL;
-	filer_window->left_joined = FALSE;
 
 	tidy_sympath(filer_window->sym_path);
 
@@ -2104,7 +2103,7 @@ static gboolean configure_cb(
 {
 	fw->configured = 1;
 
-	if (fw->left_link)
+	if (fw->left_link && gtk_window_is_active(GTK_WINDOW(fw->window)))
 	{
 		GdkRectangle frect = {0, 0, 0, 0};
 		gdk_window_get_frame_extents(
@@ -2113,11 +2112,7 @@ static gboolean configure_cb(
 		if (
 				event->configure.x + 33 < frect.x + frect.width ||
 				event->configure.x - 33 > frect.x + frect.width)
-		{
-			if (fw->left_joined)
-				cut_links(fw, TRUE);
-		} else
-			fw->left_joined = TRUE;
+			cut_links(fw, TRUE);
 	}
 
 	if (fw->right_link)
