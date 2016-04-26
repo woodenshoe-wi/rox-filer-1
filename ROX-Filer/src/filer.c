@@ -462,7 +462,6 @@ void filer_link(FilerWindow *left, FilerWindow *right)
 			frect.y);
 
 	gtk_window_present(GTK_WINDOW(right->window));
-
 }
 
 /* Called on a timeout while scanning or when scanning ends
@@ -1765,6 +1764,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->dir_icon = NULL;
 	filer_window->right_link = NULL;
 	filer_window->left_link = NULL;
+	filer_window->left_joined = FALSE;
 
 	tidy_sympath(filer_window->sym_path);
 
@@ -2104,7 +2104,7 @@ static gboolean configure_cb(
 {
 	fw->configured = 1;
 
-	if (fw->left_link && gtk_window_has_toplevel_focus(GTK_WINDOW(fw->window)))
+	if (fw->left_link)
 	{
 		GdkRectangle frect = {0, 0, 0, 0};
 		gdk_window_get_frame_extents(
@@ -2112,9 +2112,12 @@ static gboolean configure_cb(
 
 		if (
 				event->configure.x + 33 < frect.x + frect.width ||
-				event->configure.x - 33 > frect.x + frect.width
-		   )
-			cut_links(fw, TRUE);
+				event->configure.x - 33 > frect.x + frect.width)
+		{
+			if (fw->left_joined)
+				cut_links(fw, TRUE);
+		} else
+			fw->left_joined = TRUE;
 	}
 
 	if (fw->right_link)
