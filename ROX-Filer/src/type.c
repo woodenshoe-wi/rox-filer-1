@@ -473,7 +473,7 @@ MaskedPixmap *type_to_icon(MIME_type *type)
 	if (type->image)
 	{
 		/* Yes - don't recheck too often */
-		if (abs(now - type->image_time) < 2)
+		if (abs(now - type->image_time) < 9)
 		{
 			g_object_ref(type->image);
 			return type->image;
