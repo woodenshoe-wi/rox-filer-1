@@ -462,7 +462,6 @@ void filer_link(FilerWindow *left, FilerWindow *right)
 			frect.y);
 
 	gtk_window_present(GTK_WINDOW(right->window));
-
 }
 
 /* Called on a timeout while scanning or when scanning ends
@@ -2110,10 +2109,9 @@ static gboolean configure_cb(
 		gdk_window_get_frame_extents(
 				fw->left_link->window->window, &frect);
 
-	if (
-			event->configure.x + 33 < frect.x + frect.width ||
-			event->configure.x - 33 > frect.x + frect.width
-				)
+		if (
+				event->configure.x + 33 < frect.x + frect.width ||
+				event->configure.x - 33 > frect.x + frect.width)
 			cut_links(fw, TRUE);
 	}
 

@@ -1155,6 +1155,10 @@ static gint key_press_event(GtkWidget	*widget,
 				break;
 			case GDK_Return:
 			case GDK_KP_Enter:
+				if ((event->state & GDK_SHIFT_MASK) != 0)
+					temp_filter_return_pressed(filer_window,
+							event->time);
+
 				minibuffer_hide(filer_window);
 				break;
 			default:
