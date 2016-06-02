@@ -120,10 +120,21 @@ void log_info_paths(const gchar *message, GList *paths, const gchar *path)
 			MESSAGE, actual_message ? actual_message : message,
 			-1);
 
+	int max = 100;
 	while (paths)
 	{
 		GtkTreeIter child_iter;
 		gtk_tree_store_append(log, &child_iter, &iter);
+
+		if (!max--)
+		{
+			gtk_tree_store_set(log, &child_iter,
+					MESSAGE, _("..."),
+					DIRECTORY, "",
+					-1);
+			break;
+		}
+
 		gtk_tree_store_set(log, &child_iter,
 				MESSAGE, _("Item"),
 				DIRECTORY, paths->data,
