@@ -109,7 +109,8 @@ static gint collection_expose(GtkWidget *widget, GdkEventExpose *event);
 static void default_draw_item(GtkWidget *widget,
 				int idx,
 				GdkRectangle *area,
-				gpointer user_data);
+				gpointer user_data,
+				gboolean cursor);
 static gboolean	default_test_point(Collection *collection,
 				   int point_x, int point_y,
 				   CollectionItem *data,
@@ -157,40 +158,16 @@ static inline int collection_get_cols(const Collection *collection)
 		return collection->columns;
 }
 
-static void draw_focus_at(Collection *collection, GdkRectangle *area)
-{
-	GtkWidget    	*widget;
-	GtkStateType	state;
-
-	widget = GTK_WIDGET(collection);
-
-	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
-		state = GTK_STATE_ACTIVE;
-	else
-		state = GTK_STATE_INSENSITIVE;
-
-	gtk_paint_focus(widget->style,
-			widget->window,
-			state,
-			NULL,
-			widget,
-			"collection",
-			area->x, area->y,
-			collection->item_width,
-			area->height);
-}
-
 static void draw_one_item(Collection *collection, int item, GdkRectangle *area)
 {
 	if (item < collection->number_of_items)
 	{
 		collection->draw_item((GtkWidget *) collection,
 				item,
-				area, collection->cb_user_data);
+				area,
+				collection->cb_user_data,
+				item == collection->cursor_item);
 	}
-
-	if (item == collection->cursor_item)
-		draw_focus_at(collection, area);
 }
 
 GType collection_get_type(void)
@@ -637,10 +614,12 @@ static gint collection_expose(GtkWidget *widget, GdkEventExpose *event)
 	return FALSE;
 }
 
-static void default_draw_item(GtkWidget *widget,
-			      int idx,
-			      GdkRectangle *area,
-			      gpointer user_data)
+static void default_draw_item(
+		GtkWidget *widget,
+		int idx,
+		GdkRectangle *area,
+		gpointer user_data,
+		gboolean cursor)
 {
 	gdk_draw_arc(widget->window,
 			COLLECTION(widget)->items[idx].selected ?
@@ -650,6 +629,23 @@ static void default_draw_item(GtkWidget *widget,
 			area->x, area->y,
 			COLLECTION(widget)->item_width, area->height,
 			0, 360 * 64);
+
+	GtkStateType	state;
+
+	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
+		state = GTK_STATE_ACTIVE;
+	else
+		state = GTK_STATE_INSENSITIVE;
+
+	gtk_paint_focus(widget->style,
+			widget->window,
+			state,
+			NULL,
+			widget,
+			"collection",
+			area->x, area->y,
+			area->width,
+			area->height);
 }
 
 
