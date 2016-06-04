@@ -144,7 +144,11 @@ static Tool all_tools[] = {
 						"  Right: Change to smaller\n"
 						"  Middle: Change to Auto Size\n"
 						"  Scroll: Temporary huge zoom\n"
-						"Status: ┘Huge, ┤Large, ┐Small, ├Auto"),
+						"Current size:\n"
+						"  ┘ : Huge\n"
+						"  ┤ : arge\n"
+						"  ┐ : Small\n"
+						"  ┌, ├ : Auto"),
 	 toolbar_size_clicked, DROP_NONE, TRUE,
 	 FALSE},
 
