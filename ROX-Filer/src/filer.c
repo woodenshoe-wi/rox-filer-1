@@ -502,6 +502,7 @@ static void queue_interesting(FilerWindow *filer_window)
 }
 
 static void check_and_resize(FilerWindow *fw) {
+	fw->may_resize = FALSE;
 	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS) return;
 
 	gint w,h;
@@ -592,6 +593,9 @@ static void update_display(Directory *dir,
 //			g_idle_add((GSourceFunc) filer_create_thumbs, filer_window);
 			filer_create_thumbs(filer_window);
 
+			if (!init)
+				check_and_resize(filer_window);
+			filer_window->may_resize = FALSE;
 			break;
 		case DIR_UPDATE:
 			if (filer_window->sort_type != SORT_NAME &&
@@ -616,6 +620,8 @@ static void update_display(Directory *dir,
 					gtk_window_set_icon(GTK_WINDOW(filer_window->window),
 								filer_window->dir_icon->src_pixbuf);
 			}
+
+			filer_window->may_resize = TRUE;
 			break;
 		case DIR_ERROR_CHANGED:
 			filer_set_title(filer_window);
@@ -624,9 +630,6 @@ static void update_display(Directory *dir,
 			queue_interesting(filer_window);
 			break;
 	}
-
-	if (!init && action == DIR_END_SCAN)
-		check_and_resize(filer_window);
 }
 
 static void attach(FilerWindow *filer_window)
@@ -1733,6 +1736,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->under_init = TRUE;
 	filer_window->first_scan = TRUE;
 	filer_window->req_sort = FALSE;
+	filer_window->may_resize = FALSE;
 
 	filer_window->message = NULL;
 	filer_window->minibuffer = NULL;
@@ -2211,6 +2215,23 @@ void filer_update_all(void)
 		    !filer_window->directory->scanning)
 			filer_update_dir(filer_window, TRUE);
 	}
+}
+
+static gboolean _delay_check_resize(gpointer na)
+{
+	GList *next;
+	for (next = all_filer_windows; next; next = next->next)
+	{
+		FilerWindow *fw = (FilerWindow *) next->data;
+		if (fw->may_resize) {
+			check_and_resize(fw);
+		}
+	}
+	return FALSE;
+}
+void filer_check_resize(void)
+{
+	g_timeout_add(300, _delay_check_resize, NULL);
 }
 
 /* Refresh the various caches even if we don't think we need to */
