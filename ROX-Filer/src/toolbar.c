@@ -370,7 +370,7 @@ static void toolbar_help_clicked(GtkWidget *widget, FilerWindow *filer_window)
 	if (get_release() != 1)
 		menu_rox_help(NULL, HELP_MANUAL, NULL);
 	else
-		filer_opendir(make_path(app_dir, "Help"), NULL, NULL);
+		filer_opendir(make_path(app_dir, "Help"), NULL, NULL, FALSE);
 }
 
 static void toolbar_settings_clicked(GtkWidget *widget, FilerWindow *fw)
@@ -397,7 +397,7 @@ static void toolbar_refresh_clicked(GtkWidget *widget,
 		filer_refresh_thumbs(filer_window);
 	else if (eb != 1)
 	{
-		filer_opendir(filer_window->sym_path, filer_window, NULL);
+		filer_opendir(filer_window->sym_path, filer_window, NULL, FALSE);
 	}
 	else
 		filer_refresh(filer_window);
@@ -415,7 +415,7 @@ static void toolbar_home_clicked(GtkWidget *widget, FilerWindow *filer_window)
 	}
 	else if (NEW_WIN_BUTTON(eb))
 	{
-		filer_opendir(home_dir, filer_window, NULL);
+		filer_opendir(home_dir, filer_window, NULL, FALSE);
 	}
 	else
 		filer_change_to(filer_window, home_dir, NULL);
@@ -455,7 +455,7 @@ static void toolbar_close_clicked(GtkWidget *widget, FilerWindow *filer_window)
 	gint eb = get_release();
 	if (eb != 1)
 	{
-		filer_opendir(filer_window->sym_path, filer_window, NULL);
+		filer_opendir(filer_window->sym_path, filer_window, NULL, FALSE);
 	}
 	else if (!filer_window_delete(filer_window->window, NULL, filer_window))
 		gtk_widget_destroy(filer_window->window);

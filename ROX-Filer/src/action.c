@@ -364,7 +364,7 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 	else if (*buffer == '/')
 		abox_set_current_object(abox, buffer + 1);
 	else if (*buffer == 'o')
-		filer_opendir(buffer + 1, NULL, NULL);
+		filer_opendir(buffer + 1, NULL, NULL, FALSE);
 	else if (*buffer == '!')
 	{
 		gui_side->errors++;

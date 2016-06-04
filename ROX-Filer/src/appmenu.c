@@ -314,7 +314,7 @@ static void customise_type(GtkWidget *item, MIME_type *type)
 	g_free(leaf);
 
 	mkdir(path, 0755);
-	filer_opendir(path, NULL, NULL);
+	filer_opendir(path, NULL, NULL, FALSE);
 	g_free(path);
 
 	info_message(_("Symlink any programs you want into this directory. "
