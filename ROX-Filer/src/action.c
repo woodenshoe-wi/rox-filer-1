@@ -1343,7 +1343,7 @@ static void do_copy2(const char *path, const char *dest)
 		{
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
-			if (!printf_reply(from_parent, TRUE,
+			if (!printf_reply(from_parent, !o_force,
 					  _("?'%s' already exists - %s?"),
 					  dest_path,
 					  merge ? _("merge contents")
@@ -1506,7 +1506,7 @@ static void do_move2(const char *path, const char *dest)
 		{
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
-			if (!printf_reply(from_parent, TRUE,
+			if (!printf_reply(from_parent, !o_force,
 				       _("?'%s' already exists - overwrite?"),
 				       dest_path))
 				return;
@@ -2282,13 +2282,16 @@ void action_copy(GList *paths, const char *dest, const char *leaf, int quiet)
 	if(paths && paths->next)
 		abox_set_percentage(ABOX(abox), 0);
 	gui_side = start_action(abox, list_cb, paths,
-					 o_action_force.int_value,
+					 FALSE,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
 					 o_action_newer.int_value);
 	if (!gui_side)
 		return;
 
+	abox_add_flag(ABOX(abox),
+		_("Force"), _("Don't confirm over-write."),
+		'F', FALSE);
 	abox_add_flag(ABOX(abox),
 		   _("Newer"),
 		   _("Only over-write if source is newer than destination."),
@@ -2322,13 +2325,16 @@ void action_move(GList *paths, const char *dest, const char *leaf, int quiet)
 	if(paths && paths->next)
 		abox_set_percentage(ABOX(abox), 0);
 	gui_side = start_action(abox, list_cb, paths,
-					 o_action_force.int_value,
+					FALSE,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
 					 o_action_newer.int_value);
 	if (!gui_side)
 		return;
 
+	abox_add_flag(ABOX(abox),
+		_("Force"), _("Don't confirm over-write."),
+		'F', FALSE);
 	abox_add_flag(ABOX(abox),
 		   _("Newer"),
 		   _("Only over-write if source is newer than destination."),
