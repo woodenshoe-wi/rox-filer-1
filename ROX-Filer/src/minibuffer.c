@@ -321,7 +321,8 @@ static void show_help(FilerWindow *filer_window)
 				". means any character\n"
 				".* means zero or more characters\n"
 				"[a-z] means any character from a to z\n"
-				"\\.png$ means any name ending in '.png'"));
+				"\\.png$ means any name ending in '.png'\n"
+				"\nShift + Enter: switch to Temp Filter."));
 			break;
 		case MINI_SELECT_BY_NAME:
 			info_message(
