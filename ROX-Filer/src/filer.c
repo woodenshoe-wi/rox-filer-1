@@ -2231,7 +2231,7 @@ static gboolean _delay_check_resize(gpointer na)
 }
 void filer_check_resize(void)
 {
-	g_timeout_add(300, _delay_check_resize, NULL);
+	g_timeout_add(DIR_NOTIFY_TIME * 2, _delay_check_resize, NULL);
 }
 
 /* Refresh the various caches even if we don't think we need to */
