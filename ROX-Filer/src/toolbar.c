@@ -703,7 +703,7 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 {
 	GtkWidget	*bar;
 	GtkWidget	*b;
-	int		i;
+	int i;
 
 	bar = gtk_toolbar_new();
 
@@ -740,7 +740,7 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 			   */
 			GtkRequisition req;
 			gtk_widget_size_request(bar, &req);
-			gtk_widget_set_size_request(bar, req.width, -1);
+			gtk_widget_set_size_request(bar, req.width + small_width * 3, -1);
 		} else {
 			gtk_widget_set_size_request(bar, 100, -1);
 		}
