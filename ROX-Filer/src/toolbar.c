@@ -58,6 +58,7 @@ struct _Tool {
 
 Option o_toolbar, o_toolbar_info, o_toolbar_disable;
 Option o_toolbar_min_width;
+int toolbar_min_width = 100;
 
 static FilerWindow *filer_window_being_counted;
 
@@ -731,19 +732,17 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 
 	if (filer_window)
 	{
-		if(o_toolbar_min_width.int_value)
-		{
-			/* Make the toolbar wide enough for all icons to be
-			   seen, plus a little for the (start of the) text
-			   label. Though the return of size_request is incorrect.
-			   Probably it can't get current icon size.
-			   */
-			GtkRequisition req;
-			gtk_widget_size_request(bar, &req);
-			gtk_widget_set_size_request(bar, req.width + small_width * 3, -1);
-		} else {
-			gtk_widget_set_size_request(bar, 100, -1);
-		}
+		/* Make the toolbar wide enough for all icons to be
+		   seen, plus a little for the (start of the) text
+		   label. Though the return of size_request is incorrect.
+		   Probably it can't get current icon size.
+		   */
+		GtkRequisition req;
+		gtk_widget_size_request(bar, &req);
+		toolbar_min_width = req.width + small_width *
+			(o_toolbar_info.int_value ? 3 : 0);
+
+		gtk_widget_set_size_request(bar, 100, -1);
 
 		filer_window->toolbar_text = gtk_label_new("");
 		gtk_misc_set_alignment(GTK_MISC(filer_window->toolbar_text),
@@ -1039,7 +1038,10 @@ static void option_notify(void)
 
 			toolbar_update_toolbar(filer_window);
 		}
-	}
+
+		filer_check_resize(TRUE);
+	} else if (o_toolbar_min_width.has_changed)
+		filer_check_resize(TRUE);
 }
 
 static void update_tools(Option *option)

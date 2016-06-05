@@ -40,6 +40,9 @@ extern Option o_small_width;
 extern Option o_max_length;
 extern Option o_vertical_order_small, o_vertical_order_large;
 extern Option o_xattr_show;
+extern Option o_view_alpha;
+extern Option o_use_background_colour;
+extern Option o_background_colour;
 extern int huge_size;
 
 /* Prototypes */

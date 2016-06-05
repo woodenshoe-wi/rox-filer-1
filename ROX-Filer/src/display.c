@@ -74,6 +74,10 @@ Option o_display_inherit_options;
 static Option o_filer_change_size_num;
 Option o_vertical_order_small, o_vertical_order_large;
 Option o_xattr_show;
+Option o_view_alpha;
+Option o_use_background_colour;
+Option o_background_colour;
+
 static Option o_wrap_by_char;
 static Option o_huge_size;
 int huge_size = HUGE_SIZE;
@@ -110,6 +114,9 @@ void display_init()
 	option_add_int(&o_vertical_order_small, "vertical_order_small", FALSE);
 	option_add_int(&o_vertical_order_large, "vertical_order_large", FALSE);
 	option_add_int(&o_xattr_show, "xattr_show", TRUE);
+	option_add_int(&o_view_alpha, "view_alpha", 0);
+	option_add_int(&o_use_background_colour, "use_background_colour", 0);
+	option_add_string(&o_background_colour, "background_colour", "#ffffff");
 	option_add_int(&o_wrap_by_char, "wrap_by_char", FALSE);
 	option_add_int(&o_huge_size, "huge_size", HUGE_SIZE);
 
@@ -814,6 +821,22 @@ static void options_changed(void)
 	)
 		flags |= VIEW_UPDATE_VIEWDATA;
 
+
+	gboolean changed =
+		o_display_show_thumbs.has_changed ||
+		o_display_dirs_first.has_changed ||
+		o_display_caps_first.has_changed ||
+		o_display_show_full_type.has_changed ||
+		o_vertical_order_small.has_changed ||
+		o_vertical_order_large.has_changed ||
+		o_xattr_show.has_changed ||
+		o_view_alpha.has_changed ||
+		o_use_background_colour.has_changed ||
+		o_background_colour.has_changed ||
+		o_filer_auto_resize.has_changed ||
+		o_filer_size_limit.has_changed ||
+		o_filer_width_limit.has_changed;
+
 	for (next = all_filer_windows; next; next = next->next)
 	{
 		FilerWindow *filer_window = (FilerWindow *) next->data;
@@ -825,10 +848,13 @@ static void options_changed(void)
 		    o_display_caps_first.has_changed)
 			view_sort(VIEW(filer_window->view));
 
-		view_style_changed(filer_window->view, flags);
+		if (flags || changed)
+		{
+			view_style_changed(filer_window->view, flags);
 
-		if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
-			view_autosize(filer_window->view);
+			if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
+				view_autosize(filer_window->view);
+		}
 	}
 }
 

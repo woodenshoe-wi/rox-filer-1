@@ -1871,7 +1871,11 @@ static void view_collection_autosize(ViewIface *view)
 
 	if (filer_window->toolbar)
 	{
-		gtk_widget_get_size_request(filer_window->toolbar, &min_x, NULL);
+		if(o_toolbar_min_width.int_value)
+			min_x = toolbar_min_width;
+		else
+			min_x = 200;
+
 		if (filer_window->scrollbar)
 			min_x -= filer_window->scrollbar->allocation.width;
 	}
@@ -1953,7 +1957,7 @@ static void view_collection_autosize(ViewIface *view)
 	}
 
 	filer_window_set_size(filer_window,
-			w * MAX(cols, 1) + 2,
+			MAX(w * MAX(cols, 1) + 2, min_x),
 			MIN(max_y, h * rows + space) + exspace);
 }
 

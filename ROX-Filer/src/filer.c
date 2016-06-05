@@ -196,9 +196,6 @@ static Option o_filer_view_type;
 Option o_filer_auto_resize, o_unique_filer_windows;
 Option o_filer_size_limit;
 Option o_filer_width_limit;
-Option o_view_alpha;
-Option o_use_background_colour;
-Option o_background_colour;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 static Option o_create_sub_dir_thumbs;
@@ -224,9 +221,6 @@ void filer_init(void)
 	option_add_int(&o_filer_view_type, "filer_view_type",
 			VIEW_TYPE_COLLECTION);
 
-	option_add_int(&o_view_alpha, "view_alpha", 0);
-	option_add_int(&o_use_background_colour, "use_background_colour", 0);
-	option_add_string(&o_background_colour, "background_colour", "#ffffff");
 	option_add_int(&o_right_gap, "right_gap", 32);
 	option_add_int(&o_bottom_gap, "bottom_gap", 32);
 	option_add_int(&o_auto_move, "auto_move", FALSE);
@@ -2223,15 +2217,16 @@ static gboolean _delay_check_resize(gpointer na)
 	for (next = all_filer_windows; next; next = next->next)
 	{
 		FilerWindow *fw = (FilerWindow *) next->data;
-		if (fw->may_resize) {
+		if (na || fw->may_resize) {
 			check_and_resize(fw);
 		}
 	}
 	return FALSE;
 }
-void filer_check_resize(void)
+void filer_check_resize(gboolean all)
 {
-	g_timeout_add(DIR_NOTIFY_TIME * 2, _delay_check_resize, NULL);
+	g_timeout_add(DIR_NOTIFY_TIME * 2,
+			_delay_check_resize, GUINT_TO_POINTER(all));
 }
 
 /* Refresh the various caches even if we don't think we need to */

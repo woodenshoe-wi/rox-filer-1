@@ -59,6 +59,7 @@
 #include "xdgmime.h"
 #include "xtypes.h"
 #include "run.h"
+#include "view_iface.h"
 
 #define TYPE_NS "http://www.freedesktop.org/standards/shared-mime-info"
 enum {SET_MEDIA, SET_TYPE};
@@ -81,7 +82,9 @@ static gchar *opt_type_colours[][2] = {
 		(sizeof(opt_type_colours) / sizeof(opt_type_colours[0]))
 
 /* Parsed colours for file types */
+static Option o_display_colour_types;
 static Option o_type_colours[NUM_TYPE_COLOURS];
+
 static GdkColor	type_colours[NUM_TYPE_COLOURS];
 
 /* Static prototypes */
@@ -114,7 +117,6 @@ MIME_type *application_x_desktop;
 MIME_type *inode_unknown;
 MIME_type *inode_door;
 
-static Option o_display_colour_types;
 static Option o_icon_theme;
 
 static GtkIconTheme *icon_theme = NULL;
@@ -1141,6 +1143,21 @@ static void options_changed(void)
 		g_hash_table_foreach(type_hash, expire_timer, NULL);
 		full_refresh();
 	}
+
+	gboolean changed = o_display_colour_types.has_changed;
+	if (!changed && o_display_colour_types.int_value)
+	{
+		int i;
+		for (i = 0; i < NUM_TYPE_COLOURS; i++)
+			changed |= o_type_colours[i].has_changed;
+	}
+	if (changed)
+	{
+		GList *next;
+		for (next = all_filer_windows; next; next = next->next)
+			view_style_changed(((FilerWindow *) next->data)->view, 0);
+	}
+
 }
 
 /* Return a pointer to a (static) colour for this item. If colouring is
