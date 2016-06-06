@@ -557,7 +557,7 @@ static void bookmarks_activate(GtkMenuShell *item, FilerWindow *filer_window)
 	if (strcmp(mark, filer_window->sym_path) != 0)
 	{
 		if(new_win)
-			filer_opendir(mark, filer_window, NULL);
+			filer_opendir(mark, filer_window, NULL, FALSE);
 		else
 			filer_change_to(filer_window, mark, NULL);
 	}

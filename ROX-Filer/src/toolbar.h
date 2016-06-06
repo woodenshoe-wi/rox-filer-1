@@ -17,7 +17,8 @@ typedef enum {
 	TOOLBAR_TEXT		= 4,
 } ToolbarType;
 
-extern Option o_toolbar, o_toolbar_info;
+extern Option o_toolbar, o_toolbar_info, o_toolbar_min_width;
+extern int toolbar_min_width;
 
 /* Prototypes */
 void toolbar_init(void);

@@ -75,7 +75,8 @@ static void view_collection_init(GTypeInstance *object, gpointer gclass);
 static void draw_item(GtkWidget *widget,
 			int idx,
 			GdkRectangle *area,
-			gpointer user_data);
+			gpointer user_data,
+			gboolean cursor);
 static void fill_template(GdkRectangle *area, CollectionItem *item,
 			ViewCollection *view_collection, Template *template);
 static void huge_template(GdkRectangle *area, CollectionItem *colitem,
@@ -292,7 +293,7 @@ static gboolean transparent_expose(GtkWidget *widget,
 				(100 - o_view_alpha.int_value) / 100.0);
 		cairo_fill(cr);
 	}
-	else
+	else if (o_view_alpha.int_value != 0)
 		cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
 
 	if (!fg)
@@ -437,6 +438,40 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 
 	cairo_destroy(cr);
 }
+static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
+{
+	cairo_t *cr = gdk_cairo_create(widget->window);
+	GdkRectangle dr = *rect;
+
+	cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
+	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
+	cairo_set_line_width(cr, 2.0);
+
+//	double dashes[] = {4.0, 1.0};
+//	cairo_set_dash(cr, dashes, 2, 0);
+
+	dr.x += 2;
+	dr.y += 2;
+	dr.width = col->item_width - 3;
+	dr.height = col->item_height - 3;
+
+	cairo_set_source_rgb(cr, .6, .6, .6);
+	gdk_cairo_rectangle(cr, &dr);
+	cairo_stroke(cr);
+
+	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
+	{
+		cairo_set_operator(cr, CAIRO_OPERATOR_SCREEN);
+		gdk_cairo_set_source_color(cr,
+				&widget->style->base[GTK_STATE_ACTIVE]);
+//				&widget->style->base[GTK_STATE_SELECTED]);
+//		cairo_set_source_rgb(cr, .0, .2, .7);
+		gdk_cairo_rectangle(cr, &dr);
+		cairo_stroke(cr);
+	}
+
+	cairo_destroy(cr);
+}
 
 static gboolean next_thumb(ViewCollection *vc)
 {
@@ -507,7 +542,8 @@ static void reset_thumb_func(ViewCollection *vc)
 static void draw_item(GtkWidget *widget,
 			int idx,
 			GdkRectangle *area,
-			gpointer user_data)
+			gpointer user_data,
+			gboolean cursor)
 {
 	ViewCollection *vc = (ViewCollection *) user_data;
 	FilerWindow    *fw = vc->filer_window;
@@ -620,6 +656,9 @@ end_image:
 
 	gdk_gc_set_foreground(type_gc, type_get_colour(item,
 					&widget->style->text[GTK_STATE_NORMAL]));
+
+	if (cursor)
+		draw_cursor(widget, area, vc->collection);
 
 	GdkPixbuf *sendi = view->thumb;
 
@@ -1844,7 +1883,11 @@ static void view_collection_autosize(ViewIface *view)
 
 	if (filer_window->toolbar)
 	{
-		gtk_widget_get_size_request(filer_window->toolbar, &min_x, NULL);
+		if(o_toolbar_min_width.int_value)
+			min_x = toolbar_min_width;
+		else
+			min_x = 200;
+
 		if (filer_window->scrollbar)
 			min_x -= filer_window->scrollbar->allocation.width;
 	}
@@ -1926,7 +1969,7 @@ static void view_collection_autosize(ViewIface *view)
 	}
 
 	filer_window_set_size(filer_window,
-			w * MAX(cols, 1) + 2,
+			MAX(w * MAX(cols, 1) + 2, min_x),
 			MIN(max_y, h * rows + space) + exspace);
 }
 

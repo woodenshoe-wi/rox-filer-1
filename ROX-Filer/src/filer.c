@@ -196,9 +196,6 @@ static Option o_filer_view_type;
 Option o_filer_auto_resize, o_unique_filer_windows;
 Option o_filer_size_limit;
 Option o_filer_width_limit;
-Option o_view_alpha;
-Option o_use_background_colour;
-Option o_background_colour;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 static Option o_create_sub_dir_thumbs;
@@ -224,9 +221,6 @@ void filer_init(void)
 	option_add_int(&o_filer_view_type, "filer_view_type",
 			VIEW_TYPE_COLLECTION);
 
-	option_add_int(&o_view_alpha, "view_alpha", 0);
-	option_add_int(&o_use_background_colour, "use_background_colour", 0);
-	option_add_string(&o_background_colour, "background_colour", "#ffffff");
 	option_add_int(&o_right_gap, "right_gap", 32);
 	option_add_int(&o_bottom_gap, "bottom_gap", 32);
 	option_add_int(&o_auto_move, "auto_move", FALSE);
@@ -502,6 +496,7 @@ static void queue_interesting(FilerWindow *filer_window)
 }
 
 static void check_and_resize(FilerWindow *fw) {
+	fw->may_resize = FALSE;
 	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS) return;
 
 	gint w,h;
@@ -592,6 +587,9 @@ static void update_display(Directory *dir,
 //			g_idle_add((GSourceFunc) filer_create_thumbs, filer_window);
 			filer_create_thumbs(filer_window);
 
+			if (!init)
+				check_and_resize(filer_window);
+			filer_window->may_resize = FALSE;
 			break;
 		case DIR_UPDATE:
 			if (filer_window->sort_type != SORT_NAME &&
@@ -616,6 +614,8 @@ static void update_display(Directory *dir,
 					gtk_window_set_icon(GTK_WINDOW(filer_window->window),
 								filer_window->dir_icon->src_pixbuf);
 			}
+
+			filer_window->may_resize = TRUE;
 			break;
 		case DIR_ERROR_CHANGED:
 			filer_set_title(filer_window);
@@ -624,9 +624,6 @@ static void update_display(Directory *dir,
 			queue_interesting(filer_window);
 			break;
 	}
-
-	if (!init && action == DIR_END_SCAN)
-		check_and_resize(filer_window);
 }
 
 static void attach(FilerWindow *filer_window)
@@ -1526,7 +1523,7 @@ void filer_open_parent(FilerWindow *filer_window)
 		return;		/* Already in the root */
 
 	dir = g_path_get_dirname(current);
-	filer_opendir(dir, filer_window, NULL);
+	filer_opendir(dir, filer_window, NULL, FALSE);
 	g_free(dir);
 }
 
@@ -1700,7 +1697,7 @@ DirItem *filer_selected_item(FilerWindow *filer_window)
  * Note: if unique windows is in use, may return an existing window.
  */
 FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
-			   const gchar *wm_class)
+			   const gchar *wm_class, gboolean force_copy)
 {
 	FilerWindow	*filer_window;
 	char		*real_path;
@@ -1733,6 +1730,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->under_init = TRUE;
 	filer_window->first_scan = TRUE;
 	filer_window->req_sort = FALSE;
+	filer_window->may_resize = FALSE;
 
 	filer_window->message = NULL;
 	filer_window->minibuffer = NULL;
@@ -1793,21 +1791,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	/* Display settings target */
 	filer_window->filter = FILER_SHOW_ALL;
 	filer_window->filter_string = NULL;
-	if (src_win && o_display_inherit_options.int_value)
-	{
-		filer_window->sort_type = src_win->sort_type;
-		filer_window->sort_order = src_win->sort_order;
-		filer_window->display_style_wanted = src_win->display_style_wanted;
-		filer_window->details_type = src_win->details_type;
-		filer_window->show_hidden = src_win->show_hidden;
-		filer_window->show_thumbs = src_win->show_thumbs;
-		filer_window->view_type = src_win->view_type;
-		filer_window->icon_scale = src_win->icon_scale;
-
-		filer_window->filter_directories = src_win->filter_directories;
-		filer_set_filter(filer_window, src_win->filter,
-				 src_win->filter_string);
-	}
+	if (src_win && (force_copy || o_display_inherit_options.int_value))
+		filer_copy_settings(src_win, filer_window);
 	else
 		filer_clear_settings(filer_window);
 
@@ -2224,6 +2209,24 @@ void filer_update_all(void)
 		    !filer_window->directory->scanning)
 			filer_update_dir(filer_window, TRUE);
 	}
+}
+
+static gboolean _delay_check_resize(gpointer na)
+{
+	GList *next;
+	for (next = all_filer_windows; next; next = next->next)
+	{
+		FilerWindow *fw = (FilerWindow *) next->data;
+		if (na || fw->may_resize) {
+			check_and_resize(fw);
+		}
+	}
+	return FALSE;
+}
+void filer_check_resize(gboolean all)
+{
+	g_timeout_add(DIR_NOTIFY_TIME * 2,
+			_delay_check_resize, GUINT_TO_POINTER(all));
 }
 
 /* Refresh the various caches even if we don't think we need to */
@@ -4013,6 +4016,20 @@ static void save_settings(void)
 
 }
 
+void filer_copy_settings(FilerWindow *src, FilerWindow *dest)
+{
+	dest->sort_type            = src->sort_type;
+	dest->sort_order           = src->sort_order;
+	dest->display_style_wanted = src->display_style_wanted;
+	dest->details_type         = src->details_type;
+	dest->show_hidden          = src->show_hidden;
+	dest->show_thumbs          = src->show_thumbs;
+	dest->view_type            = src->view_type;
+	dest->icon_scale           = src->icon_scale;
+
+	dest->filter_directories   = src->filter_directories;
+	filer_set_filter(dest, src->filter, src->filter_string);
+}
 void filer_clear_settings(FilerWindow *fw)
 {
 	fw->sort_type            = o_display_sort_by.int_value;

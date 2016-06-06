@@ -49,7 +49,7 @@ static gboolean follow_symlink(const char *full_path,
 static gboolean open_file(const guchar *path, MIME_type *type);
 static FilerWindow *open_mountpoint(const guchar *full_path, DirItem *item,
 			    FilerWindow *filer_window, FilerWindow *src_window,
-			    gboolean edit);
+			    gboolean edit, gboolean winlnk);
 static gboolean run_desktop(const char *full_path,
 			    const char **args, const char *dir);
 static gboolean type_open(const char *path, MIME_type *type);
@@ -270,11 +270,13 @@ gboolean run_diritem(const guchar *full_path,
 				return TRUE;
 			}
 
+			gboolean winlnk =
+				!filer_window && o_window_link.int_value && src_window;
 			FilerWindow *tfw = filer_window;
-			if (src_window && !tfw) {
+			if (winlnk) {
 				tfw = src_window->right_link;
 				if (tfw)
-					filer_clear_settings(tfw);
+					filer_copy_settings(src_window, tfw);
 /*
 				if (src_window->right_link)
 					gtk_widget_destroy(src_window->right_link->window);
@@ -284,16 +286,16 @@ gboolean run_diritem(const guchar *full_path,
 			if (item->flags & ITEM_FLAG_MOUNT_POINT)
 			{
 				tfw = open_mountpoint(full_path, item,
-						tfw, src_window, edit);
+						tfw, src_window, edit, winlnk);
 			}
 			else if (tfw)
 				filer_change_to(tfw, full_path, NULL);
 			else
 			{
-				tfw = filer_opendir(full_path, src_window, NULL);
+				tfw = filer_opendir(full_path, src_window, NULL, winlnk);
 			}
 
-			if (!filer_window && o_window_link.int_value && src_window)
+			if (winlnk)
 			{
 				src_window->right_link = tfw;
 				filer_set_title(src_window);
@@ -413,7 +415,7 @@ void show_help_files(const char *dir)
 	help_dir = make_path(dir, "Help");
 
 	if (file_exists(help_dir))
-		filer_opendir(help_dir, NULL, NULL);
+		filer_opendir(help_dir, NULL, NULL, FALSE);
 	else
 		info_message(
 			_("Application:\n"
@@ -436,14 +438,14 @@ void open_to_show(const guchar *path)
 	if (slash == dir || !slash)
 	{
 		/* Item in the root (or root itself!) */
-		new = filer_opendir("/", NULL, NULL);
+		new = filer_opendir("/", NULL, NULL, FALSE);
 		if (new && dir[1])
 			display_set_autoselect(new, dir + 1);
 	}
 	else
 	{
 		*slash = '\0';
-		new = filer_opendir(dir, NULL, NULL);
+		new = filer_opendir(dir, NULL, NULL, FALSE);
 		if (new)
 		{
 			if (slash[1] == '.')
@@ -576,7 +578,7 @@ static gboolean follow_symlink(const char *full_path,
 	{
 		FilerWindow *new;
 
-		new = filer_opendir(new_dir, src_window, NULL);
+		new = filer_opendir(new_dir, src_window, NULL, FALSE);
 		if (new)
 			display_set_autoselect(new, slash + 1);
 	}
@@ -612,7 +614,7 @@ static gboolean open_file(const guchar *path, MIME_type *type)
 /* Called like run_diritem, when a mount-point is opened */
 static FilerWindow *open_mountpoint(const guchar *full_path, DirItem *item,
 			    FilerWindow *filer_window, FilerWindow *src_window,
-			    gboolean edit)
+			    gboolean edit, gboolean winlnk)
 {
 	gboolean mounted = (item->flags & ITEM_FLAG_MOUNTED) != 0;
 
@@ -631,7 +633,7 @@ static FilerWindow *open_mountpoint(const guchar *full_path, DirItem *item,
 		if (filer_window)
 			filer_change_to(filer_window, full_path, NULL);
 		else
-			return filer_opendir(full_path, src_window, NULL);
+			return filer_opendir(full_path, src_window, NULL, winlnk);
 	}
 
 	return filer_window;

@@ -140,6 +140,7 @@ struct _FilerWindow
 	gboolean	under_init;
 	gboolean	first_scan;
 	gboolean	req_sort;
+	gboolean	may_resize;
 
 	/* for checking user resize */
 	gint	configured;
@@ -153,9 +154,6 @@ extern GHashTable	*child_to_filer;
 extern Option		o_filer_auto_resize, o_unique_filer_windows;
 extern Option		o_filer_size_limit;
 extern Option		o_filer_width_limit;
-extern Option		o_view_alpha;
-extern Option		o_use_background_colour;
-extern Option		o_background_colour;
 extern Option		o_fast_font_calc;
 extern Option		o_window_link;
 extern gint 		fw_font_height;
@@ -164,9 +162,11 @@ extern gint 		fw_font_widths[0x7f];
 
 /* Prototypes */
 void filer_init(void);
-FilerWindow *filer_opendir(const char *path, FilerWindow *src_win, const gchar *wm_class);
+FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
+		const gchar *wm_class, gboolean force_copy);
 gboolean filer_update_dir(FilerWindow *filer_window, gboolean warning);
 void filer_update_all(void);
+void filer_check_resize(gboolean all);
 DirItem *filer_selected_item(FilerWindow *filer_window);
 void change_to_parent(FilerWindow *filer_window);
 void full_refresh(void);
@@ -215,6 +215,7 @@ void filer_set_hidden(FilerWindow *fwin, gboolean hidden);
 void filer_next_selected(FilerWindow *filer_window, int dir);
 void filer_save_settings(FilerWindow *fwin, gboolean parent);
 void filer_clear_settings(FilerWindow *fwin);
+void filer_copy_settings(FilerWindow *src, FilerWindow *dest);
 void filer_link(FilerWindow *left, FilerWindow *right);
 
 UnmountPrompt filer_get_unmount_action(const char *path);

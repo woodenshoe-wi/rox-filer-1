@@ -1399,7 +1399,7 @@ static void run_action(DirItem *item)
 
 void open_home(gpointer data, guint action, GtkWidget *widget)
 {
-	filer_opendir(home_dir, NULL, NULL);
+	filer_opendir(home_dir, NULL, NULL, FALSE);
 }
 
 static void select_all(gpointer data, guint action, GtkWidget *widget)
@@ -1635,7 +1635,7 @@ static void customise_directory_menu(gpointer data)
 	g_free(leaf);
 
 	mkdir(path, 0755);
-	filer_opendir(path, NULL, NULL);
+	filer_opendir(path, NULL, NULL, FALSE);
 	g_free(path);
 
 	info_message(_("Symlink any programs you want into this directory. "));
@@ -1686,7 +1686,7 @@ static void customise_send_to(gpointer data)
 	g_string_free(dirs, TRUE);
 
 	if (save)
-		filer_opendir(save, NULL, NULL);
+		filer_opendir(save, NULL, NULL, FALSE);
 }
 
 static void customise_new(gpointer data)
@@ -1726,7 +1726,7 @@ static void customise_new(gpointer data)
 	g_string_free(dirs, TRUE);
 
 	if (save)
-		filer_opendir(save, NULL, NULL);
+		filer_opendir(save, NULL, NULL, FALSE);
 }
 
 /* Add everything in the directory <Choices>/SendTo/[.type[_subtype]]
@@ -1977,7 +1977,7 @@ static void new_window(gpointer data, guint action, GtkWidget *widget)
 			"is turned on in the Options window."));
 	}
 	else
-		filer_opendir(window_with_focus->sym_path, window_with_focus, NULL);
+		filer_opendir(window_with_focus->sym_path, window_with_focus, NULL, FALSE);
 }
 
 static void close_window(gpointer data, guint action, GtkWidget *widget)
@@ -2007,7 +2007,7 @@ void menu_rox_help(gpointer data, guint action, GtkWidget *widget)
 	if (action == HELP_ABOUT)
 		infobox_new(app_dir);
 	else if (action == HELP_DIR)
-		filer_opendir(make_path(app_dir, "Help"), NULL, NULL);
+		filer_opendir(make_path(app_dir, "Help"), NULL, NULL, FALSE);
 	else if (action == HELP_MANUAL)
 	{
 		gchar *manual = NULL;

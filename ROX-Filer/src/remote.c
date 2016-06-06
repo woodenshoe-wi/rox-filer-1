@@ -690,7 +690,7 @@ static xmlNodePtr rpc_OpenDir(GList *args)
 
 	if (!fwin)
 	{
-		fwin = filer_opendir(path, NULL, class);
+		fwin = filer_opendir(path, NULL, class, FALSE);
 		if (window)
 			filer_set_id(fwin, window);
 	}

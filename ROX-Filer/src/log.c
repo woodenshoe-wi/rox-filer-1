@@ -126,7 +126,7 @@ void log_info_paths(const gchar *message, GList *paths, const gchar *path)
 		GtkTreeIter child_iter;
 		gtk_tree_store_append(log, &child_iter, &iter);
 
-		if (!max--)
+		if (!--max && paths->next)
 		{
 			gtk_tree_store_set(log, &child_iter,
 					MESSAGE, _("..."),
