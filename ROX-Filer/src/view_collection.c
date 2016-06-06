@@ -450,7 +450,11 @@ static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
 //	double dashes[] = {4.0, 1.0};
 //	cairo_set_dash(cr, dashes, 2, 0);
 
-	cairo_set_source_rgb(cr, .6, .6, .6);
+	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
+		cairo_set_source_rgb(cr, .6, .6, .6);
+	else
+		cairo_set_source_rgb(cr, .2, .2, .2);
+
 	dr.x += 2;
 	dr.y += 2;
 	dr.width = col->item_width - 3;
