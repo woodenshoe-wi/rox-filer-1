@@ -448,14 +448,13 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 
 void filer_link(FilerWindow *left, FilerWindow *right)
 {
-
 	GdkRectangle frect = {0, 0, 0, 0};
 	gdk_window_get_frame_extents(left->window->window, &frect);
 	gtk_window_move(GTK_WINDOW(right->window),
 			frect.x + frect.width,
 			frect.y);
 
-	gtk_window_present(GTK_WINDOW(right->window));
+//	gtk_window_present(GTK_WINDOW(right->window));
 }
 
 /* Called on a timeout while scanning or when scanning ends
@@ -2088,20 +2087,27 @@ static gboolean configure_cb(
 {
 	fw->configured = 1;
 
-	if (fw->left_link && gtk_window_is_active(GTK_WINDOW(fw->window)))
-	{
-		GdkRectangle frect = {0, 0, 0, 0};
-		gdk_window_get_frame_extents(
-				fw->left_link->window->window, &frect);
-
-		if (
-				event->configure.x + 33 < frect.x + frect.width ||
-				event->configure.x - 33 > frect.x + frect.width)
-			cut_links(fw, TRUE);
-	}
-
 	if (fw->right_link)
 		filer_link(fw, fw->right_link);
+
+	return FALSE;
+}
+static gboolean focus_in_cb(
+		GtkWidget *widget,
+		GdkEvent *event,
+		FilerWindow *fw)
+{
+	if (!fw->left_link || !fw->configured) return FALSE;
+
+	GdkRectangle lfrect, rfrect;
+	gdk_window_get_frame_extents(
+			fw->left_link->window->window, &lfrect);
+	gdk_window_get_frame_extents(
+			fw->window->window, &rfrect);
+	if (
+			rfrect.x + 33 < lfrect.x + lfrect.width ||
+			rfrect.x - 33 > lfrect.x + lfrect.width)
+		cut_links(fw, TRUE);
 
 	return FALSE;
 }
@@ -2148,6 +2154,9 @@ static void filer_add_signals(FilerWindow *filer_window)
 
 	g_signal_connect(filer_window->window, "configure-event",
 			G_CALLBACK(configure_cb), filer_window);
+
+	g_signal_connect(filer_window->window, "focus-in-event",
+			G_CALLBACK(focus_in_cb), filer_window);
 
 	gtk_window_add_accel_group(GTK_WINDOW(filer_window->window),
 				   filer_keys);

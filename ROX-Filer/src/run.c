@@ -297,6 +297,9 @@ gboolean run_diritem(const guchar *full_path,
 
 			if (winlnk)
 			{
+				//clear link mark
+				gtk_widget_queue_draw(GTK_WIDGET(src_window->view));
+
 				src_window->right_link = tfw;
 				filer_set_title(src_window);
 				tfw->left_link = src_window;
