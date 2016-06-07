@@ -83,11 +83,8 @@ static Option o_huge_size;
 int huge_size = HUGE_SIZE;
 
 /* Static prototypes */
-static void display_details_set(FilerWindow *filer_window, DetailsType details);
-static void display_style_set(FilerWindow *filer_window, DisplayStyle style);
 static void options_changed(void);
 static char *getdetails(FilerWindow *filer_window, DirItem *item);
-static void display_set_actual_size_real(FilerWindow *filer_window);
 
 /****************************************************************
  *			EXTERNAL INTERFACE			*
@@ -604,8 +601,14 @@ void display_set_layout(FilerWindow  *filer_window,
 	style_changed = details_changed ||
 				filer_window->display_style_wanted != style;
 
-	display_style_set(filer_window, style);
-	display_details_set(filer_window, details);
+	filer_window->display_style_wanted = style;
+	if (style == AUTO_SIZE_ICONS)
+		filer_window->display_style =
+			view_count_items(filer_window->view) >=
+				o_filer_change_size_num.int_value
+			? SMALL_ICONS : LARGE_ICONS;
+
+	filer_window->details_type = details;
 
 	if (details_changed || real_style != filer_window->display_style)
 		view_style_changed(filer_window->view, VIEW_UPDATE_NAME);
@@ -950,19 +953,6 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 	return buf;
 }
 
-/* Note: Call style_changed after this */
-static void display_details_set(FilerWindow *filer_window, DetailsType details)
-{
-	filer_window->details_type = details;
-}
-
-/* Note: Call style_changed after this */
-static void display_style_set(FilerWindow *filer_window, DisplayStyle style)
-{
-	filer_window->display_style_wanted = style;
-	display_set_actual_size_real(filer_window);
-}
-
 PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 {
 	DisplayStyle style = fw->display_style;
@@ -1148,25 +1138,3 @@ void display_update_view(FilerWindow *filer_window,
 	view->name_height = h / PANGO_SCALE;
 }
 
-/* Sets display_style from display_style_wanted.
- * See also display_set_actual_size().
- */
-static void display_set_actual_size_real(FilerWindow *filer_window)
-{
-	DisplayStyle size = filer_window->display_style_wanted;
-	int n;
-
-	g_return_if_fail(filer_window != NULL);
-
-	if (size == AUTO_SIZE_ICONS)
-	{
-		n = view_count_items(filer_window->view);
-
-		if (n >= o_filer_change_size_num.int_value)
-			size = SMALL_ICONS;
-		else
-			size = LARGE_ICONS;
-	}
-
-	filer_window->display_style = size;
-}

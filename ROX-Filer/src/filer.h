@@ -163,7 +163,7 @@ extern gint 		fw_font_widths[0x7f];
 /* Prototypes */
 void filer_init(void);
 FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
-		const gchar *wm_class, gboolean force_copy);
+		const gchar *wm_class, gboolean winlnk);
 gboolean filer_update_dir(FilerWindow *filer_window, gboolean warning);
 void filer_update_all(void);
 void filer_check_resize(gboolean all);

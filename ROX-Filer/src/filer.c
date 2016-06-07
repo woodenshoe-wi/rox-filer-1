@@ -453,8 +453,6 @@ void filer_link(FilerWindow *left, FilerWindow *right)
 	gtk_window_move(GTK_WINDOW(right->window),
 			frect.x + frect.width,
 			frect.y);
-
-//	gtk_window_present(GTK_WINDOW(right->window));
 }
 
 /* Called on a timeout while scanning or when scanning ends
@@ -522,6 +520,8 @@ static void update_display(Directory *dir,
 		case DIR_ADD:
 			view_add_items(view, items);
 			filer_window->req_sort = FALSE;
+
+			open_filer_window(filer_window);
 			break;
 		case DIR_REMOVE:
 			view_delete_if(view, if_deleted, items);
@@ -532,6 +532,8 @@ static void update_display(Directory *dir,
 			toolbar_update_info(filer_window);
 			break;
 		case DIR_END_SCAN:
+			open_filer_window(filer_window);
+
 			filer_window->first_scan = FALSE;
 			if (filer_window->req_sort)
 			{
@@ -1696,7 +1698,7 @@ DirItem *filer_selected_item(FilerWindow *filer_window)
  * Note: if unique windows is in use, may return an existing window.
  */
 FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
-			   const gchar *wm_class, gboolean force_copy)
+			   const gchar *wm_class, gboolean winlnk)
 {
 	FilerWindow	*filer_window;
 	char		*real_path;
@@ -1710,8 +1712,12 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 		if (same_dir_window)
 		{
-			gtk_window_present(GTK_WINDOW(same_dir_window->window));
-			return same_dir_window;
+			if (winlnk)
+				gtk_widget_destroy(same_dir_window->window);
+			else {
+				gtk_window_present(GTK_WINDOW(same_dir_window->window));
+				return same_dir_window;
+			}
 		}
 	}
 
@@ -1790,16 +1796,20 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	/* Display settings target */
 	filer_window->filter = FILER_SHOW_ALL;
 	filer_window->filter_string = NULL;
-	if (src_win && (force_copy || o_display_inherit_options.int_value))
+	if (src_win && (winlnk || o_display_inherit_options.int_value))
 		filer_copy_settings(src_win, filer_window);
 	else
 		filer_clear_settings(filer_window);
 
 	/* Add all the user-interface elements & realise */
 	filer_add_widgets(filer_window, wm_class);
-	if (src_win)
-		gtk_window_set_position(GTK_WINDOW(filer_window->window),
+	if (src_win) {
+		if (winlnk)
+			filer_link(src_win, filer_window);
+		else
+			gtk_window_set_position(GTK_WINDOW(filer_window->window),
 					GTK_WIN_POS_MOUSE);
+	}
 
 	/* Override the current defaults with the per-directory
 	 * user settings.
@@ -1838,8 +1848,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	number_of_windows++;
 	all_filer_windows = g_list_prepend(all_filer_windows, filer_window);
-
-	open_filer_window(filer_window);
 
 	return filer_window;
 }
