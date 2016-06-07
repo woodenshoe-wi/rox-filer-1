@@ -2105,7 +2105,7 @@ static gboolean focus_in_cb(
 		GdkEvent *event,
 		FilerWindow *fw)
 {
-	if (!fw->left_link || !fw->configured) return FALSE;
+	if (!fw->left_link) return FALSE;
 
 	GdkRectangle lfrect, rfrect;
 	gdk_window_get_frame_extents(
