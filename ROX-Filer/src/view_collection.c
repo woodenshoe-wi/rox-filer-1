@@ -455,20 +455,13 @@ static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
 	dr.width = col->item_width - 3;
 	dr.height = col->item_height - 3;
 
-	cairo_set_source_rgb(cr, .6, .6, .6);
+	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
+		cairo_set_source_rgb(cr, .6, .6, .6);
+	else
+		cairo_set_source_rgb(cr, .2, .2, .2);
+
 	gdk_cairo_rectangle(cr, &dr);
 	cairo_stroke(cr);
-
-	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
-	{
-		cairo_set_operator(cr, CAIRO_OPERATOR_SCREEN);
-		gdk_cairo_set_source_color(cr,
-				&widget->style->base[GTK_STATE_ACTIVE]);
-//				&widget->style->base[GTK_STATE_SELECTED]);
-//		cairo_set_source_rgb(cr, .0, .2, .7);
-		gdk_cairo_rectangle(cr, &dr);
-		cairo_stroke(cr);
-	}
 
 	cairo_destroy(cr);
 }
