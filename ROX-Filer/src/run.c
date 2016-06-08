@@ -305,6 +305,7 @@ gboolean run_diritem(const guchar *full_path,
 				tfw->left_link = src_window;
 				filer_set_title(tfw);
 
+				filer_link(src_window, tfw);
 				gtk_window_present(GTK_WINDOW(tfw->window));
 			}
 
