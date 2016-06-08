@@ -109,8 +109,6 @@ struct _FilerWindow
 	GtkLabel	*toolbar_size_text;
 	GtkLabel	*toolbar_settings_text;
 
-	gint		open_timeout;	/* Will resize and show window... */
-
 	GtkStateType	selection_state;	/* for drawing selection */
 
 	FilerWindow *right_link;

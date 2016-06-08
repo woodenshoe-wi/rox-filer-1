@@ -455,27 +455,6 @@ void filer_link(FilerWindow *left, FilerWindow *right)
 			frect.y);
 }
 
-/* Called on a timeout while scanning or when scanning ends
- * (whichever happens first).
- */
-static gint open_filer_window(FilerWindow *filer_window)
-{
-	if (filer_window->open_timeout)
-	{
-		g_source_remove(filer_window->open_timeout);
-		filer_window->open_timeout = 0;
-	}
-
-	if (!GTK_WIDGET_VISIBLE(filer_window->window))
-	{
-		filer_window->under_init = FALSE;
-		display_set_actual_size(filer_window, TRUE);
-		gtk_widget_show(filer_window->window);
-	}
-
-	return FALSE;
-}
-
 /* Look through all items we want to display, and queue a recheck on any
  * that require it.
  */
@@ -520,8 +499,6 @@ static void update_display(Directory *dir,
 		case DIR_ADD:
 			view_add_items(view, items);
 			filer_window->req_sort = FALSE;
-
-			open_filer_window(filer_window);
 			break;
 		case DIR_REMOVE:
 			view_delete_if(view, if_deleted, items);
@@ -532,8 +509,6 @@ static void update_display(Directory *dir,
 			toolbar_update_info(filer_window);
 			break;
 		case DIR_END_SCAN:
-			open_filer_window(filer_window);
-
 			filer_window->first_scan = FALSE;
 			if (filer_window->req_sort)
 			{
@@ -912,12 +887,6 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 
 	if (filer_window->directory)
 		detach(filer_window);
-
-	if (filer_window->open_timeout)
-	{
-		g_source_remove(filer_window->open_timeout);
-		filer_window->open_timeout = 0;
-	}
 
 	if (filer_window->auto_scroll != -1)
 	{
@@ -1819,14 +1788,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	/* Connect to all the signal handlers */
 	filer_add_signals(filer_window);
 
-	/* Open the window after a timeout, or when scanning stops.
-	 * Do this before attaching, because attach() might tell us to
-	 * stop scanning (if a scan isn't needed).
-	 */
-	filer_window->open_timeout = g_timeout_add(500,
-					  (GSourceFunc) open_filer_window,
-					  filer_window);
-
 	/* The view is created empty and then attach() is called, which
 	 * links the filer window to the entry in the directory cache we
 	 * looked up / created above.
@@ -1839,7 +1800,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	 * opened it before) then the types and icons for the entries are
 	 * not know, but the list of names is.
 	 */
-
 	attach(filer_window);
 
 	if (from_dup)
@@ -1848,6 +1808,10 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	number_of_windows++;
 	all_filer_windows = g_list_prepend(all_filer_windows, filer_window);
+
+	filer_window->under_init = FALSE;
+	display_set_actual_size(filer_window, FALSE);
+	gtk_widget_show(filer_window->window);
 
 	return filer_window;
 }
