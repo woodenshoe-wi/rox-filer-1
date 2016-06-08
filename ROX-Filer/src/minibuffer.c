@@ -1252,7 +1252,25 @@ static gboolean select_if_reg_cb(ViewIter *iter, gpointer exp)
 	item = iter->peek(iter);
 	g_return_val_if_fail(item != NULL, FALSE);
 
-	return regexec((regex_t *) exp, item->leafname, 0, NULL, 0) == 0;
+	if (regexec((regex_t *) exp, item->leafname, 0, NULL, 0) == 0)
+		return TRUE;
+/*
+	if (G_OBJECT_TYPE(iter->view) == view_collection_get_type() &&
+		((ViewCollection *) iter->view)
+		->filer_window->details_type != DETAILS_NONE)
+	{
+		ViewData *vd =
+			((ViewCollection *) iter->view)->collection->
+			items[iter->i].view_data;
+
+		if (vd->details &&
+			regexec((regex_t *) exp,
+				pango_layout_get_text(vd->details), 0, NULL, 0) == 0
+			)
+			return TRUE;
+	}
+*/
+	return FALSE;
 }
 
 static void view_select_if_reg(ViewIface *obj, const gchar *pattern)
