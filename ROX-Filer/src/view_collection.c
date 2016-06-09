@@ -445,20 +445,20 @@ static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
 
 	cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
-	cairo_set_line_width(cr, 2.0);
+	cairo_set_line_width(cr, 1.0);
 
 //	double dashes[] = {4.0, 1.0};
 //	cairo_set_dash(cr, dashes, 2, 0);
 
 	dr.x += 2;
 	dr.y += 2;
-	dr.width = col->item_width - 3;
-	dr.height = col->item_height - 3;
+	dr.width = col->item_width - 2;
+	dr.height = col->item_height - 2;
 
 	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
-		cairo_set_source_rgb(cr, .6, .6, .6);
+		cairo_set_source_rgb(cr, .9, .9, .9);
 	else
-		cairo_set_source_rgb(cr, .2, .2, .2);
+		cairo_set_source_rgb(cr, .7, .7, .7);
 
 	gdk_cairo_rectangle(cr, &dr);
 	cairo_stroke(cr);
