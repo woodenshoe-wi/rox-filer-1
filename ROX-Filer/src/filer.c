@@ -1197,9 +1197,7 @@ static void return_pressed(FilerWindow *filer_window, GdkEventKey *event)
 
 	if (event->state & GDK_SHIFT_MASK)
 		flags |= OPEN_SHIFT;
-	if ((event->state & GDK_MOD1_MASK) !=
-			(iter.peek(&iter)->base_type == TYPE_DIRECTORY &&
-			 (filer_window->right_link || filer_window->left_link)))
+	if (event->state & GDK_MOD1_MASK)
 		flags |= OPEN_CLOSE_WINDOW;
 	else
 		flags |= OPEN_SAME_WINDOW;
