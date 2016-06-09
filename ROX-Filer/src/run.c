@@ -306,7 +306,11 @@ gboolean run_diritem(const guchar *full_path,
 				filer_set_title(tfw);
 
 				filer_link(src_window, tfw);
-				gtk_window_present(GTK_WINDOW(tfw->window));
+
+				//this emits configure event
+				//gtk_window_present(GTK_WINDOW(src_window->window));
+
+				gdk_window_focus(src_window->window->window, 0);
 			}
 
 			return TRUE;

@@ -453,6 +453,8 @@ void filer_link(FilerWindow *left, FilerWindow *right)
 	gtk_window_move(GTK_WINDOW(right->window),
 			frect.x + frect.width,
 			frect.y);
+
+	gdk_window_raise(right->window->window);
 }
 
 /* Look through all items we want to display, and queue a recheck on any
@@ -864,6 +866,12 @@ static void cut_links(FilerWindow *fw, gboolean left_only)
 		fw->right_link = NULL;
 	}
 
+	if (!left_only && fw->right_link_idle)
+	{
+		g_source_remove(fw->right_link_idle);
+		fw->right_link_idle = 0;
+	}
+
 	filer_set_title(fw);
 }
 
@@ -1189,7 +1197,9 @@ static void return_pressed(FilerWindow *filer_window, GdkEventKey *event)
 
 	if (event->state & GDK_SHIFT_MASK)
 		flags |= OPEN_SHIFT;
-	if (event->state & GDK_MOD1_MASK)
+	if ((event->state & GDK_MOD1_MASK) !=
+			(iter.peek(&iter)->base_type == TYPE_DIRECTORY &&
+			 (filer_window->right_link || filer_window->left_link)))
 		flags |= OPEN_CLOSE_WINDOW;
 	else
 		flags |= OPEN_SAME_WINDOW;
@@ -1379,6 +1389,19 @@ void filer_window_toggle_cursor_item_selected(FilerWindow *filer_window)
 		view_cursor_to_iter(view, &iter);
 }
 
+static gboolean key_link_cb(gpointer ap)
+{
+	ViewIter iter;
+	FilerWindow *fw = (FilerWindow *) ap;
+	fw->right_link_idle = 0;
+	view_get_cursor(fw->view, &iter);
+
+	if (iter.peek(&iter) && iter.peek(&iter)->base_type == TYPE_DIRECTORY)
+		filer_openitem(fw, &iter, OPEN_CLOSE_WINDOW);
+
+	return FALSE;
+}
+
 gint filer_key_press_event(GtkWidget	*widget,
 			   GdkEventKey	*event,
 			   FilerWindow	*filer_window)
@@ -1412,9 +1435,23 @@ gint filer_key_press_event(GtkWidget	*widget,
 		return TRUE;
 	}
 
+	if ((filer_window->right_link || filer_window->left_link) &&
+			!filer_window->right_link_idle &&
+			(
+			key == GDK_Left  ||
+			key == GDK_Right ||
+			key == GDK_Up    ||
+			key == GDK_Down  ))
+	{
+		filer_window->right_link_idle =
+			g_idle_add(key_link_cb, filer_window);
+	}
+
 	switch (key)
 	{
 		case GDK_Escape:
+			if ((filer_window->right_link || filer_window->left_link))
+				cut_links(filer_window, FALSE);
 			filer_target_mode(filer_window, NULL, NULL, NULL);
 			view_cursor_to_iter(view, NULL);
 			view_clear_selection(view);
@@ -1736,6 +1773,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->dir_icon = NULL;
 	filer_window->right_link = NULL;
 	filer_window->left_link = NULL;
+	filer_window->right_link_idle = 0;
 
 	tidy_sympath(filer_window->sym_path);
 
