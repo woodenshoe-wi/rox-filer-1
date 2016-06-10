@@ -1578,6 +1578,8 @@ static DirItem *iter_init(ViewIter *iter)
 	}
 	else if (flags & VIEW_ITER_FROM_BASE)
 		i = view_collection->cursor_base;
+	else if (flags & VIEW_ITER_OLD_CURSOR)
+		i = view_collection->collection->cursor_item_old;
 
 	if (i < 0 || i >= n)
 	{
@@ -1599,6 +1601,10 @@ static DirItem *iter_init(ViewIter *iter)
 
 	if (flags & VIEW_ITER_SELECTED && !collection->items[i].selected)
 		return iter->next(iter);
+	if (iter->flags & VIEW_ITER_DIR &&
+			((DirItem *) collection->items[i].data)->base_type != TYPE_DIRECTORY)
+		return iter->next(iter);
+
 	return iter->peek(iter);
 }
 /* Advance iter to point to the next item and return the new item
@@ -1622,12 +1628,21 @@ static DirItem *iter_next(ViewIter *iter)
 		iter->n_remaining--;
 
 		if (i == n)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = 0;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
 		if (iter->flags & VIEW_ITER_SELECTED &&
 		    !collection->items[i].selected)
+			continue;
+
+		if (iter->flags & VIEW_ITER_DIR &&
+		    ((DirItem *) collection->items[i].data)->base_type != TYPE_DIRECTORY)
 			continue;
 
 		iter->i = i;
@@ -1657,12 +1672,21 @@ static DirItem *iter_prev(ViewIter *iter)
 		iter->n_remaining--;
 
 		if (i == -1)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = collection->number_of_items - 1;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
 		if (iter->flags & VIEW_ITER_SELECTED &&
 		    !collection->items[i].selected)
+			continue;
+
+		if (iter->flags & VIEW_ITER_DIR &&
+		    ((DirItem *) collection->items[i].data)->base_type != TYPE_DIRECTORY)
 			continue;
 
 		iter->i = i;

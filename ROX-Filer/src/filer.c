@@ -849,7 +849,7 @@ gboolean filer_window_delete(GtkWidget *window,
 	return FALSE;
 }
 
-static void cut_links(FilerWindow *fw, gboolean left_only)
+void filer_cut_links(FilerWindow *fw, gboolean left_only)
 {
 	if (!fw->left_link && !fw->right_link) return;
 
@@ -880,7 +880,7 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 {
 	all_filer_windows = g_list_remove(all_filer_windows, filer_window);
 
-	cut_links(filer_window, FALSE);
+	filer_cut_links(filer_window, FALSE);
 
 	g_object_set_data(G_OBJECT(widget), "filer_window", NULL);
 
@@ -1169,7 +1169,10 @@ void filer_next_selected(FilerWindow *filer_window, int dir)
 		iter.next(&iter);	/* Skip the cursor itself */
 
 	if (iter.next(&iter))
+	{
 		view_cursor_to_iter(view, &iter);
+		filer_link_cursor(filer_window);
+	}
 	else
 		gdk_beep();
 
@@ -1399,6 +1402,11 @@ static gboolean key_link_cb(gpointer ap)
 
 	return FALSE;
 }
+void filer_link_cursor(FilerWindow *fw)
+{
+	if (!fw->right_link_idle)
+		fw->right_link_idle = g_idle_add(key_link_cb, fw);
+}
 
 gint filer_key_press_event(GtkWidget	*widget,
 			   GdkEventKey	*event,
@@ -1434,22 +1442,19 @@ gint filer_key_press_event(GtkWidget	*widget,
 	}
 
 	if ((filer_window->right_link || filer_window->left_link) &&
-			!filer_window->right_link_idle &&
 			(
 			key == GDK_Left  ||
 			key == GDK_Right ||
 			key == GDK_Up    ||
-			key == GDK_Down  ))
-	{
-		filer_window->right_link_idle =
-			g_idle_add(key_link_cb, filer_window);
-	}
+			key == GDK_Down  )
+			)
+		filer_link_cursor(filer_window);
 
 	switch (key)
 	{
 		case GDK_Escape:
 			if ((filer_window->right_link || filer_window->left_link))
-				cut_links(filer_window, FALSE);
+				filer_cut_links(filer_window, FALSE);
 			filer_target_mode(filer_window, NULL, NULL, NULL);
 			view_cursor_to_iter(view, NULL);
 			view_clear_selection(view);
@@ -1599,7 +1604,7 @@ void filer_change_to(FilerWindow *fw,
 		return;
 	}
 
-	cut_links(fw, FALSE);
+	filer_cut_links(fw, FALSE);
 
 	fw->under_init = TRUE;
 	fw->first_scan = TRUE;
@@ -2115,7 +2120,7 @@ static gboolean focus_in_cb(
 	if (
 			rfrect.x + 33 < lfrect.x + lfrect.width ||
 			rfrect.x - 33 > lfrect.x + lfrect.width)
-		cut_links(fw, TRUE);
+		filer_cut_links(fw, TRUE);
 
 	return FALSE;
 }

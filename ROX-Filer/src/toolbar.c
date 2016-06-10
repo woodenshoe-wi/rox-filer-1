@@ -685,7 +685,9 @@ static gint bar_pressed(GtkWidget *widget,
 				event->button, event->x_root, event->y_root, event->time);
 		break;
 	case 2:
+		filer_cut_links(filer_window, FALSE);
 		view_autosize(filer_window->view);
+		view_cursor_to_iter(filer_window->view, NULL);
 		break;
 	case 3:
 		gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
@@ -695,6 +697,33 @@ static gint bar_pressed(GtkWidget *widget,
 	default:
 		return FALSE;
 	}
+
+	return TRUE;
+}
+static gint bar_scrolled(
+		GtkButton *button,
+		GdkEventScroll *event,
+		FilerWindow *fw)
+{
+	ViewIter iter;
+	view_get_cursor(fw->view, &iter);
+	gboolean have_cursor = iter.peek(&iter) != NULL;
+
+	view_get_iter(fw->view, &iter,
+			VIEW_ITER_NO_LOOP | VIEW_ITER_OLD_CURSOR | VIEW_ITER_DIR |
+			(have_cursor ? VIEW_ITER_FROM_CURSOR : 0) |
+			(event->direction == GDK_SCROLL_UP ?  VIEW_ITER_BACKWARDS : 0));
+
+	if (have_cursor)
+		iter.next(&iter); //first time of next is init
+
+	if (iter.next(&iter))
+	{
+		view_cursor_to_iter(fw->view, &iter);
+		filer_link_cursor(fw);
+	}
+	else
+		gdk_beep();
 
 	return TRUE;
 }
@@ -753,6 +782,9 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 
 		g_signal_connect(bar, "button_press_event",
 			G_CALLBACK(bar_pressed), filer_window);
+
+		g_signal_connect(bar, "scroll_event",
+			G_CALLBACK(bar_scrolled), filer_window);
 	}
 
 	return bar;
@@ -802,6 +834,8 @@ static gint toolbar_button_scroll(GtkButton *button,
 				GdkEventScroll *event,
 				FilerWindow *fw)
 {
+	if (!fw) return TRUE; //kill event for bar event area
+
 	DisplayStyle ds = fw->display_style;
 	DisplayStyle *dsw = &(fw->display_style_wanted);
 	gfloat *sc = &(fw->icon_scale);
@@ -918,6 +952,10 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 			g_signal_connect(button, "enter_notify_event",
 				G_CALLBACK(toolbar_size_enter), filer_window);
 		}
+		else
+			g_signal_connect(button, "scroll_event",
+				G_CALLBACK(toolbar_button_scroll), NULL);
+
 		if (tool->clicked == toolbar_settings_clicked)
 			filer_window->toolbar_settings_text = GTK_LABEL(label);
 	}
