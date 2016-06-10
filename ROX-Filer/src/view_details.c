@@ -1863,7 +1863,12 @@ static DirItem *iter_prev(ViewIter *iter)
 		iter->n_remaining--;
 
 		if (i == -1)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = n - 1;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
@@ -1901,7 +1906,12 @@ static DirItem *iter_next(ViewIter *iter)
 		iter->n_remaining--;
 
 		if (i == n)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = 0;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
