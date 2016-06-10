@@ -602,11 +602,12 @@ void display_set_layout(FilerWindow  *filer_window,
 				filer_window->display_style_wanted != style;
 
 	filer_window->display_style_wanted = style;
-	if (style == AUTO_SIZE_ICONS)
-		filer_window->display_style =
+	filer_window->display_style =
+		style == AUTO_SIZE_ICONS ?
 			view_count_items(filer_window->view) >=
-				o_filer_change_size_num.int_value
-			? SMALL_ICONS : LARGE_ICONS;
+			o_filer_change_size_num.int_value ?
+				SMALL_ICONS : LARGE_ICONS
+		: style;
 
 	filer_window->details_type = details;
 
