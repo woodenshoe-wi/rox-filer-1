@@ -584,55 +584,48 @@ void display_set_sort_type(FilerWindow *filer_window, SortType sort_type,
 /* Change the icon size and style.
  * force_resize should only be TRUE for new windows.
  */
-void display_set_layout(FilerWindow  *filer_window,
-			DisplayStyle style,
+void display_set_layout(FilerWindow *fw,
+			DisplayStyle want,
 			DetailsType  details,
 			gboolean     force_resize)
 {
-	gboolean style_changed = FALSE, details_changed;
-	DisplayStyle real_style = filer_window->display_style;
+	gboolean details_changed = fw->details_type != details;
+	gboolean wanted_changed = details_changed || fw->display_style_wanted != want;
+	DisplayStyle prev_style = fw->display_style;
 
-	g_return_if_fail(filer_window != NULL);
+	fw->details_type = details;
+	fw->display_style = fw->display_style_wanted = want;
 
-	if (style == AUTO_SIZE_ICONS)
-		filer_window->icon_scale = 1.0;
-
-	details_changed = filer_window->details_type != details;
-	style_changed = details_changed ||
-				filer_window->display_style_wanted != style;
-
-	filer_window->display_style_wanted = style;
-	filer_window->display_style =
-		style == AUTO_SIZE_ICONS ?
-			view_count_items(filer_window->view) >=
-			o_filer_change_size_num.int_value ?
-				SMALL_ICONS : LARGE_ICONS
-		: style;
-
-	filer_window->details_type = details;
-
-	if (details_changed || real_style != filer_window->display_style)
-		view_style_changed(filer_window->view, VIEW_UPDATE_NAME);
-	else
-		/* Recreate layouts because wrapping may have changed */
-		view_style_changed(filer_window->view, 0);
-
-	if (force_resize || o_filer_auto_resize.int_value == RESIZE_ALWAYS
-	    || (o_filer_auto_resize.int_value == RESIZE_STYLE && style_changed))
+	if (want == AUTO_SIZE_ICONS)
 	{
-		view_autosize(filer_window->view);
+		fw->display_style =
+			view_count_items(fw->view) >= o_filer_change_size_num.int_value ?
+				SMALL_ICONS : LARGE_ICONS;
+
+		fw->icon_scale = 1.0;
 	}
 
-	if (filer_window->toolbar_size_text)
+	if (details_changed || prev_style != fw->display_style)
+		view_style_changed(fw->view, VIEW_UPDATE_NAME);
+	else
+		view_style_changed(fw->view, 0);
+
+	if (force_resize ||
+			o_filer_auto_resize.int_value == RESIZE_ALWAYS ||
+			(o_filer_auto_resize.int_value == RESIZE_STYLE && wanted_changed)
+			)
+		view_autosize(fw->view);
+
+	if (fw->toolbar_size_text)
 	{
 		gchar *size_label = g_strdup_printf("%s%s", N_("Size"),
-			filer_window->display_style_wanted == LARGE_ICONS ? "┤" :
-			filer_window->display_style_wanted == SMALL_ICONS ? "┐" :
-			filer_window->display_style_wanted == HUGE_ICONS  ? "┘" :
-			filer_window->display_style_wanted == AUTO_SIZE_ICONS ?
-				filer_window->display_style == LARGE_ICONS ? "├" : "┌" :
-			"┼" );
-		gtk_label_set_text(filer_window->toolbar_size_text, size_label);
+			want == LARGE_ICONS ? "┤" :
+			want == SMALL_ICONS ? "┐" :
+			want == HUGE_ICONS  ? "┘" :
+			want == AUTO_SIZE_ICONS ?
+				fw->display_style == LARGE_ICONS ? "├" : "┌"
+			: "┼");
+		gtk_label_set_text(fw->toolbar_size_text, size_label);
 
 		g_free(size_label);
 	}
