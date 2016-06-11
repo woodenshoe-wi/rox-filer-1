@@ -450,10 +450,10 @@ static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
 //	double dashes[] = {4.0, 1.0};
 //	cairo_set_dash(cr, dashes, 2, 0);
 
-	dr.x += 2;
-	dr.y += 2;
-	dr.width = col->item_width - 2;
-	dr.height = col->item_height - 2;
+	dr.x += 1;
+	dr.y += 1;
+	dr.width = col->item_width - 1;
+	dr.height = col->item_height - 1;
 
 	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
 		cairo_set_source_rgb(cr, .9, .9, .9);
@@ -801,7 +801,7 @@ static void huge_template(
 		template->leafname.height = MIN(view->name_height,
 				area->height - ih - view->details_height - 1);
 
-		template->icon.x = area->x + (col_width - iw) / 2 + 1;
+		template->icon.x = area->x + (col_width - iw) / 2;
 		template->icon.y = area->y +
 			(area->height - view->details_height -
 			 template->leafname.height - ih);
@@ -823,7 +823,7 @@ static void huge_template(
 
 		template->leafname.x = area->x +
 			MAX((col_width - template->leafname.width) >> 1, 3);
-		template->icon.x = area->x + ((col_width - iw) >> 1) + 1;
+		template->icon.x = area->x + ((col_width - iw) >> 1);
 
 		template->icon.y = area->y +
 			(area->height - template->leafname.height - ih) / 2 + 1;
@@ -1986,7 +1986,7 @@ static void view_collection_autosize(ViewIface *view)
 	}
 
 	filer_window_set_size(filer_window,
-			MAX(w * MAX(cols, 1) + 2, min_x),
+			MAX(w * MAX(cols, 1), min_x),
 			MIN(max_y, h * rows + space) + exspace);
 }
 
