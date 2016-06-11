@@ -672,17 +672,46 @@ static void toolbar_select_clicked(GtkWidget *widget, FilerWindow *filer_window)
 	filer_window->temp_item_selected = FALSE;
 }
 
+static gboolean check_double()
+{
+	gint dct;
+	g_object_get(gtk_settings_get_default(),
+			"gtk-double-click-time", &dct, NULL);
+
+	static gint64 lasttime = 0;
+	gint64 current = g_get_real_time(); //g_get_monotonic_time is too much
+
+	//correctly double click depends on release time. *2 is hack
+	//This case we can't get release event because of begin_*_drag
+	if (current - lasttime < dct * 1000 * 2)
+		return TRUE;
+
+	lasttime = current;
+	return FALSE;
+}
 static gint bar_pressed(GtkWidget *widget,
 				GdkEventButton *event,
 				FilerWindow *filer_window)
 {
+	if (event->type == GDK_2BUTTON_PRESS) return FALSE;
 	GtkWindow *win = GTK_WINDOW(gtk_widget_get_toplevel(widget));
 
 	switch (event->button)
 	{
 	case 1:
-		gtk_window_begin_move_drag(win,
-				event->button, event->x_root, event->y_root, event->time);
+
+		{
+			ViewIter iter;
+			if (check_double() &&
+				(view_get_cursor(filer_window->view, &iter), iter.peek(&iter))
+				)
+				filer_change_to(filer_window,
+						make_path(filer_window->sym_path, iter.peek(&iter)->leafname),
+						NULL);
+			else
+				gtk_window_begin_move_drag(win,
+						event->button, event->x_root, event->y_root, event->time);
+		}
 		break;
 	case 2:
 		filer_cut_links(filer_window, FALSE);
@@ -690,8 +719,11 @@ static gint bar_pressed(GtkWidget *widget,
 		view_cursor_to_iter(filer_window->view, NULL);
 		break;
 	case 3:
-		gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
-				event->button, event->x_root, event->y_root, event->time);
+		if (check_double())
+			change_to_parent(filer_window);
+		else
+			gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
+					event->button, event->x_root, event->y_root, event->time);
 		break;
 
 	default:
@@ -706,17 +738,11 @@ static gint bar_scrolled(
 		FilerWindow *fw)
 {
 	if (!o_window_link.int_value) return FALSE;
+
 	ViewIter iter;
-	view_get_cursor(fw->view, &iter);
-	gboolean have_cursor = iter.peek(&iter) != NULL;
-
 	view_get_iter(fw->view, &iter,
-			VIEW_ITER_NO_LOOP | VIEW_ITER_OLD_CURSOR | VIEW_ITER_DIR |
-			(have_cursor ? VIEW_ITER_FROM_CURSOR : 0) |
+			VIEW_ITER_NO_LOOP | VIEW_ITER_EVEN_OLD_CURSOR | VIEW_ITER_DIR |
 			(event->direction == GDK_SCROLL_UP ?  VIEW_ITER_BACKWARDS : 0));
-
-	if (have_cursor)
-		iter.next(&iter); //first time of next is init
 
 	if (iter.next(&iter))
 	{
@@ -726,8 +752,11 @@ static gint bar_scrolled(
 			)
 			iter.next(&iter);
 
-		view_cursor_to_iter(fw->view, &iter);
-		filer_link_cursor(fw);
+		if (iter.peek(&iter))
+		{
+			view_cursor_to_iter(fw->view, &iter);
+			filer_link_cursor(fw);
+		}
 	}
 	else
 		gdk_beep();

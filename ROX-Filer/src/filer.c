@@ -3125,7 +3125,11 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 						(filer_window->right_link || filer_window->left_link))
 					!=
 					(event->button != 1 || event->state & GDK_MOD1_MASK)
-					)
+					&&
+					(!filer_window->right_link ||
+						strcmp(g_strrstr(filer_window->right_link->sym_path, "/") + 1,
+							item->leafname))
+				)
 				flags |= OPEN_CLOSE_WINDOW;
 			else
 				flags |= OPEN_SAME_WINDOW;

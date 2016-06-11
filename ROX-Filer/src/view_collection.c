@@ -1578,8 +1578,9 @@ static DirItem *iter_init(ViewIter *iter)
 	}
 	else if (flags & VIEW_ITER_FROM_BASE)
 		i = view_collection->cursor_base;
-	else if (flags & VIEW_ITER_OLD_CURSOR)
-		i = view_collection->collection->cursor_item_old;
+	else if (flags & VIEW_ITER_EVEN_OLD_CURSOR)
+		i = collection->cursor_item != -1 ?
+			collection->cursor_item : view_collection->collection->cursor_item_old;
 
 	if (i < 0 || i >= n)
 	{

@@ -33,7 +33,7 @@ typedef enum {
 	VIEW_ITER_FROM_BASE	= 1 << 4,
 
 	VIEW_ITER_NO_LOOP = 1 << 5,
-	VIEW_ITER_OLD_CURSOR = 1 << 6,
+	VIEW_ITER_EVEN_OLD_CURSOR = 1 << 6,
 	VIEW_ITER_DIR = 1 << 7,
 } IterFlags;
 
