@@ -705,6 +705,7 @@ static gint bar_scrolled(
 		GdkEventScroll *event,
 		FilerWindow *fw)
 {
+	if (!o_window_link.int_value) return FALSE;
 	ViewIter iter;
 	view_get_cursor(fw->view, &iter);
 	gboolean have_cursor = iter.peek(&iter) != NULL;
@@ -719,6 +720,12 @@ static gint bar_scrolled(
 
 	if (iter.next(&iter))
 	{
+		if (fw->right_link &&
+				!strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
+					iter.peek(&iter)->leafname)
+			)
+			iter.next(&iter);
+
 		view_cursor_to_iter(fw->view, &iter);
 		filer_link_cursor(fw);
 	}
