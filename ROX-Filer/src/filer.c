@@ -1854,7 +1854,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	all_filer_windows = g_list_prepend(all_filer_windows, filer_window);
 
 	filer_window->under_init = FALSE;
-	display_set_actual_size(filer_window, FALSE);
+	display_set_actual_size(filer_window, o_filer_auto_resize.int_value != RESIZE_ALWAYS);
+
 	gtk_widget_show(filer_window->window);
 
 	return filer_window;
