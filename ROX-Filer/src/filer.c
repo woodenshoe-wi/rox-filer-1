@@ -1645,19 +1645,22 @@ void filer_change_to(FilerWindow *fw,
 
 	force_resize = check_settings(fw, FALSE);
 
-	fw->had_cursor = fw->had_cursor ||
-			view_cursor_visible(fw->view);
+	fw->had_cursor |= view_cursor_visible(fw->view);
 
 	if (fw->window->window)
 		gdk_window_set_role(fw->window->window,
 				    fw->sym_path);
-	view_cursor_to_iter(fw->view, NULL);
 
 	attach(fw);
 
 	if (from_dup)
+	{
+		if (fw->had_cursor)
+			view_show_cursor(fw->view);
+
 		display_set_autoselect(fw, from_dup);
-	g_free(from_dup);
+		g_free(from_dup);
+	}
 
 	fw->under_init = FALSE;
 	display_set_actual_size(fw, force_resize);
