@@ -312,7 +312,7 @@ void draw_huge_icon(
 ) {
 	int       image_x, image_y, width, height, mw, mh;
 	GdkPixbuf *pixbuf, *scaled = NULL;
-	gfloat    scale;
+	gfloat    scale, ws, hs;
 
 	if (!image)
 		return draw_noimage(window, area);
@@ -320,10 +320,17 @@ void draw_huge_icon(
 	width = gdk_pixbuf_get_width(image);
 	height = gdk_pixbuf_get_height(image);
 
-	scale = MIN(area->width / (gfloat) width, area->height / (gfloat) height);
-
+	ws = area->width / (gfloat) width;
+	hs = area->height / (gfloat) height;
+	scale = MAX(ws, hs);
 	width *= scale;
 	height *= scale;
+	if (area->height < height || area->width < width)
+	{
+		scale = MIN(ws, hs);
+		width = gdk_pixbuf_get_width(image) * scale;
+		height = gdk_pixbuf_get_height(image) * scale;;
+	}
 
 	if (scale != 1.0)
 		scaled = gdk_pixbuf_scale_simple(image,
