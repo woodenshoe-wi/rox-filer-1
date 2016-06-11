@@ -109,12 +109,12 @@ struct _FilerWindow
 	GtkLabel	*toolbar_size_text;
 	GtkLabel	*toolbar_settings_text;
 
-	gint		open_timeout;	/* Will resize and show window... */
-
 	GtkStateType	selection_state;	/* for drawing selection */
 
 	FilerWindow *right_link;
 	FilerWindow *left_link;
+	gint right_link_idle;
+
 
 	gboolean	show_thumbs;
 	GQueue		*thumb_queue;		/* paths to thumbnail */
@@ -163,7 +163,7 @@ extern gint 		fw_font_widths[0x7f];
 /* Prototypes */
 void filer_init(void);
 FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
-		const gchar *wm_class, gboolean force_copy);
+		const gchar *wm_class, gboolean winlnk);
 gboolean filer_update_dir(FilerWindow *filer_window, gboolean warning);
 void filer_update_all(void);
 void filer_check_resize(gboolean all);
@@ -217,6 +217,8 @@ void filer_save_settings(FilerWindow *fwin, gboolean parent);
 void filer_clear_settings(FilerWindow *fwin);
 void filer_copy_settings(FilerWindow *src, FilerWindow *dest);
 void filer_link(FilerWindow *left, FilerWindow *right);
+void filer_cut_links(FilerWindow *fw, gboolean left_only);
+void filer_link_cursor(FilerWindow *fw);
 
 UnmountPrompt filer_get_unmount_action(const char *path);
 void filer_set_unmount_action(const char *path, UnmountPrompt action);

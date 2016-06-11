@@ -672,29 +672,94 @@ static void toolbar_select_clicked(GtkWidget *widget, FilerWindow *filer_window)
 	filer_window->temp_item_selected = FALSE;
 }
 
+static gboolean check_double()
+{
+	gint dct;
+	g_object_get(gtk_settings_get_default(),
+			"gtk-double-click-time", &dct, NULL);
+
+	static gint64 lasttime = 0;
+	gint64 current = g_get_real_time(); //g_get_monotonic_time is too much
+
+	//correctly double click depends on release time. *2 is hack
+	//This case we can't get release event because of begin_*_drag
+	if (current - lasttime < dct * 1000 * 2)
+		return TRUE;
+
+	lasttime = current;
+	return FALSE;
+}
 static gint bar_pressed(GtkWidget *widget,
 				GdkEventButton *event,
 				FilerWindow *filer_window)
 {
+	if (event->type == GDK_2BUTTON_PRESS) return FALSE;
 	GtkWindow *win = GTK_WINDOW(gtk_widget_get_toplevel(widget));
 
 	switch (event->button)
 	{
 	case 1:
-		gtk_window_begin_move_drag(win,
-				event->button, event->x_root, event->y_root, event->time);
+
+		{
+			ViewIter iter;
+			if (check_double() &&
+				(view_get_cursor(filer_window->view, &iter), iter.peek(&iter))
+				)
+				filer_change_to(filer_window,
+						make_path(filer_window->sym_path, iter.peek(&iter)->leafname),
+						NULL);
+			else
+				gtk_window_begin_move_drag(win,
+						event->button, event->x_root, event->y_root, event->time);
+		}
 		break;
 	case 2:
+		filer_cut_links(filer_window, FALSE);
 		view_autosize(filer_window->view);
+		view_cursor_to_iter(filer_window->view, NULL);
 		break;
 	case 3:
-		gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
-				event->button, event->x_root, event->y_root, event->time);
+		if (check_double())
+			change_to_parent(filer_window);
+		else
+			gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
+					event->button, event->x_root, event->y_root, event->time);
 		break;
 
 	default:
 		return FALSE;
 	}
+
+	return TRUE;
+}
+static gint bar_scrolled(
+		GtkButton *button,
+		GdkEventScroll *event,
+		FilerWindow *fw)
+{
+	if (!o_window_link.int_value) return FALSE;
+
+	ViewIter iter;
+	view_get_iter(fw->view, &iter,
+			VIEW_ITER_NO_LOOP | VIEW_ITER_EVEN_OLD_CURSOR | VIEW_ITER_DIR |
+			(event->direction == GDK_SCROLL_UP ?  VIEW_ITER_BACKWARDS : 0));
+
+	if (iter.next(&iter))
+	{
+		if (fw->right_link &&
+				!strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
+					iter.peek(&iter)->leafname)
+			)
+			iter.next(&iter);
+
+		if (iter.peek(&iter))
+		{
+			view_cursor_to_iter(fw->view, &iter);
+			filer_link_cursor(fw);
+		}
+	}
+	else
+		gdk_beep();
 
 	return TRUE;
 }
@@ -753,6 +818,9 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 
 		g_signal_connect(bar, "button_press_event",
 			G_CALLBACK(bar_pressed), filer_window);
+
+		g_signal_connect(bar, "scroll_event",
+			G_CALLBACK(bar_scrolled), filer_window);
 	}
 
 	return bar;
@@ -802,6 +870,8 @@ static gint toolbar_button_scroll(GtkButton *button,
 				GdkEventScroll *event,
 				FilerWindow *fw)
 {
+	if (!fw) return TRUE; //kill event for bar event area
+
 	DisplayStyle ds = fw->display_style;
 	DisplayStyle *dsw = &(fw->display_style_wanted);
 	gfloat *sc = &(fw->icon_scale);
@@ -918,6 +988,10 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 			g_signal_connect(button, "enter_notify_event",
 				G_CALLBACK(toolbar_size_enter), filer_window);
 		}
+		else
+			g_signal_connect(button, "scroll_event",
+				G_CALLBACK(toolbar_button_scroll), NULL);
+
 		if (tool->clicked == toolbar_settings_clicked)
 			filer_window->toolbar_settings_text = GTK_LABEL(label);
 	}

@@ -1838,6 +1838,10 @@ static DirItem *iter_init(ViewIter *iter)
 
 	if (flags & VIEW_ITER_SELECTED && !is_selected(view_details, i))
 		return iter->next(iter);
+	if (flags & VIEW_ITER_DIR &&
+			((ViewItem *) view_details->items->pdata[i])->item->base_type != TYPE_DIRECTORY)
+		return iter->next(iter);
+
 	return iter->peek(iter);
 }
 
@@ -1859,12 +1863,21 @@ static DirItem *iter_prev(ViewIter *iter)
 		iter->n_remaining--;
 
 		if (i == -1)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = n - 1;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
 		if (iter->flags & VIEW_ITER_SELECTED &&
 		    !is_selected(view_details, i))
+			continue;
+
+		if (iter->flags & VIEW_ITER_DIR &&
+			((ViewItem *) view_details->items->pdata[i])->item->base_type != TYPE_DIRECTORY)
 			continue;
 
 		iter->i = i;
@@ -1893,12 +1906,21 @@ static DirItem *iter_next(ViewIter *iter)
 		iter->n_remaining--;
 
 		if (i == n)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = 0;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
 		if (iter->flags & VIEW_ITER_SELECTED &&
 		    !is_selected(view_details, i))
+			continue;
+
+		if (iter->flags & VIEW_ITER_DIR &&
+			((ViewItem *) view_details->items->pdata[i])->item->base_type != TYPE_DIRECTORY)
 			continue;
 
 		iter->i = i;

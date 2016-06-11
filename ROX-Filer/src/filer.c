@@ -448,35 +448,13 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 
 void filer_link(FilerWindow *left, FilerWindow *right)
 {
-
 	GdkRectangle frect = {0, 0, 0, 0};
 	gdk_window_get_frame_extents(left->window->window, &frect);
 	gtk_window_move(GTK_WINDOW(right->window),
 			frect.x + frect.width,
 			frect.y);
 
-	gtk_window_present(GTK_WINDOW(right->window));
-}
-
-/* Called on a timeout while scanning or when scanning ends
- * (whichever happens first).
- */
-static gint open_filer_window(FilerWindow *filer_window)
-{
-	if (filer_window->open_timeout)
-	{
-		g_source_remove(filer_window->open_timeout);
-		filer_window->open_timeout = 0;
-	}
-
-	if (!GTK_WIDGET_VISIBLE(filer_window->window))
-	{
-		filer_window->under_init = FALSE;
-		display_set_actual_size(filer_window, TRUE);
-		gtk_widget_show(filer_window->window);
-	}
-
-	return FALSE;
+	gdk_window_raise(right->window->window);
 }
 
 /* Look through all items we want to display, and queue a recheck on any
@@ -646,7 +624,7 @@ static void attach(FilerWindow *filer_window)
 
 	if (filer_window->directory->error)
 	{
-		if (spring_in_progress)
+		if (spring_in_progress || filer_window->view_type == VIEW_TYPE_COLLECTION)
 			g_printerr(_("Error scanning '%s':\n%s\n"),
 				filer_window->sym_path,
 				filer_window->directory->error);
@@ -871,7 +849,7 @@ gboolean filer_window_delete(GtkWidget *window,
 	return FALSE;
 }
 
-static void cut_links(FilerWindow *fw, gboolean left_only)
+void filer_cut_links(FilerWindow *fw, gboolean left_only)
 {
 	if (!fw->left_link && !fw->right_link) return;
 
@@ -888,6 +866,12 @@ static void cut_links(FilerWindow *fw, gboolean left_only)
 		fw->right_link = NULL;
 	}
 
+	if (!left_only && fw->right_link_idle)
+	{
+		g_source_remove(fw->right_link_idle);
+		fw->right_link_idle = 0;
+	}
+
 	filer_set_title(fw);
 }
 
@@ -896,7 +880,7 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 {
 	all_filer_windows = g_list_remove(all_filer_windows, filer_window);
 
-	cut_links(filer_window, FALSE);
+	filer_cut_links(filer_window, FALSE);
 
 	g_object_set_data(G_OBJECT(widget), "filer_window", NULL);
 
@@ -911,12 +895,6 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 
 	if (filer_window->directory)
 		detach(filer_window);
-
-	if (filer_window->open_timeout)
-	{
-		g_source_remove(filer_window->open_timeout);
-		filer_window->open_timeout = 0;
-	}
 
 	if (filer_window->auto_scroll != -1)
 	{
@@ -1191,7 +1169,10 @@ void filer_next_selected(FilerWindow *filer_window, int dir)
 		iter.next(&iter);	/* Skip the cursor itself */
 
 	if (iter.next(&iter))
+	{
 		view_cursor_to_iter(view, &iter);
+		filer_link_cursor(filer_window);
+	}
 	else
 		gdk_beep();
 
@@ -1409,6 +1390,24 @@ void filer_window_toggle_cursor_item_selected(FilerWindow *filer_window)
 		view_cursor_to_iter(view, &iter);
 }
 
+static gboolean key_link_cb(gpointer ap)
+{
+	ViewIter iter;
+	FilerWindow *fw = (FilerWindow *) ap;
+	fw->right_link_idle = 0;
+	view_get_cursor(fw->view, &iter);
+
+	if (iter.peek(&iter) && iter.peek(&iter)->base_type == TYPE_DIRECTORY)
+		filer_openitem(fw, &iter, OPEN_CLOSE_WINDOW);
+
+	return FALSE;
+}
+void filer_link_cursor(FilerWindow *fw)
+{
+	if (!fw->right_link_idle)
+		fw->right_link_idle = g_idle_add(key_link_cb, fw);
+}
+
 gint filer_key_press_event(GtkWidget	*widget,
 			   GdkEventKey	*event,
 			   FilerWindow	*filer_window)
@@ -1442,9 +1441,20 @@ gint filer_key_press_event(GtkWidget	*widget,
 		return TRUE;
 	}
 
+	if ((filer_window->right_link || filer_window->left_link) &&
+			(
+			key == GDK_Left  ||
+			key == GDK_Right ||
+			key == GDK_Up    ||
+			key == GDK_Down  )
+			)
+		filer_link_cursor(filer_window);
+
 	switch (key)
 	{
 		case GDK_Escape:
+			if ((filer_window->right_link || filer_window->left_link))
+				filer_cut_links(filer_window, FALSE);
 			filer_target_mode(filer_window, NULL, NULL, NULL);
 			view_cursor_to_iter(view, NULL);
 			view_clear_selection(view);
@@ -1594,7 +1604,7 @@ void filer_change_to(FilerWindow *fw,
 		return;
 	}
 
-	cut_links(fw, FALSE);
+	filer_cut_links(fw, FALSE);
 
 	fw->under_init = TRUE;
 	fw->first_scan = TRUE;
@@ -1635,19 +1645,22 @@ void filer_change_to(FilerWindow *fw,
 
 	force_resize = check_settings(fw, FALSE);
 
-	fw->had_cursor = fw->had_cursor ||
-			view_cursor_visible(fw->view);
+	fw->had_cursor |= view_cursor_visible(fw->view);
 
 	if (fw->window->window)
 		gdk_window_set_role(fw->window->window,
 				    fw->sym_path);
-	view_cursor_to_iter(fw->view, NULL);
 
 	attach(fw);
 
 	if (from_dup)
+	{
+		if (fw->had_cursor)
+			view_show_cursor(fw->view);
+
 		display_set_autoselect(fw, from_dup);
-	g_free(from_dup);
+		g_free(from_dup);
+	}
 
 	fw->under_init = FALSE;
 	display_set_actual_size(fw, force_resize);
@@ -1697,7 +1710,7 @@ DirItem *filer_selected_item(FilerWindow *filer_window)
  * Note: if unique windows is in use, may return an existing window.
  */
 FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
-			   const gchar *wm_class, gboolean force_copy)
+			   const gchar *wm_class, gboolean winlnk)
 {
 	FilerWindow	*filer_window;
 	char		*real_path;
@@ -1711,8 +1724,12 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 		if (same_dir_window)
 		{
-			gtk_window_present(GTK_WINDOW(same_dir_window->window));
-			return same_dir_window;
+			if (winlnk)
+				gtk_widget_destroy(same_dir_window->window);
+			else {
+				gtk_window_present(GTK_WINDOW(same_dir_window->window));
+				return same_dir_window;
+			}
 		}
 	}
 
@@ -1762,6 +1779,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->dir_icon = NULL;
 	filer_window->right_link = NULL;
 	filer_window->left_link = NULL;
+	filer_window->right_link_idle = 0;
 
 	tidy_sympath(filer_window->sym_path);
 
@@ -1791,16 +1809,20 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	/* Display settings target */
 	filer_window->filter = FILER_SHOW_ALL;
 	filer_window->filter_string = NULL;
-	if (src_win && (force_copy || o_display_inherit_options.int_value))
+	if (src_win && (winlnk || o_display_inherit_options.int_value))
 		filer_copy_settings(src_win, filer_window);
 	else
 		filer_clear_settings(filer_window);
 
 	/* Add all the user-interface elements & realise */
 	filer_add_widgets(filer_window, wm_class);
-	if (src_win)
-		gtk_window_set_position(GTK_WINDOW(filer_window->window),
+	if (src_win) {
+		if (winlnk)
+			filer_link(src_win, filer_window);
+		else
+			gtk_window_set_position(GTK_WINDOW(filer_window->window),
 					GTK_WIN_POS_MOUSE);
+	}
 
 	/* Override the current defaults with the per-directory
 	 * user settings.
@@ -1809,14 +1831,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 
 	/* Connect to all the signal handlers */
 	filer_add_signals(filer_window);
-
-	/* Open the window after a timeout, or when scanning stops.
-	 * Do this before attaching, because attach() might tell us to
-	 * stop scanning (if a scan isn't needed).
-	 */
-	filer_window->open_timeout = g_timeout_add(500,
-					  (GSourceFunc) open_filer_window,
-					  filer_window);
 
 	/* The view is created empty and then attach() is called, which
 	 * links the filer window to the entry in the directory cache we
@@ -1830,7 +1844,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	 * opened it before) then the types and icons for the entries are
 	 * not know, but the list of names is.
 	 */
-
 	attach(filer_window);
 
 	if (from_dup)
@@ -1840,7 +1853,9 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	number_of_windows++;
 	all_filer_windows = g_list_prepend(all_filer_windows, filer_window);
 
-	open_filer_window(filer_window);
+	filer_window->under_init = FALSE;
+	display_set_actual_size(filer_window, FALSE);
+	gtk_widget_show(filer_window->window);
 
 	return filer_window;
 }
@@ -2088,20 +2103,27 @@ static gboolean configure_cb(
 {
 	fw->configured = 1;
 
-	if (fw->left_link && gtk_window_is_active(GTK_WINDOW(fw->window)))
-	{
-		GdkRectangle frect = {0, 0, 0, 0};
-		gdk_window_get_frame_extents(
-				fw->left_link->window->window, &frect);
-
-		if (
-				event->configure.x + 33 < frect.x + frect.width ||
-				event->configure.x - 33 > frect.x + frect.width)
-			cut_links(fw, TRUE);
-	}
-
 	if (fw->right_link)
 		filer_link(fw, fw->right_link);
+
+	return FALSE;
+}
+static gboolean focus_in_cb(
+		GtkWidget *widget,
+		GdkEvent *event,
+		FilerWindow *fw)
+{
+	if (!fw->left_link) return FALSE;
+
+	GdkRectangle lfrect, rfrect;
+	gdk_window_get_frame_extents(
+			fw->left_link->window->window, &lfrect);
+	gdk_window_get_frame_extents(
+			fw->window->window, &rfrect);
+	if (
+			rfrect.x + 33 < lfrect.x + lfrect.width ||
+			rfrect.x - 33 > lfrect.x + lfrect.width)
+		filer_cut_links(fw, TRUE);
 
 	return FALSE;
 }
@@ -2148,6 +2170,9 @@ static void filer_add_signals(FilerWindow *filer_window)
 
 	g_signal_connect(filer_window->window, "configure-event",
 			G_CALLBACK(configure_cb), filer_window);
+
+	g_signal_connect(filer_window->window, "focus-in-event",
+			G_CALLBACK(focus_in_cb), filer_window);
 
 	gtk_window_add_accel_group(GTK_WINDOW(filer_window->window),
 				   filer_keys);
@@ -3100,7 +3125,11 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 						(filer_window->right_link || filer_window->left_link))
 					!=
 					(event->button != 1 || event->state & GDK_MOD1_MASK)
-					)
+					&&
+					(!filer_window->right_link ||
+						strcmp(g_strrstr(filer_window->right_link->sym_path, "/") + 1,
+							item->leafname))
+				)
 				flags |= OPEN_CLOSE_WINDOW;
 			else
 				flags |= OPEN_SAME_WINDOW;

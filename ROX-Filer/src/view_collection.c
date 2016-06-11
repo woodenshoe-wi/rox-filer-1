@@ -278,7 +278,14 @@ static gboolean transparent_expose(GtkWidget *widget,
 	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	gdk_cairo_region(cr, event->region);
 
-	if (o_use_background_colour.int_value)
+	if (view->filer_window->directory->error)
+	{
+		cairo_paint(cr);
+		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+		cairo_set_source_rgba(cr, 0.9, .0, .0, .7);
+		cairo_fill(cr);
+	}
+	else if (o_use_background_colour.int_value)
 	{
 		cairo_paint(cr);
 
@@ -445,20 +452,20 @@ static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
 
 	cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
-	cairo_set_line_width(cr, 2.0);
+	cairo_set_line_width(cr, 1.0);
 
 //	double dashes[] = {4.0, 1.0};
 //	cairo_set_dash(cr, dashes, 2, 0);
 
-	dr.x += 2;
-	dr.y += 2;
-	dr.width = col->item_width - 3;
-	dr.height = col->item_height - 3;
+	dr.x += 1;
+	dr.y += 1;
+	dr.width = col->item_width - 1;
+	dr.height = col->item_height - 1;
 
 	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
-		cairo_set_source_rgb(cr, .6, .6, .6);
+		cairo_set_source_rgb(cr, .9, .9, .9);
 	else
-		cairo_set_source_rgb(cr, .2, .2, .2);
+		cairo_set_source_rgb(cr, .7, .7, .7);
 
 	gdk_cairo_rectangle(cr, &dr);
 	cairo_stroke(cr);
@@ -801,7 +808,7 @@ static void huge_template(
 		template->leafname.height = MIN(view->name_height,
 				area->height - ih - view->details_height - 1);
 
-		template->icon.x = area->x + (col_width - iw) / 2 + 1;
+		template->icon.x = area->x + (col_width - iw) / 2;
 		template->icon.y = area->y +
 			(area->height - view->details_height -
 			 template->leafname.height - ih);
@@ -823,7 +830,7 @@ static void huge_template(
 
 		template->leafname.x = area->x +
 			MAX((col_width - template->leafname.width) >> 1, 3);
-		template->icon.x = area->x + ((col_width - iw) >> 1) + 1;
+		template->icon.x = area->x + ((col_width - iw) >> 1);
 
 		template->icon.y = area->y +
 			(area->height - template->leafname.height - ih) / 2 + 1;
@@ -1578,6 +1585,9 @@ static DirItem *iter_init(ViewIter *iter)
 	}
 	else if (flags & VIEW_ITER_FROM_BASE)
 		i = view_collection->cursor_base;
+	else if (flags & VIEW_ITER_EVEN_OLD_CURSOR)
+		i = collection->cursor_item != -1 ?
+			collection->cursor_item : view_collection->collection->cursor_item_old;
 
 	if (i < 0 || i >= n)
 	{
@@ -1599,6 +1609,10 @@ static DirItem *iter_init(ViewIter *iter)
 
 	if (flags & VIEW_ITER_SELECTED && !collection->items[i].selected)
 		return iter->next(iter);
+	if (iter->flags & VIEW_ITER_DIR &&
+			((DirItem *) collection->items[i].data)->base_type != TYPE_DIRECTORY)
+		return iter->next(iter);
+
 	return iter->peek(iter);
 }
 /* Advance iter to point to the next item and return the new item
@@ -1622,12 +1636,21 @@ static DirItem *iter_next(ViewIter *iter)
 		iter->n_remaining--;
 
 		if (i == n)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = 0;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
 		if (iter->flags & VIEW_ITER_SELECTED &&
 		    !collection->items[i].selected)
+			continue;
+
+		if (iter->flags & VIEW_ITER_DIR &&
+		    ((DirItem *) collection->items[i].data)->base_type != TYPE_DIRECTORY)
 			continue;
 
 		iter->i = i;
@@ -1657,12 +1680,21 @@ static DirItem *iter_prev(ViewIter *iter)
 		iter->n_remaining--;
 
 		if (i == -1)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = collection->number_of_items - 1;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
 		if (iter->flags & VIEW_ITER_SELECTED &&
 		    !collection->items[i].selected)
+			continue;
+
+		if (iter->flags & VIEW_ITER_DIR &&
+		    ((DirItem *) collection->items[i].data)->base_type != TYPE_DIRECTORY)
 			continue;
 
 		iter->i = i;
@@ -1962,7 +1994,7 @@ static void view_collection_autosize(ViewIface *view)
 	}
 
 	filer_window_set_size(filer_window,
-			MAX(w * MAX(cols, 1) + 2, min_x),
+			MAX(w * MAX(cols, 1), min_x),
 			MIN(max_y, h * rows + space) + exspace);
 }
 

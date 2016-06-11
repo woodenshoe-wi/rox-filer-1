@@ -83,11 +83,8 @@ static Option o_huge_size;
 int huge_size = HUGE_SIZE;
 
 /* Static prototypes */
-static void display_details_set(FilerWindow *filer_window, DetailsType details);
-static void display_style_set(FilerWindow *filer_window, DisplayStyle style);
 static void options_changed(void);
 static char *getdetails(FilerWindow *filer_window, DirItem *item);
-static void display_set_actual_size_real(FilerWindow *filer_window);
 
 /****************************************************************
  *			EXTERNAL INTERFACE			*
@@ -315,7 +312,7 @@ void draw_huge_icon(
 ) {
 	int       image_x, image_y, width, height, mw, mh;
 	GdkPixbuf *pixbuf, *scaled = NULL;
-	gfloat    scale;
+	gfloat    scale, ws, hs;
 
 	if (!image)
 		return draw_noimage(window, area);
@@ -323,10 +320,17 @@ void draw_huge_icon(
 	width = gdk_pixbuf_get_width(image);
 	height = gdk_pixbuf_get_height(image);
 
-	scale = MIN(area->width / (gfloat) width, area->height / (gfloat) height);
-
+	ws = area->width / (gfloat) width;
+	hs = area->height / (gfloat) height;
+	scale = MAX(ws, hs);
 	width *= scale;
 	height *= scale;
+	if (area->height < height || area->width < width)
+	{
+		scale = MIN(ws, hs);
+		width = gdk_pixbuf_get_width(image) * scale;
+		height = gdk_pixbuf_get_height(image) * scale;;
+	}
 
 	if (scale != 1.0)
 		scaled = gdk_pixbuf_scale_simple(image,
@@ -587,48 +591,48 @@ void display_set_sort_type(FilerWindow *filer_window, SortType sort_type,
 /* Change the icon size and style.
  * force_resize should only be TRUE for new windows.
  */
-void display_set_layout(FilerWindow  *filer_window,
-			DisplayStyle style,
+void display_set_layout(FilerWindow *fw,
+			DisplayStyle want,
 			DetailsType  details,
 			gboolean     force_resize)
 {
-	gboolean style_changed = FALSE, details_changed;
-	DisplayStyle real_style = filer_window->display_style;
+	gboolean details_changed = fw->details_type != details;
+	gboolean wanted_changed = details_changed || fw->display_style_wanted != want;
+	DisplayStyle prev_style = fw->display_style;
 
-	g_return_if_fail(filer_window != NULL);
+	fw->details_type = details;
+	fw->display_style = fw->display_style_wanted = want;
 
-	if (style == AUTO_SIZE_ICONS)
-		filer_window->icon_scale = 1.0;
-
-	details_changed = filer_window->details_type != details;
-	style_changed = details_changed ||
-				filer_window->display_style_wanted != style;
-
-	display_style_set(filer_window, style);
-	display_details_set(filer_window, details);
-
-	if (details_changed || real_style != filer_window->display_style)
-		view_style_changed(filer_window->view, VIEW_UPDATE_NAME);
-	else
-		/* Recreate layouts because wrapping may have changed */
-		view_style_changed(filer_window->view, 0);
-
-	if (force_resize || o_filer_auto_resize.int_value == RESIZE_ALWAYS
-	    || (o_filer_auto_resize.int_value == RESIZE_STYLE && style_changed))
+	if (want == AUTO_SIZE_ICONS)
 	{
-		view_autosize(filer_window->view);
+		fw->display_style =
+			view_count_items(fw->view) >= o_filer_change_size_num.int_value ?
+				SMALL_ICONS : LARGE_ICONS;
+
+		fw->icon_scale = 1.0;
 	}
 
-	if (filer_window->toolbar_size_text)
+	if (details_changed || prev_style != fw->display_style)
+		view_style_changed(fw->view, VIEW_UPDATE_NAME);
+	else
+		view_style_changed(fw->view, 0);
+
+	if (force_resize ||
+			o_filer_auto_resize.int_value == RESIZE_ALWAYS ||
+			(o_filer_auto_resize.int_value == RESIZE_STYLE && wanted_changed)
+			)
+		view_autosize(fw->view);
+
+	if (fw->toolbar_size_text)
 	{
 		gchar *size_label = g_strdup_printf("%s%s", N_("Size"),
-			filer_window->display_style_wanted == LARGE_ICONS ? "┤" :
-			filer_window->display_style_wanted == SMALL_ICONS ? "┐" :
-			filer_window->display_style_wanted == HUGE_ICONS  ? "┘" :
-			filer_window->display_style_wanted == AUTO_SIZE_ICONS ?
-				filer_window->display_style == LARGE_ICONS ? "├" : "┌" :
-			"┼" );
-		gtk_label_set_text(filer_window->toolbar_size_text, size_label);
+			want == LARGE_ICONS ? "┤" :
+			want == SMALL_ICONS ? "┐" :
+			want == HUGE_ICONS  ? "┘" :
+			want == AUTO_SIZE_ICONS ?
+				fw->display_style == LARGE_ICONS ? "├" : "┌"
+			: "┼");
+		gtk_label_set_text(fw->toolbar_size_text, size_label);
 
 		g_free(size_label);
 	}
@@ -950,19 +954,6 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 	return buf;
 }
 
-/* Note: Call style_changed after this */
-static void display_details_set(FilerWindow *filer_window, DetailsType details)
-{
-	filer_window->details_type = details;
-}
-
-/* Note: Call style_changed after this */
-static void display_style_set(FilerWindow *filer_window, DisplayStyle style)
-{
-	filer_window->display_style_wanted = style;
-	display_set_actual_size_real(filer_window);
-}
-
 PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 {
 	DisplayStyle style = fw->display_style;
@@ -1148,25 +1139,3 @@ void display_update_view(FilerWindow *filer_window,
 	view->name_height = h / PANGO_SCALE;
 }
 
-/* Sets display_style from display_style_wanted.
- * See also display_set_actual_size().
- */
-static void display_set_actual_size_real(FilerWindow *filer_window)
-{
-	DisplayStyle size = filer_window->display_style_wanted;
-	int n;
-
-	g_return_if_fail(filer_window != NULL);
-
-	if (size == AUTO_SIZE_ICONS)
-	{
-		n = view_count_items(filer_window->view);
-
-		if (n >= o_filer_change_size_num.int_value)
-			size = SMALL_ICONS;
-		else
-			size = LARGE_ICONS;
-	}
-
-	filer_window->display_style = size;
-}
