@@ -278,7 +278,14 @@ static gboolean transparent_expose(GtkWidget *widget,
 	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	gdk_cairo_region(cr, event->region);
 
-	if (o_use_background_colour.int_value)
+	if (view->filer_window->directory->error)
+	{
+		cairo_paint(cr);
+		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+		cairo_set_source_rgba(cr, 0.9, .0, .0, .7);
+		cairo_fill(cr);
+	}
+	else if (o_use_background_colour.int_value)
 	{
 		cairo_paint(cr);
 

@@ -624,7 +624,7 @@ static void attach(FilerWindow *filer_window)
 
 	if (filer_window->directory->error)
 	{
-		if (spring_in_progress)
+		if (spring_in_progress || filer_window->view_type == VIEW_TYPE_COLLECTION)
 			g_printerr(_("Error scanning '%s':\n%s\n"),
 				filer_window->sym_path,
 				filer_window->directory->error);
