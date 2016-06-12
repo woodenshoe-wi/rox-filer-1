@@ -748,9 +748,11 @@ static gint bar_scrolled(
 	{
 		if (fw->right_link &&
 				!strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
-					iter.peek(&iter)->leafname)
-			)
+					iter.peek(&iter)->leafname))
+		{
+			view_cursor_to_iter(fw->view, &iter);//for when next is null
 			iter.next(&iter);
+		}
 
 		if (iter.peek(&iter))
 		{
