@@ -764,13 +764,17 @@ guchar *get_relative_path(const guchar *from, const guchar *to)
 	GPtrArray *src, *dst;
 	int	i, j;
 
- 	gchar *fromdir = g_path_get_dirname(from);
+	gchar *fromdir = g_path_get_dirname(from);
 	char *real = pathdup(fromdir);
- 	src = split_path(real);
 	g_free(fromdir);
+
+	src = split_path(real);
 	g_free(real);
 
 	dst = split_path(to);
+//	real = pathdup(to);
+//	dst = split_path(real);
+//	g_free(real);
 
 	/* Strip off common path elements... */
 	i = 0;
