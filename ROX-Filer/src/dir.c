@@ -764,7 +764,7 @@ static void dir_rescan_soon(Directory *dir)
 {
 	if (dir->rescan_timeout != -1)
 		return;
-	dir->rescan_timeout = g_timeout_add(900, rescan_soon_timeout, dir);
+	dir->rescan_timeout = g_timeout_add(300, rescan_soon_timeout, dir);
 }
 #endif
 

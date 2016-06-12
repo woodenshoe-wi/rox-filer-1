@@ -1329,10 +1329,16 @@ static void update_item(ViewCollection *view_collection, int i)
 			FALSE);
 
 	calc_size(filer_window, colitem, &w, &h);
+
 	if (w > old_w || h > old_h)
+	{
 		collection_set_item_size(collection,
 					 MAX(old_w, w),
 					 MAX(old_h, h));
+
+		//only lager
+		filer_window->may_resize = TRUE;
+	}
 
 	if (!filer_window->req_sort) //will redraw soon
 		collection_draw_item(collection, i, TRUE);
@@ -1922,7 +1928,7 @@ static void view_collection_autosize(ViewIface *view)
 	 * Also, don't add space if the minibuffer is open.
 	 */
 	if (space == 0)
-		space = filer_window->display_style == SMALL_ICONS ? h : 2;
+		space = filer_window->display_style == SMALL_ICONS ? h : 1;
 
 	tn = t + space;
 	t = tn + 44 /* window decoration and charm. when small then wide */;
