@@ -115,6 +115,8 @@ typedef enum {
 	MENU_MOVE,
 	MENU_LINK_REL,
 	MENU_LINK_ABS,
+	MENU_LINK_REL_SYM,
+	MENU_LINK_ABS_SYM,
 } MenuActionType;
 
 #undef N_
@@ -122,8 +124,10 @@ typedef enum {
 static GtkItemFactoryEntry menu_def[] = {
 {N_("Copy"),		NULL, menuitem_response, MENU_COPY, 	NULL},
 {N_("Move"),		NULL, menuitem_response, MENU_MOVE, 	NULL},
-{N_("Link (relative)"),	NULL, menuitem_response, MENU_LINK_REL, NULL},
-{N_("Link (absolute)"),	NULL, menuitem_response, MENU_LINK_ABS,	NULL},
+{N_("Link (relative)"),          NULL, menuitem_response, MENU_LINK_REL,     NULL},
+{N_("Link (absolute)"),          NULL, menuitem_response, MENU_LINK_ABS,     NULL},
+{N_("Link (relative, sympath)"), NULL, menuitem_response, MENU_LINK_REL_SYM, NULL},
+{N_("Link (absolute, sympath)"), NULL, menuitem_response, MENU_LINK_ABS_SYM, NULL},
 };
 static GtkWidget *dnd_menu = NULL;
 
@@ -1057,10 +1061,23 @@ static void menuitem_response(gpointer data, guint action, GtkWidget *widget)
 		action_move(prompt_local_paths, prompt_dest_path, NULL, -1);
 	else if (action == MENU_COPY)
 		action_copy(prompt_local_paths, prompt_dest_path, NULL, -1);
-	else if (action == MENU_LINK_REL)
+	else if (action == MENU_LINK_REL_SYM)
 		action_link(prompt_local_paths, prompt_dest_path, NULL, TRUE);
-	else if (action == MENU_LINK_ABS)
+	else if (action == MENU_LINK_ABS_SYM)
 		action_link(prompt_local_paths, prompt_dest_path, NULL, FALSE);
+	else if (action == MENU_LINK_REL || action == MENU_LINK_ABS)
+	{
+		GList *paths = NULL, *next;
+		for (next = prompt_local_paths; next; next = next->next)
+			paths = g_list_prepend(paths, pathdup(next->data));
+
+		if (action == MENU_LINK_REL)
+			action_link(paths, prompt_dest_path, NULL, TRUE);
+		else
+			action_link(paths, prompt_dest_path, NULL, FALSE);
+
+		destroy_glist(&paths);
+	}
 }
 
 /* When some local files are dropped somewhere with ACTION_ASK, this
@@ -1094,7 +1111,7 @@ static void prompt_action(GList *paths, gchar *dest)
 	}
 
 	/* Shade 'Set Icon' if there are multiple files */
-	menu_set_items_shaded(dnd_menu, g_list_length(paths) != 1, 4, 1);
+	menu_set_items_shaded(dnd_menu, g_list_length(paths) != 1, 6, 1);
 
 	event = gtk_get_current_event();
 	show_popup_menu(dnd_menu, event, 1);

@@ -1175,6 +1175,7 @@ static void find(FilerWindow *filer_window)
 }
 
 static gboolean last_symlink_check_relative = TRUE;
+static gboolean last_symlink_check_sympath = FALSE;
 
 /* This creates a new savebox widget, and allows the user to pick a new path
  * for the file.
@@ -1186,8 +1187,8 @@ static void savebox_show(const gchar *action, const gchar *path,
 			 MaskedPixmap *image, SaveCb callback,
 			 GdkDragAction dnd_action)
 {
-	GtkWidget	*savebox = NULL;
-	GtkWidget	*check_relative = NULL;
+	GtkWidget *savebox = NULL;
+	GtkWidget *check_relative = NULL, *check_sympath = NULL;
 
 	g_return_if_fail(image != NULL);
 
@@ -1212,6 +1213,19 @@ static void savebox_show(const gchar *action, const gchar *path,
 		gtk_box_pack_start(GTK_BOX(GTK_DIALOG(savebox)->vbox),
 				check_relative, FALSE, TRUE, 0);
 		gtk_widget_show(check_relative);
+
+
+		check_sympath = gtk_check_button_new_with_mnemonic(
+							_("_Sym path"));
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_sympath),
+					     last_symlink_check_sympath);
+
+		GTK_WIDGET_UNSET_FLAGS(check_sympath, GTK_CAN_FOCUS);
+		gtk_widget_set_tooltip_text(check_sympath,
+			_("If on, the symlink will use target path as Sym path."));
+		gtk_box_pack_start(GTK_BOX(GTK_DIALOG(savebox)->vbox),
+				check_sympath, FALSE, TRUE, 0);
+		gtk_widget_show(check_sympath);
 	}
 	else if (callback == rename_cb)
 	{
@@ -1225,6 +1239,7 @@ static void savebox_show(const gchar *action, const gchar *path,
 				g_strdup(path), g_free);
 	g_object_set_data(G_OBJECT(savebox), "action_callback", callback);
 	g_object_set_data(G_OBJECT(savebox), "check_relative", check_relative);
+	g_object_set_data(G_OBJECT(savebox), "check_sympath", check_sympath);
 
 	gtk_window_set_title(GTK_WINDOW(savebox), action);
 
@@ -1326,19 +1341,31 @@ static gboolean rename_cb(GObject *savebox,
 static gboolean link_cb(GObject *savebox,
 			const gchar *initial, const gchar *path)
 {
-	GtkToggleButton *check_relative;
+	GtkToggleButton *check_relative, *check_sympath;
 	struct stat info;
 	int	err;
 	gchar	*link_path;
 
 	check_relative = g_object_get_data(savebox, "check_relative");
+	check_sympath = g_object_get_data(savebox, "check_sympath");
 
 	last_symlink_check_relative = gtk_toggle_button_get_active(check_relative);
+	last_symlink_check_sympath = gtk_toggle_button_get_active(check_sympath);
 
 	if (last_symlink_check_relative)
-		link_path = get_relative_path(path, initial);
+	{
+		if (last_symlink_check_sympath)
+			link_path = get_relative_path(path, initial);
+		else
+		{
+			gchar *real = pathdup(initial);
+			link_path = get_relative_path(path, real);
+			g_free(real);
+		}
+	}
 	else
-		link_path = g_strdup(initial);
+		link_path = last_symlink_check_sympath ?
+			g_strdup(initial) : pathdup(initial);
 
 	if (mc_lstat(path, &info) == 0 && S_ISLNK(info.st_mode))
 	{

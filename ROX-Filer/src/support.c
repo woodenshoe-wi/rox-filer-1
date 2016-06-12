@@ -772,9 +772,6 @@ guchar *get_relative_path(const guchar *from, const guchar *to)
 	g_free(real);
 
 	dst = split_path(to);
-//	real = pathdup(to);
-//	dst = split_path(real);
-//	g_free(real);
 
 	/* Strip off common path elements... */
 	i = 0;
