@@ -1663,17 +1663,18 @@ void filer_change_to(FilerWindow *fw,
 
 	attach(fw);
 
+	fw->under_init = FALSE;
+	display_set_actual_size(fw, force_resize);
+
 	if (from_dup)
 	{
+		//show cursor is have to be after what set col size
 		if (fw->had_cursor)
 			view_show_cursor(fw->view);
 
 		display_set_autoselect(fw, from_dup);
 		g_free(from_dup);
 	}
-
-	fw->under_init = FALSE;
-	display_set_actual_size(fw, force_resize);
 
 	if (fw->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, fw);
