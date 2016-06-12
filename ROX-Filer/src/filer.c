@@ -496,15 +496,23 @@ static void update_display(Directory *dir,
 	ViewIface *view = (ViewIface *) filer_window->view;
 	gboolean init = filer_window->under_init;
 
+	//g_print("[a%d]%s", action, action == 1 ? "\n" : "");
+
 	switch (action)
 	{
 		case DIR_ADD:
 			view_add_items(view, items);
 			filer_window->req_sort = FALSE;
+
+			if (!init)
+				filer_window->may_resize = TRUE;
 			break;
 		case DIR_REMOVE:
 			view_delete_if(view, if_deleted, items);
 			toolbar_update_info(filer_window);
+
+			if (!init)
+				filer_window->may_resize = TRUE;
 			break;
 		case DIR_START_SCAN:
 			set_scanning_display(filer_window, TRUE);
@@ -565,7 +573,7 @@ static void update_display(Directory *dir,
 //			g_idle_add((GSourceFunc) filer_create_thumbs, filer_window);
 			filer_create_thumbs(filer_window);
 
-			if (!init)
+			if (!init && filer_window->may_resize)
 				check_and_resize(filer_window);
 			filer_window->may_resize = FALSE;
 			break;
@@ -593,7 +601,9 @@ static void update_display(Directory *dir,
 								filer_window->dir_icon->src_pixbuf);
 			}
 
-			filer_window->may_resize = TRUE;
+			if (filer_window->view_type != VIEW_TYPE_COLLECTION)
+				filer_window->may_resize = TRUE;
+
 			break;
 		case DIR_ERROR_CHANGED:
 			filer_set_title(filer_window);
@@ -1854,7 +1864,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	all_filer_windows = g_list_prepend(all_filer_windows, filer_window);
 
 	filer_window->under_init = FALSE;
-	display_set_actual_size(filer_window, o_filer_auto_resize.int_value != RESIZE_ALWAYS);
+	display_set_actual_size(filer_window,
+			o_filer_auto_resize.int_value != RESIZE_ALWAYS);
 
 	gtk_widget_show(filer_window->window);
 
@@ -2251,8 +2262,9 @@ static gboolean _delay_check_resize(gpointer na)
 }
 void filer_check_resize(gboolean all)
 {
-	g_timeout_add(DIR_NOTIFY_TIME * 2,
-			_delay_check_resize, GUINT_TO_POINTER(all));
+	if (all_filer_windows) //for first time
+		g_timeout_add(DIR_NOTIFY_TIME * 2,
+				_delay_check_resize, GUINT_TO_POINTER(all));
 }
 
 /* Refresh the various caches even if we don't think we need to */
