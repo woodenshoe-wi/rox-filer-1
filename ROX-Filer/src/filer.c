@@ -1675,6 +1675,8 @@ void filer_change_to(FilerWindow *fw,
 		display_set_autoselect(fw, from_dup);
 		g_free(from_dup);
 	}
+	else
+		view_cursor_to_iter(fw->view, NULL);
 
 	if (fw->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, fw);
