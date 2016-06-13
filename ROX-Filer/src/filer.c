@@ -1408,7 +1408,9 @@ static gboolean key_link_cb(gpointer ap)
 	view_get_cursor(fw->view, &iter);
 
 	if (iter.peek(&iter) && iter.peek(&iter)->base_type == TYPE_DIRECTORY)
-		filer_openitem(fw, &iter, OPEN_CLOSE_WINDOW);
+		filer_openitem(fw, &iter,
+				(iter.peek(&iter)->flags & ITEM_FLAG_APPDIR ?
+				 OPEN_SHIFT : OPEN_CLOSE_WINDOW));
 
 	return FALSE;
 }
