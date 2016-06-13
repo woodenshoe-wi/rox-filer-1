@@ -1870,8 +1870,9 @@ static void view_collection_wink_item(ViewIface *view, ViewIter *iter)
 
 	collection_wink_item(collection, iter->i);
 
-	if (view_collection->filer_window->right_link)
-		collection->winks_left -= (collection->winks_left / 3) << 1;
+	if (view_collection->filer_window->right_link &&
+			iter->peek(iter)->base_type == TYPE_DIRECTORY)
+		collection->winks_left = 1;
 }
 
 static void view_collection_autosize(ViewIface *view)
