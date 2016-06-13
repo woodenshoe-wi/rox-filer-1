@@ -97,9 +97,9 @@ void display_init()
 	option_add_int(&o_display_size, "display_icon_size", AUTO_SIZE_ICONS);
 	option_add_int(&o_display_details, "display_details", DETAILS_NONE);
 	option_add_int(&o_display_sort_by, "display_sort_by", SORT_NAME);
-	option_add_int(&o_large_width, "display_large_width", 155);
-	option_add_int(&o_small_width, "display_small_width", 250);
-	option_add_int(&o_max_length, "display_max_length", 0);
+	option_add_int(&o_large_width, "display_large_width", 150);
+	option_add_int(&o_small_width, "display_small_width", 200);
+	option_add_int(&o_max_length, "display_max_length", 300);
 	option_add_int(&o_display_show_hidden, "display_show_hidden", FALSE);
 	option_add_int(&o_display_show_thumbs, "display_show_thumbs", FALSE);
 	option_add_int(&o_display_show_dir_thumbs, "display_show_dir_thumbs", FALSE);
@@ -107,7 +107,7 @@ void display_init()
 	option_add_int(&o_display_show_full_type, "display_show_full_type", FALSE);
 	option_add_int(&o_display_inherit_options,
 		       "display_inherit_options", FALSE);
-	option_add_int(&o_filer_change_size_num, "filer_change_size_num", 30);
+	option_add_int(&o_filer_change_size_num, "filer_change_size_num", 60);
 	option_add_int(&o_vertical_order_small, "vertical_order_small", FALSE);
 	option_add_int(&o_vertical_order_large, "vertical_order_large", FALSE);
 	option_add_int(&o_xattr_show, "xattr_show", TRUE);

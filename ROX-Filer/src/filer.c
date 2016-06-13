@@ -1408,7 +1408,9 @@ static gboolean key_link_cb(gpointer ap)
 	view_get_cursor(fw->view, &iter);
 
 	if (iter.peek(&iter) && iter.peek(&iter)->base_type == TYPE_DIRECTORY)
-		filer_openitem(fw, &iter, OPEN_CLOSE_WINDOW);
+		filer_openitem(fw, &iter,
+				(iter.peek(&iter)->flags & ITEM_FLAG_APPDIR ?
+				 OPEN_SHIFT : OPEN_CLOSE_WINDOW));
 
 	return FALSE;
 }
@@ -1675,6 +1677,8 @@ void filer_change_to(FilerWindow *fw,
 		display_set_autoselect(fw, from_dup);
 		g_free(from_dup);
 	}
+	else
+		view_cursor_to_iter(fw->view, NULL);
 
 	if (fw->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, fw);

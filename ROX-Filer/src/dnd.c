@@ -126,8 +126,8 @@ static GtkItemFactoryEntry menu_def[] = {
 {N_("Move"),		NULL, menuitem_response, MENU_MOVE, 	NULL},
 {N_("Link (relative)"),          NULL, menuitem_response, MENU_LINK_REL,     NULL},
 {N_("Link (absolute)"),          NULL, menuitem_response, MENU_LINK_ABS,     NULL},
-{N_("Link (relative, sympath)"), NULL, menuitem_response, MENU_LINK_REL_SYM, NULL},
-{N_("Link (absolute, sympath)"), NULL, menuitem_response, MENU_LINK_ABS_SYM, NULL},
+{N_("Link (relative, sym path)"), NULL, menuitem_response, MENU_LINK_REL_SYM, NULL},
+{N_("Link (absolute, sym path)"), NULL, menuitem_response, MENU_LINK_ABS_SYM, NULL},
 };
 static GtkWidget *dnd_menu = NULL;
 
