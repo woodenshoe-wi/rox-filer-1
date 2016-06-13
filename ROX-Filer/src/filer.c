@@ -611,6 +611,9 @@ static void update_display(Directory *dir,
 				filer_create_thumbs(filer_window, items);
 
 			break;
+		case DIR_UPDATE_ICON:
+			view_update_items(view, items);
+			break;
 		case DIR_ERROR_CHANGED:
 			filer_set_title(filer_window);
 			break;
@@ -2671,7 +2674,7 @@ static gboolean make_dir_thumb_link()
 			char *rel_path = get_relative_path(thumb_path, sub_thumb_path);
 
 			if (symlink(rel_path, thumb_path) == 0)
-				dir_force_update_path(path);
+				dir_force_update_path(path, TRUE);
 			//even the symlink fails this loop wills break.
 
 			g_object_unref(image);
@@ -2816,7 +2819,7 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 	}
 
 	if (path)
-		dir_force_update_path(path);
+		dir_force_update_path(path, TRUE);
 
 	if (filer_window->trying_thumbs > o_thumb_processes_num.int_value) {
 		filer_window->trying_thumbs--;
@@ -3615,7 +3618,7 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 		thumb_path = pixmap_make_thumb_path(path);
 		unlink(thumb_path); ///////////////////////////
 
-		dir_force_update_path(path);
+		dir_force_update_path(path, TRUE);
 
 		if (item->base_type == TYPE_DIRECTORY)
 		{

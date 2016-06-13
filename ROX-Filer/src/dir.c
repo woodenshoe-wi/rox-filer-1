@@ -97,7 +97,8 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 static void dir_recheck(Directory *dir,
 			const guchar *path, const guchar *leafname);
 static GPtrArray *hash_to_array(GHashTable *hash);
-static void dir_force_update_item(Directory *dir, const gchar *leaf);
+static void dir_force_update_item(Directory *dir,
+		const gchar *leaf, gboolean thumb);
 static Directory *dir_new(const char *pathname);
 static void dir_scan(Directory *dir);
 static void delayed_notify(Directory *dir, gboolean mainthread);
@@ -357,7 +358,7 @@ void dir_drop_all_notifies(void)
 /* Tell watchers that this item has changed, but don't rescan.
  * (used when thumbnail has been created for an item. also an user icon on a sym_path)
  */
-void dir_force_update_path(const gchar *path)
+void dir_force_update_path(const gchar *path, gboolean icon)
 {
 	gchar	*dir_path;
 	Directory *dir;
@@ -372,7 +373,7 @@ void dir_force_update_path(const gchar *path)
 	if (dir)
 	{
 		base = g_path_get_basename(path);
-		dir_force_update_item(dir, base);
+		dir_force_update_item(dir, base, icon);
 		g_free(base);
 		g_object_unref(dir);
 	}
@@ -957,7 +958,8 @@ static void set_idle_callback(Directory *dir)
 }
 
 /* See dir_force_update_path() */
-static void dir_force_update_item(Directory *dir, const gchar *leaf)
+static void dir_force_update_item(Directory *dir,
+		const gchar *leaf, gboolean icon)
 {
 	GList *list;
 	GPtrArray *items;
@@ -976,8 +978,10 @@ static void dir_force_update_item(Directory *dir, const gchar *leaf)
 	for (list = dir->users; list; list = list->next)
 	{
 		DirUser *user = (DirUser *) list->data;
-
-		user->callback(dir, DIR_UPDATE, items, user->data);
+		if (icon)
+			user->callback(dir, DIR_UPDATE_ICON, items, user->data);
+		else
+			user->callback(dir, DIR_UPDATE, items, user->data);
 	}
 
 	in_callback--;
