@@ -1869,6 +1869,9 @@ static void view_collection_wink_item(ViewIface *view, ViewIter *iter)
 	g_return_if_fail(iter->i >= 0 && iter->i < collection->number_of_items);
 
 	collection_wink_item(collection, iter->i);
+
+	if (view_collection->filer_window->right_link)
+		collection->winks_left -= (collection->winks_left / 3) << 1;
 }
 
 static void view_collection_autosize(ViewIface *view)
