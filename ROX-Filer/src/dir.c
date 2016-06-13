@@ -615,7 +615,7 @@ static gboolean recheck_callback(gpointer data)
 	}
 
 	if (!dir->in_scan_thread && dir->needs_update)
-		dir_scan(dir);
+		dir_rescan_soon(dir);
 
 	return FALSE;
 }
