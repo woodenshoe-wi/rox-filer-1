@@ -504,6 +504,9 @@ static void update_display(Directory *dir,
 			view_add_items(view, items);
 			filer_window->req_sort = FALSE;
 
+			if (!filer_window->first_scan)
+				filer_create_thumbs(filer_window, items);
+
 			if (!init)
 				filer_window->may_resize = TRUE;
 			break;
@@ -519,7 +522,6 @@ static void update_display(Directory *dir,
 			toolbar_update_info(filer_window);
 			break;
 		case DIR_END_SCAN:
-			filer_window->first_scan = FALSE;
 			if (filer_window->req_sort)
 			{
 				filer_window->req_sort = FALSE;
@@ -569,13 +571,14 @@ static void update_display(Directory *dir,
 						filer_window->auto_select);
 			null_g_free(&filer_window->auto_select);
 
-//			g_idle_add_full(G_PRIORITY_LOW, (GSourceFunc) filer_create_thumbs, filer_window, NULL);
-//			g_idle_add((GSourceFunc) filer_create_thumbs, filer_window);
-			filer_create_thumbs(filer_window);
-
 			if (!init && filer_window->may_resize)
 				check_and_resize(filer_window);
+
+			if (filer_window->first_scan)
+				filer_create_thumbs(filer_window, NULL);
+
 			filer_window->may_resize = FALSE;
+			filer_window->first_scan = FALSE;
 			break;
 		case DIR_UPDATE:
 			if (filer_window->sort_type != SORT_NAME &&
@@ -603,6 +606,9 @@ static void update_display(Directory *dir,
 
 			if (filer_window->view_type != VIEW_TYPE_COLLECTION)
 				filer_window->may_resize = TRUE;
+
+			if (!filer_window->first_scan)
+				filer_create_thumbs(filer_window, items);
 
 			break;
 		case DIR_ERROR_CHANGED:
@@ -2857,17 +2863,31 @@ void filer_create_thumb(FilerWindow *filer_window, const gchar *path)
 /* If thumbnail display is on, look through all the items in this directory
  * and start creating or updating the thumbnails as needed.
  */
-void filer_create_thumbs(FilerWindow *filer_window)
+static DirItem *diritem_next(ViewIter *iter, GPtrArray *items, int *i)
+{
+	if (items == NULL)
+		return iter->next(iter);
+	else if (*i < items->len)
+	{
+		*i += 1;
+		return items->pdata[*i - 1];
+	}
+
+	return NULL;
+}
+void filer_create_thumbs(FilerWindow *filer_window, GPtrArray *items)
 {
 	DirItem *item;
 	ViewIter iter;
+	int index = 0;
 
 	if (!filer_window->show_thumbs)
 		return;
 
-	view_get_iter(filer_window->view, &iter, 0);
+	if (items == NULL)
+		view_get_iter(filer_window->view, &iter, 0);
 
-	while ((item = iter.next(&iter)))
+	while ((item = diritem_next(&iter, items, &index)))
 	{
 		MaskedPixmap *pixmap;
 		const guchar *path;
@@ -2939,7 +2959,7 @@ static void filer_options_changed(void)
 			FilerWindow *fw = (FilerWindow *) next->data;
 
 			filer_cancel_thumbnails(fw);
-			filer_create_thumbs(fw);
+			filer_create_thumbs(fw, NULL);
 		}
 	}
 }

@@ -188,7 +188,7 @@ GList *filer_selected_items(FilerWindow *filer_window);
 void filer_create_thumb(FilerWindow *filer_window, const gchar *pathname);
 void filer_cancel_thumbnails(FilerWindow *filer_window);
 void filer_set_title(FilerWindow *filer_window);
-void filer_create_thumbs(FilerWindow *filer_window);
+void filer_create_thumbs(FilerWindow *filer_window, GPtrArray *items);
 void filer_add_tip_details(FilerWindow *filer_window,
 			   GString *tip, DirItem *item);
 void filer_selection_changed(FilerWindow *filer_window, gint time);
