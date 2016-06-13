@@ -563,6 +563,24 @@ static gboolean do_recheck(gpointer data)
 	return FALSE;
 }
 
+static gint rescan_timeout_cb(gpointer data)
+{
+	Directory *dir = (Directory *) data;
+
+	dir->rescan_timeout = -1;
+	if (dir->scanning)
+		dir->needs_update = TRUE;
+	else
+		dir_scan(dir);
+	return FALSE;
+}
+static void dir_rescan_later(Directory *dir)
+{
+	if (dir->rescan_timeout != -1)
+		g_source_remove(dir->rescan_timeout);
+
+	dir->rescan_timeout = g_timeout_add(1300, rescan_timeout_cb, dir);
+}
 static gboolean recheck_callback(gpointer data)
 {
 	Directory *dir = (Directory *) data;
@@ -616,7 +634,7 @@ static gboolean recheck_callback(gpointer data)
 	}
 
 	if (!dir->in_scan_thread && dir->needs_update)
-		dir_rescan_soon(dir);
+		dir_rescan_later(dir);
 
 	return FALSE;
 }
@@ -746,18 +764,6 @@ void dnotify_wakeup(void)
  ****************************************************************/
 
 #ifdef USE_NOTIFY
-static gint rescan_soon_timeout(gpointer data)
-{
-	Directory *dir = (Directory *) data;
-
-	dir->rescan_timeout = -1;
-	if (dir->scanning)
-		dir->needs_update = TRUE;
-	else
-		dir_scan(dir);
-	return FALSE;
-}
-
 /* Wait a fraction of a second and then rescan. If already waiting,
  * this function does nothing.
  */
@@ -765,10 +771,9 @@ static void dir_rescan_soon(Directory *dir)
 {
 	if (dir->rescan_timeout != -1)
 		return;
-	dir->rescan_timeout = g_timeout_add(300, rescan_soon_timeout, dir);
+	dir->rescan_timeout = g_timeout_add(300, rescan_timeout_cb, dir);
 }
 #endif
-
 static void free_items_array(GPtrArray *array)
 {
 	guint	i;
