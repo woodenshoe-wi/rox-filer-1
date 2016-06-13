@@ -868,6 +868,7 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 		{
 			/* Preserve the old details so we can compare */
 			old = *item;
+			old.flags &= ~ITEM_FLAG_NEED_RESCAN_QUEUE;
 			do_compare = TRUE;
 		}
 		diritem_restat(full_path, item, &dir->stat_info, examine_now);
