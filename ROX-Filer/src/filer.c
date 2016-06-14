@@ -1165,14 +1165,62 @@ static gint pointer_out(GtkWidget *widget,
 	return FALSE;
 }
 
+static gboolean key_link_cb(gpointer ap)
+{
+	ViewIter iter;
+	FilerWindow *fw = (FilerWindow *) ap;
+	fw->right_link_idle = 0;
+	view_get_cursor(fw->view, &iter);
+
+	if (iter.peek(&iter) && iter.peek(&iter)->base_type == TYPE_DIRECTORY)
+		filer_openitem(fw, &iter,
+				(iter.peek(&iter)->flags & ITEM_FLAG_APPDIR ?
+				 OPEN_SHIFT : OPEN_CLOSE_WINDOW));
+
+	return FALSE;
+}
+static void link_cursor(FilerWindow *fw)
+{
+	if (!fw->right_link_idle)
+		fw->right_link_idle = g_idle_add(key_link_cb, fw);
+}
+void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean bottom)
+{
+	if (!o_window_link.int_value) return;
+
+	ViewIter iter;
+	view_get_iter(fw->view, &iter,
+			VIEW_ITER_NO_LOOP | VIEW_ITER_EVEN_OLD_CURSOR | VIEW_ITER_DIR |
+			(dir == GDK_SCROLL_UP ?  VIEW_ITER_BACKWARDS : 0));
+
+	if (iter.next(&iter))
+	{
+		if (fw->right_link &&
+				!strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
+					iter.peek(&iter)->leafname))
+		{
+			view_cursor_to_iter(fw->view, &iter);//for when next is null
+			iter.next(&iter);
+		}
+
+		if (iter.peek(&iter))
+		{
+			view_cursor_to_iter(fw->view, &iter);
+			link_cursor(fw);
+		}
+	}
+	else
+		gdk_beep();
+}
+
 /* Move the cursor to the next selected item in direction 'dir'
  * (+1 or -1).
  */
-void filer_next_selected(FilerWindow *filer_window, int dir)
+void filer_next_selected(FilerWindow *fw, int dir)
 {
 	ViewIter	iter, cursor;
 	gboolean	have_cursor;
-	ViewIface	*view = filer_window->view;
+	ViewIface	*view = fw->view;
 
 	g_return_if_fail(dir == 1 || dir == -1);
 
@@ -1190,7 +1238,8 @@ void filer_next_selected(FilerWindow *filer_window, int dir)
 	if (iter.next(&iter))
 	{
 		view_cursor_to_iter(view, &iter);
-		filer_link_cursor(filer_window);
+		if (fw->right_link)
+			link_cursor(fw);
 	}
 	else
 		gdk_beep();
@@ -1409,26 +1458,6 @@ void filer_window_toggle_cursor_item_selected(FilerWindow *filer_window)
 		view_cursor_to_iter(view, &iter);
 }
 
-static gboolean key_link_cb(gpointer ap)
-{
-	ViewIter iter;
-	FilerWindow *fw = (FilerWindow *) ap;
-	fw->right_link_idle = 0;
-	view_get_cursor(fw->view, &iter);
-
-	if (iter.peek(&iter) && iter.peek(&iter)->base_type == TYPE_DIRECTORY)
-		filer_openitem(fw, &iter,
-				(iter.peek(&iter)->flags & ITEM_FLAG_APPDIR ?
-				 OPEN_SHIFT : OPEN_CLOSE_WINDOW));
-
-	return FALSE;
-}
-void filer_link_cursor(FilerWindow *fw)
-{
-	if (!fw->right_link_idle)
-		fw->right_link_idle = g_idle_add(key_link_cb, fw);
-}
-
 gint filer_key_press_event(GtkWidget	*widget,
 			   GdkEventKey	*event,
 			   FilerWindow	*filer_window)
@@ -1469,7 +1498,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 			key == GDK_Up    ||
 			key == GDK_Down  )
 			)
-		filer_link_cursor(filer_window);
+		link_cursor(filer_window);
 
 	switch (key)
 	{

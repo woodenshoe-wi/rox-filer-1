@@ -737,32 +737,7 @@ static gint bar_scrolled(
 		GdkEventScroll *event,
 		FilerWindow *fw)
 {
-	if (!o_window_link.int_value) return FALSE;
-
-	ViewIter iter;
-	view_get_iter(fw->view, &iter,
-			VIEW_ITER_NO_LOOP | VIEW_ITER_EVEN_OLD_CURSOR | VIEW_ITER_DIR |
-			(event->direction == GDK_SCROLL_UP ?  VIEW_ITER_BACKWARDS : 0));
-
-	if (iter.next(&iter))
-	{
-		if (fw->right_link &&
-				!strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
-					iter.peek(&iter)->leafname))
-		{
-			view_cursor_to_iter(fw->view, &iter);//for when next is null
-			iter.next(&iter);
-		}
-
-		if (iter.peek(&iter))
-		{
-			view_cursor_to_iter(fw->view, &iter);
-			filer_link_cursor(fw);
-		}
-	}
-	else
-		gdk_beep();
-
+	filer_dir_link_next(fw, event->direction, FALSE);
 	return TRUE;
 }
 
