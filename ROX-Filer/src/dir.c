@@ -568,9 +568,7 @@ static gint rescan_timeout_cb(gpointer data)
 	Directory *dir = (Directory *) data;
 
 	dir->rescan_timeout = -1;
-	if (dir->scanning)
-		dir->needs_update = TRUE;
-	else
+	if (!dir->scanning && dir->needs_update)
 		dir_scan(dir);
 	return FALSE;
 }
@@ -579,7 +577,9 @@ static void dir_rescan_later(Directory *dir)
 	if (dir->rescan_timeout != -1)
 		g_source_remove(dir->rescan_timeout);
 
-	dir->rescan_timeout = g_timeout_add(1300, rescan_timeout_cb, dir);
+	dir->rescan_timeout = g_timeout_add(
+			(g_get_monotonic_time() - dir->last_scan_time) / 1000 * 4 + 600,
+			rescan_timeout_cb, dir);
 }
 static gboolean recheck_callback(gpointer data)
 {
@@ -769,8 +769,8 @@ void dnotify_wakeup(void)
  */
 static void dir_rescan_soon(Directory *dir)
 {
-	if (dir->rescan_timeout != -1)
-		return;
+	dir->needs_update = TRUE;
+	if (dir->rescan_timeout != -1) return;
 	dir->rescan_timeout = g_timeout_add(300, rescan_timeout_cb, dir);
 }
 #endif
@@ -1165,6 +1165,8 @@ static void dir_scan(Directory *dir)
 	g_return_if_fail(dir != NULL);
 
 	stop_scan_t(dir);
+
+	dir->last_scan_time = g_get_monotonic_time();
 
 	const char *pathname = dir->pathname;
 	dir->needs_update = FALSE;

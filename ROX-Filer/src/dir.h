@@ -97,6 +97,8 @@ struct _Directory
 
 	gint		rescan_timeout;	/* See dir_rescan_soon() */
 
+	gint64 last_scan_time;
+
 #ifdef USE_NOTIFY
 	int		notify_fd;	/* -1 if not watching */
 #endif
