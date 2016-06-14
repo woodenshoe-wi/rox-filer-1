@@ -504,6 +504,9 @@ static void update_display(Directory *dir,
 			view_add_items(view, items);
 			filer_window->req_sort = FALSE;
 
+			if (!filer_window->first_scan)
+				filer_create_thumbs(filer_window, items);
+
 			if (!init)
 				filer_window->may_resize = TRUE;
 			break;
@@ -519,7 +522,6 @@ static void update_display(Directory *dir,
 			toolbar_update_info(filer_window);
 			break;
 		case DIR_END_SCAN:
-			filer_window->first_scan = FALSE;
 			if (filer_window->req_sort)
 			{
 				filer_window->req_sort = FALSE;
@@ -569,13 +571,14 @@ static void update_display(Directory *dir,
 						filer_window->auto_select);
 			null_g_free(&filer_window->auto_select);
 
-//			g_idle_add_full(G_PRIORITY_LOW, (GSourceFunc) filer_create_thumbs, filer_window, NULL);
-//			g_idle_add((GSourceFunc) filer_create_thumbs, filer_window);
-			filer_create_thumbs(filer_window);
-
 			if (!init && filer_window->may_resize)
 				check_and_resize(filer_window);
+
+			if (filer_window->first_scan)
+				filer_create_thumbs(filer_window, NULL);
+
 			filer_window->may_resize = FALSE;
+			filer_window->first_scan = FALSE;
 			break;
 		case DIR_UPDATE:
 			if (filer_window->sort_type != SORT_NAME &&
@@ -604,6 +607,12 @@ static void update_display(Directory *dir,
 			if (filer_window->view_type != VIEW_TYPE_COLLECTION)
 				filer_window->may_resize = TRUE;
 
+			if (!filer_window->first_scan)
+				filer_create_thumbs(filer_window, items);
+
+			break;
+		case DIR_UPDATE_ICON:
+			view_update_items(view, items);
 			break;
 		case DIR_ERROR_CHANGED:
 			filer_set_title(filer_window);
@@ -1156,14 +1165,62 @@ static gint pointer_out(GtkWidget *widget,
 	return FALSE;
 }
 
+static gboolean key_link_cb(gpointer ap)
+{
+	ViewIter iter;
+	FilerWindow *fw = (FilerWindow *) ap;
+	fw->right_link_idle = 0;
+	view_get_cursor(fw->view, &iter);
+
+	if (iter.peek(&iter) && iter.peek(&iter)->base_type == TYPE_DIRECTORY)
+		filer_openitem(fw, &iter,
+				(iter.peek(&iter)->flags & ITEM_FLAG_APPDIR ?
+				 OPEN_SHIFT : OPEN_CLOSE_WINDOW));
+
+	return FALSE;
+}
+static void link_cursor(FilerWindow *fw)
+{
+	if (!fw->right_link_idle)
+		fw->right_link_idle = g_idle_add(key_link_cb, fw);
+}
+void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean bottom)
+{
+	if (!o_window_link.int_value) return;
+
+	ViewIter iter;
+	view_get_iter(fw->view, &iter,
+			VIEW_ITER_NO_LOOP | VIEW_ITER_EVEN_OLD_CURSOR | VIEW_ITER_DIR |
+			(dir == GDK_SCROLL_UP ?  VIEW_ITER_BACKWARDS : 0));
+
+	if (iter.next(&iter))
+	{
+		if (fw->right_link &&
+				!strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
+					iter.peek(&iter)->leafname))
+		{
+			view_cursor_to_iter(fw->view, &iter);//for when next is null
+			iter.next(&iter);
+		}
+
+		if (iter.peek(&iter))
+		{
+			view_cursor_to_iter(fw->view, &iter);
+			link_cursor(fw);
+		}
+	}
+	else
+		gdk_beep();
+}
+
 /* Move the cursor to the next selected item in direction 'dir'
  * (+1 or -1).
  */
-void filer_next_selected(FilerWindow *filer_window, int dir)
+void filer_next_selected(FilerWindow *fw, int dir)
 {
 	ViewIter	iter, cursor;
 	gboolean	have_cursor;
-	ViewIface	*view = filer_window->view;
+	ViewIface	*view = fw->view;
 
 	g_return_if_fail(dir == 1 || dir == -1);
 
@@ -1181,7 +1238,8 @@ void filer_next_selected(FilerWindow *filer_window, int dir)
 	if (iter.next(&iter))
 	{
 		view_cursor_to_iter(view, &iter);
-		filer_link_cursor(filer_window);
+		if (fw->right_link)
+			link_cursor(fw);
 	}
 	else
 		gdk_beep();
@@ -1400,26 +1458,6 @@ void filer_window_toggle_cursor_item_selected(FilerWindow *filer_window)
 		view_cursor_to_iter(view, &iter);
 }
 
-static gboolean key_link_cb(gpointer ap)
-{
-	ViewIter iter;
-	FilerWindow *fw = (FilerWindow *) ap;
-	fw->right_link_idle = 0;
-	view_get_cursor(fw->view, &iter);
-
-	if (iter.peek(&iter) && iter.peek(&iter)->base_type == TYPE_DIRECTORY)
-		filer_openitem(fw, &iter,
-				(iter.peek(&iter)->flags & ITEM_FLAG_APPDIR ?
-				 OPEN_SHIFT : OPEN_CLOSE_WINDOW));
-
-	return FALSE;
-}
-void filer_link_cursor(FilerWindow *fw)
-{
-	if (!fw->right_link_idle)
-		fw->right_link_idle = g_idle_add(key_link_cb, fw);
-}
-
 gint filer_key_press_event(GtkWidget	*widget,
 			   GdkEventKey	*event,
 			   FilerWindow	*filer_window)
@@ -1460,7 +1498,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 			key == GDK_Up    ||
 			key == GDK_Down  )
 			)
-		filer_link_cursor(filer_window);
+		link_cursor(filer_window);
 
 	switch (key)
 	{
@@ -2665,7 +2703,7 @@ static gboolean make_dir_thumb_link()
 			char *rel_path = get_relative_path(thumb_path, sub_thumb_path);
 
 			if (symlink(rel_path, thumb_path) == 0)
-				dir_force_update_path(path);
+				dir_force_update_path(path, TRUE);
 			//even the symlink fails this loop wills break.
 
 			g_object_unref(image);
@@ -2810,7 +2848,7 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 	}
 
 	if (path)
-		dir_force_update_path(path);
+		dir_force_update_path(path, TRUE);
 
 	if (filer_window->trying_thumbs > o_thumb_processes_num.int_value) {
 		filer_window->trying_thumbs--;
@@ -2857,17 +2895,31 @@ void filer_create_thumb(FilerWindow *filer_window, const gchar *path)
 /* If thumbnail display is on, look through all the items in this directory
  * and start creating or updating the thumbnails as needed.
  */
-void filer_create_thumbs(FilerWindow *filer_window)
+static DirItem *diritem_next(ViewIter *iter, GPtrArray *items, int *i)
+{
+	if (items == NULL)
+		return iter->next(iter);
+	else if (*i < items->len)
+	{
+		*i += 1;
+		return items->pdata[*i - 1];
+	}
+
+	return NULL;
+}
+void filer_create_thumbs(FilerWindow *filer_window, GPtrArray *items)
 {
 	DirItem *item;
 	ViewIter iter;
+	int index = 0;
 
 	if (!filer_window->show_thumbs)
 		return;
 
-	view_get_iter(filer_window->view, &iter, 0);
+	if (items == NULL)
+		view_get_iter(filer_window->view, &iter, 0);
 
-	while ((item = iter.next(&iter)))
+	while ((item = diritem_next(&iter, items, &index)))
 	{
 		MaskedPixmap *pixmap;
 		const guchar *path;
@@ -2939,7 +2991,7 @@ static void filer_options_changed(void)
 			FilerWindow *fw = (FilerWindow *) next->data;
 
 			filer_cancel_thumbnails(fw);
-			filer_create_thumbs(fw);
+			filer_create_thumbs(fw, NULL);
 		}
 	}
 }
@@ -3595,7 +3647,7 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 		thumb_path = pixmap_make_thumb_path(path);
 		unlink(thumb_path); ///////////////////////////
 
-		dir_force_update_path(path);
+		dir_force_update_path(path, TRUE);
 
 		if (item->base_type == TYPE_DIRECTORY)
 		{

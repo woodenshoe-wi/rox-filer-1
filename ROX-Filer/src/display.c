@@ -653,7 +653,7 @@ void display_set_thumbs(FilerWindow *filer_window, gboolean thumbs)
 
 	filer_set_title(filer_window);
 
-	filer_create_thumbs(filer_window);
+	filer_create_thumbs(filer_window, NULL);
 }
 
 void display_update_hidden(FilerWindow *filer_window)

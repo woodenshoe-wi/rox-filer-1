@@ -97,7 +97,8 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 static void dir_recheck(Directory *dir,
 			const guchar *path, const guchar *leafname);
 static GPtrArray *hash_to_array(GHashTable *hash);
-static void dir_force_update_item(Directory *dir, const gchar *leaf);
+static void dir_force_update_item(Directory *dir,
+		const gchar *leaf, gboolean thumb);
 static Directory *dir_new(const char *pathname);
 static void dir_scan(Directory *dir);
 static void delayed_notify(Directory *dir, gboolean mainthread);
@@ -357,7 +358,7 @@ void dir_drop_all_notifies(void)
 /* Tell watchers that this item has changed, but don't rescan.
  * (used when thumbnail has been created for an item. also an user icon on a sym_path)
  */
-void dir_force_update_path(const gchar *path)
+void dir_force_update_path(const gchar *path, gboolean icon)
 {
 	gchar	*dir_path;
 	Directory *dir;
@@ -372,7 +373,7 @@ void dir_force_update_path(const gchar *path)
 	if (dir)
 	{
 		base = g_path_get_basename(path);
-		dir_force_update_item(dir, base);
+		dir_force_update_item(dir, base, icon);
 		g_free(base);
 		g_object_unref(dir);
 	}
@@ -562,6 +563,24 @@ static gboolean do_recheck(gpointer data)
 	return FALSE;
 }
 
+static gint rescan_timeout_cb(gpointer data)
+{
+	Directory *dir = (Directory *) data;
+
+	dir->rescan_timeout = -1;
+	if (!dir->scanning && dir->needs_update)
+		dir_scan(dir);
+	return FALSE;
+}
+static void dir_rescan_later(Directory *dir)
+{
+	if (dir->rescan_timeout != -1)
+		g_source_remove(dir->rescan_timeout);
+
+	dir->rescan_timeout = g_timeout_add(
+			(g_get_monotonic_time() - dir->last_scan_time) / 1000 * 4 + 600,
+			rescan_timeout_cb, dir);
+}
 static gboolean recheck_callback(gpointer data)
 {
 	Directory *dir = (Directory *) data;
@@ -615,7 +634,7 @@ static gboolean recheck_callback(gpointer data)
 	}
 
 	if (!dir->in_scan_thread && dir->needs_update)
-		dir_scan(dir);
+		dir_rescan_later(dir);
 
 	return FALSE;
 }
@@ -745,29 +764,16 @@ void dnotify_wakeup(void)
  ****************************************************************/
 
 #ifdef USE_NOTIFY
-static gint rescan_soon_timeout(gpointer data)
-{
-	Directory *dir = (Directory *) data;
-
-	dir->rescan_timeout = -1;
-	if (dir->scanning)
-		dir->needs_update = TRUE;
-	else
-		dir_scan(dir);
-	return FALSE;
-}
-
 /* Wait a fraction of a second and then rescan. If already waiting,
  * this function does nothing.
  */
 static void dir_rescan_soon(Directory *dir)
 {
-	if (dir->rescan_timeout != -1)
-		return;
-	dir->rescan_timeout = g_timeout_add(300, rescan_soon_timeout, dir);
+	dir->needs_update = TRUE;
+	if (dir->rescan_timeout != -1) return;
+	dir->rescan_timeout = g_timeout_add(300, rescan_timeout_cb, dir);
 }
 #endif
-
 static void free_items_array(GPtrArray *array)
 {
 	guint	i;
@@ -957,7 +963,8 @@ static void set_idle_callback(Directory *dir)
 }
 
 /* See dir_force_update_path() */
-static void dir_force_update_item(Directory *dir, const gchar *leaf)
+static void dir_force_update_item(Directory *dir,
+		const gchar *leaf, gboolean icon)
 {
 	GList *list;
 	GPtrArray *items;
@@ -976,8 +983,10 @@ static void dir_force_update_item(Directory *dir, const gchar *leaf)
 	for (list = dir->users; list; list = list->next)
 	{
 		DirUser *user = (DirUser *) list->data;
-
-		user->callback(dir, DIR_UPDATE, items, user->data);
+		if (icon)
+			user->callback(dir, DIR_UPDATE_ICON, items, user->data);
+		else
+			user->callback(dir, DIR_UPDATE, items, user->data);
 	}
 
 	in_callback--;
@@ -1156,6 +1165,8 @@ static void dir_scan(Directory *dir)
 	g_return_if_fail(dir != NULL);
 
 	stop_scan_t(dir);
+
+	dir->last_scan_time = g_get_monotonic_time();
 
 	const char *pathname = dir->pathname;
 	dir->needs_update = FALSE;

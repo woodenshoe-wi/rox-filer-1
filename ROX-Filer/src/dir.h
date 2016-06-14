@@ -33,8 +33,9 @@ typedef enum {
 	DIR_ADD,           /* 2 Add the listed items to the display */
 	DIR_REMOVE,        /* 3 Remove listed items from display */
 	DIR_UPDATE,        /* 4 Redraw these items */
-	DIR_ERROR_CHANGED, /* 5 Check dir->error */
-	DIR_QUEUE_INTERESTING,  /* 6 Call dir_queue_recheck */
+	DIR_UPDATE_ICON,   /* 5 Redraw these items */
+	DIR_ERROR_CHANGED, /* 6 Check dir->error */
+	DIR_QUEUE_INTERESTING,  /* 7 Call dir_queue_recheck */
 } DirAction;
 
 typedef struct _DirUser DirUser;
@@ -96,6 +97,8 @@ struct _Directory
 
 	gint		rescan_timeout;	/* See dir_rescan_soon() */
 
+	gint64 last_scan_time;
+
 #ifdef USE_NOTIFY
 	int		notify_fd;	/* -1 if not watching */
 #endif
@@ -112,7 +115,7 @@ void refresh_dirs(const char *path);
 void dir_check_this(const guchar *path);
 DirItem *dir_update_item(Directory *dir, const gchar *leafname);
 void dir_merge_new(Directory *dir);
-void dir_force_update_path(const gchar *path);
+void dir_force_update_path(const gchar *path, gboolean icon);
 #if defined(USE_DNOTIFY)
 void dnotify_wakeup(void);
 #endif

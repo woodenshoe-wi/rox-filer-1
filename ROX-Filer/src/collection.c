@@ -831,7 +831,21 @@ static gboolean scroll_idle(gpointer data) {
 			if (box)
 				add_lasso_box(collection);
 		}
+/*
+		else
+		{
+			FilerWindow *fw =
+				g_object_get_data(
+						G_OBJECT(gtk_widget_get_toplevel(GTK_WIDGET(collection))),
+						"filer_window");
+
+			if (fw->left_link)
+				filer_dir_link_next(fw->left_link,
+					scrollbackorder < 0 ? GDK_SCROLL_UP : GDK_SCROLL_DOWN, TRUE);
+		}
+*/
 	}
+
 
 	g_object_unref(collection);
 	scrollbackorder = 0;

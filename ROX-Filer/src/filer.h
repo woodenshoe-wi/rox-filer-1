@@ -188,7 +188,7 @@ GList *filer_selected_items(FilerWindow *filer_window);
 void filer_create_thumb(FilerWindow *filer_window, const gchar *pathname);
 void filer_cancel_thumbnails(FilerWindow *filer_window);
 void filer_set_title(FilerWindow *filer_window);
-void filer_create_thumbs(FilerWindow *filer_window);
+void filer_create_thumbs(FilerWindow *filer_window, GPtrArray *items);
 void filer_add_tip_details(FilerWindow *filer_window,
 			   GString *tip, DirItem *item);
 void filer_selection_changed(FilerWindow *filer_window, gint time);
@@ -218,7 +218,8 @@ void filer_clear_settings(FilerWindow *fwin);
 void filer_copy_settings(FilerWindow *src, FilerWindow *dest);
 void filer_link(FilerWindow *left, FilerWindow *right);
 void filer_cut_links(FilerWindow *fw, gboolean left_only);
-void filer_link_cursor(FilerWindow *fw);
+void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean bottom);
+
 
 UnmountPrompt filer_get_unmount_action(const char *path);
 void filer_set_unmount_action(const char *path, UnmountPrompt action);

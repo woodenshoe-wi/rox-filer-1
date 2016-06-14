@@ -755,7 +755,7 @@ static void make_dir_thumb(const gchar *path)
 		char *rel_path = get_relative_path(dir_thumb_path, thumb_path);
 
 		if (symlink(rel_path, dir_thumb_path) == 0)
-			dir_force_update_path(dir);
+			dir_force_update_path(dir, TRUE);
 
 		g_free(rel_path);
 		g_free(thumb_path);
