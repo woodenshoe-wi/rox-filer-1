@@ -27,7 +27,7 @@
  */
 
 #define PIXMAP_PURGE_TIME 60 * 60 * 4
-#define PIXMAP_THUMB_SIZE  128
+#define PIXMAP_THUMB_SIZE  256
 #define PIXMAP_THUMB_TOO_OLD_TIME  5
 
 #include <stdlib.h>

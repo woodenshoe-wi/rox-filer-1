@@ -25,7 +25,7 @@ extern GtkIconSize mount_icon_size;
 /* If making the huge size larger, be sure to update SMALL_IMAGE_THRESHOLD! */
 #define HUGE_LIMIT_F 1024.0
 
-#define HUGE_SIZE 128
+#define HUGE_SIZE 192
 
 #define ICON_HEIGHT 52
 #define ICON_WIDTH 48
