@@ -205,10 +205,16 @@ static Tool all_tools[] = {
 
 void toolbar_init(void)
 {
-	option_add_int(&o_toolbar, "toolbar_type", TOOLBAR_NORMAL);
+	option_add_int(&o_toolbar, "toolbar_type", TOOLBAR_TEXT);
 	option_add_int(&o_toolbar_info, "toolbar_show_info", 1);
 	option_add_string(&o_toolbar_disable, "toolbar_disable",
-					GTK_STOCK_CLOSE);
+					GTK_STOCK_CLOSE ","
+					GTK_STOCK_ZOOM_FIT ","
+					GTK_STOCK_SORT_ASCENDING ","
+					ROX_STOCK_SHOW_HIDDEN ","
+					GTK_STOCK_DIRECTORY ","
+					GTK_STOCK_SELECT_ALL ","
+					GTK_STOCK_HELP);
 	option_add_int(&o_toolbar_min_width, "toolbar_min_width", 1);
 	option_add_notify(option_notify);
 

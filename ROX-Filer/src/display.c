@@ -94,28 +94,35 @@ void display_init()
 {
 	option_add_int(&o_display_caps_first, "display_caps_first", FALSE);
 	option_add_int(&o_display_dirs_first, "display_dirs_first", FALSE);
-	option_add_int(&o_display_size, "display_icon_size", AUTO_SIZE_ICONS);
-	option_add_int(&o_display_details, "display_details", DETAILS_NONE);
-	option_add_int(&o_display_sort_by, "display_sort_by", SORT_NAME);
-	option_add_int(&o_large_width, "display_large_width", 150);
-	option_add_int(&o_small_width, "display_small_width", 200);
-	option_add_int(&o_max_length, "display_max_length", 300);
-	option_add_int(&o_display_show_hidden, "display_show_hidden", FALSE);
-	option_add_int(&o_display_show_thumbs, "display_show_thumbs", FALSE);
-	option_add_int(&o_display_show_dir_thumbs, "display_show_dir_thumbs", FALSE);
-	option_add_int(&o_display_show_headers, "display_show_headers", TRUE);
-	option_add_int(&o_display_show_full_type, "display_show_full_type", FALSE);
+
 	option_add_int(&o_display_inherit_options,
 		       "display_inherit_options", FALSE);
-	option_add_int(&o_filer_change_size_num, "filer_change_size_num", 60);
-	option_add_int(&o_vertical_order_small, "vertical_order_small", FALSE);
-	option_add_int(&o_vertical_order_large, "vertical_order_large", FALSE);
+	option_add_int(&o_display_sort_by, "display_sort_by", SORT_NAME);
+	option_add_int(&o_display_show_hidden, "display_show_hidden", TRUE);
 	option_add_int(&o_xattr_show, "xattr_show", TRUE);
-	option_add_int(&o_view_alpha, "view_alpha", 0);
-	option_add_int(&o_use_background_colour, "use_background_colour", 0);
-	option_add_string(&o_background_colour, "background_colour", "#ffffff");
-	option_add_int(&o_wrap_by_char, "wrap_by_char", FALSE);
 	option_add_int(&o_huge_size, "huge_size", HUGE_SIZE);
+
+	option_add_int(&o_display_size, "display_icon_size", AUTO_SIZE_ICONS);
+	option_add_int(&o_display_details, "display_details", DETAILS_NONE);
+	option_add_int(&o_filer_change_size_num, "filer_change_size_num", 90);
+
+	option_add_int(&o_large_width, "display_large_width", 120);
+	option_add_int(&o_max_length, "display_max_length", 240);
+	option_add_int(&o_wrap_by_char, "wrap_by_char", FALSE);
+	option_add_int(&o_small_width, "display_small_width", 160);
+
+	option_add_int(&o_view_alpha, "view_alpha", 40);
+
+	option_add_int(&o_vertical_order_small, "vertical_order_small", TRUE);
+	option_add_int(&o_vertical_order_large, "vertical_order_large", FALSE);
+	option_add_int(&o_display_show_headers, "display_show_headers", TRUE);
+	option_add_int(&o_display_show_full_type, "display_show_full_type", FALSE);
+
+	option_add_int(&o_display_show_thumbs, "display_show_thumbs", FALSE);
+	option_add_int(&o_display_show_dir_thumbs, "display_show_dir_thumbs", TRUE);
+
+	option_add_int(&o_use_background_colour, "use_background_colour", TRUE);
+	option_add_string(&o_background_colour, "background_colour", "#000000");
 
 	option_add_notify(options_changed);
 
