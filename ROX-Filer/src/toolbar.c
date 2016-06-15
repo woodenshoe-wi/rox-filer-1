@@ -687,9 +687,9 @@ static gboolean check_double()
 	static gint64 lasttime = 0;
 	gint64 current = g_get_real_time(); //g_get_monotonic_time is too much
 
-	//correctly double click depends on release time. *2 is hack
+	//correctly double click depends on release time. *1.2 is hack
 	//This case we can't get release event because of begin_*_drag
-	if (current - lasttime < dct * 1000 * 2)
+	if (current - lasttime < dct * 1000 * 1.3)
 		return TRUE;
 
 	lasttime = current;
