@@ -212,22 +212,19 @@ void filer_init(void)
 
 	option_add_int(&o_filer_size_limit, "filer_size_limit", 60);
 	option_add_int(&o_filer_width_limit, "filer_width_limit", 0);
-	option_add_int(&o_filer_auto_resize, "filer_auto_resize",
-							RESIZE_ALWAYS);
-	option_add_int(&o_unique_filer_windows, "filer_unique_windows", 0);
+	option_add_int(&o_filer_auto_resize, "filer_auto_resize", RESIZE_ALWAYS);
 
-	option_add_int(&o_short_flag_names, "filer_short_flag_names", FALSE);
-
-	option_add_int(&o_filer_view_type, "filer_view_type",
-			VIEW_TYPE_COLLECTION);
-
-	option_add_int(&o_right_gap, "right_gap", 32);
-	option_add_int(&o_bottom_gap, "bottom_gap", 32);
-	option_add_int(&o_auto_move, "auto_move", FALSE);
-	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
-	option_add_int(&o_create_sub_dir_thumbs, "create_sub_dir_thumbs", FALSE);
-	option_add_int(&o_thumb_processes_num, "thumb_processes_num", 3);
+	option_add_int(&o_unique_filer_windows, "filer_unique_windows", 1);
+	option_add_int(&o_short_flag_names, "filer_short_flag_names", TRUE);
+	option_add_int(&o_filer_view_type, "filer_view_type", VIEW_TYPE_COLLECTION);
 	option_add_int(&o_window_link, "window_link", 1);
+
+	option_add_int(&o_right_gap, "right_gap", 0);
+	option_add_int(&o_bottom_gap, "bottom_gap", 0);
+	option_add_int(&o_auto_move, "auto_move", TRUE);
+	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
+	option_add_int(&o_create_sub_dir_thumbs, "create_sub_dir_thumbs", TRUE);
+	option_add_int(&o_thumb_processes_num, "thumb_processes_num", 6);
 
 	option_add_notify(filer_options_changed);
 
@@ -581,7 +578,8 @@ static void update_display(Directory *dir,
 			filer_window->first_scan = FALSE;
 			break;
 		case DIR_UPDATE:
-			if (filer_window->sort_type != SORT_NAME &&
+			if ((filer_window->sort_type != SORT_NAME ||
+						o_display_dirs_first.int_value) &&
 					filer_window->view_type == VIEW_TYPE_COLLECTION)
 			{
 				if (!filer_window->first_scan)
@@ -630,7 +628,7 @@ static void attach(FilerWindow *filer_window)
 	view_clear(filer_window->view);
 	filer_window->scanning = TRUE;
 
-	if (filer_window->sort_type != SORT_NAME)
+	if (filer_window->sort_type != SORT_NAME || o_display_dirs_first.int_value)
 		filer_window->directory->notify_time = DIR_NOTIFY_TIME_FOR_SORT_DATA;
 	else
 		filer_window->directory->notify_time = 0;

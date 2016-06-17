@@ -67,16 +67,16 @@ enum {SET_MEDIA, SET_TYPE};
 /* Colours for file types (same order as base types) */
 static gchar *opt_type_colours[][2] = {
 	{"display_err_colour",  "#ff0000"},
-	{"display_unkn_colour", "#000000"},
-	{"display_dir_colour",  "#000080"},
-	{"display_pipe_colour", "#444444"},
-	{"display_sock_colour", "#ff00ff"},
-	{"display_file_colour", "#000000"},
-	{"display_cdev_colour", "#000000"},
-	{"display_bdev_colour", "#000000"},
+	{"display_unkn_colour", "#ffe700"},
+	{"display_dir_colour",  "#61fffe"},
+	{"display_pipe_colour", "#dccbff"},
+	{"display_sock_colour", "#ff90ff"},
+	{"display_file_colour", "#ffffff"},
+	{"display_cdev_colour", "#ffc488"},
+	{"display_bdev_colour", "#ffe9cf"},
 	{"display_door_colour", "#ff00ff"},
-	{"display_exec_colour", "#006000"},
-	{"display_adir_colour", "#006000"}
+	{"display_exec_colour", "#75ff66"},
+	{"display_adir_colour", "#00e100"}
 };
 #define NUM_TYPE_COLOURS\
 		(sizeof(opt_type_colours) / sizeof(opt_type_colours[0]))

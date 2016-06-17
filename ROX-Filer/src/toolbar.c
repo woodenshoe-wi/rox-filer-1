@@ -205,10 +205,16 @@ static Tool all_tools[] = {
 
 void toolbar_init(void)
 {
-	option_add_int(&o_toolbar, "toolbar_type", TOOLBAR_NORMAL);
+	option_add_int(&o_toolbar, "toolbar_type", TOOLBAR_TEXT);
 	option_add_int(&o_toolbar_info, "toolbar_show_info", 1);
 	option_add_string(&o_toolbar_disable, "toolbar_disable",
-					GTK_STOCK_CLOSE);
+					GTK_STOCK_CLOSE ","
+					GTK_STOCK_ZOOM_FIT ","
+					GTK_STOCK_SORT_ASCENDING ","
+					ROX_STOCK_SHOW_HIDDEN ","
+					GTK_STOCK_DIRECTORY ","
+					GTK_STOCK_SELECT_ALL ","
+					GTK_STOCK_HELP);
 	option_add_int(&o_toolbar_min_width, "toolbar_min_width", 1);
 	option_add_notify(option_notify);
 
@@ -681,9 +687,9 @@ static gboolean check_double()
 	static gint64 lasttime = 0;
 	gint64 current = g_get_real_time(); //g_get_monotonic_time is too much
 
-	//correctly double click depends on release time. *2 is hack
+	//correctly double click depends on release time. *1.2 is hack
 	//This case we can't get release event because of begin_*_drag
-	if (current - lasttime < dct * 1000 * 2)
+	if (current - lasttime < dct * 1000 * 1.3)
 		return TRUE;
 
 	lasttime = current;

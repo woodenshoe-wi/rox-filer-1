@@ -918,6 +918,7 @@ static void large_template(
 		template->leafname.y = ty;
 
 		iy = ty - ih;
+		iy -= (ICON_HEIGHT - ih) / 6;
 		iy = MAX(area->y, iy);
 
 		template->icon.x = ix;
