@@ -189,7 +189,6 @@ static void free_subdir_info(void);
 static GdkCursor *busy_cursor = NULL;
 static GdkCursor *crosshair = NULL;
 static GdkCursor *hand_cursor = NULL;
-static GdkCursor *press_cursor = NULL;
 static GdkCursor *blank_cursor = NULL;
 
 /* Indicates whether the filer's display is different to the machine it
@@ -237,7 +236,6 @@ void filer_init(void)
 	busy_cursor = gdk_cursor_new(GDK_WATCH);
 	crosshair = gdk_cursor_new(GDK_CROSSHAIR);
 	hand_cursor = gdk_cursor_new(GDK_HAND2);
-	press_cursor = gdk_cursor_new(GDK_TARGET);
 	blank_cursor = gdk_cursor_new(GDK_BLANK_CURSOR);
 
 
@@ -3121,9 +3119,6 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 
 	view_get_iter_at_point(view, &iter, event->window, event->x, event->y);
 	item = iter.peek(&iter);
-
-	if (press && item && event->button == 1)
-		gdk_window_set_cursor(filer_window->window->window, press_cursor);
 
 	if (item && view_cursor_visible(view))
 		view_cursor_to_iter(view, &iter);
