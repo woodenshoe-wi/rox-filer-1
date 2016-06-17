@@ -578,7 +578,8 @@ static void update_display(Directory *dir,
 			filer_window->first_scan = FALSE;
 			break;
 		case DIR_UPDATE:
-			if (filer_window->sort_type != SORT_NAME &&
+			if ((filer_window->sort_type != SORT_NAME ||
+						o_display_dirs_first.int_value) &&
 					filer_window->view_type == VIEW_TYPE_COLLECTION)
 			{
 				if (!filer_window->first_scan)
@@ -627,7 +628,7 @@ static void attach(FilerWindow *filer_window)
 	view_clear(filer_window->view);
 	filer_window->scanning = TRUE;
 
-	if (filer_window->sort_type != SORT_NAME)
+	if (filer_window->sort_type != SORT_NAME || o_display_dirs_first.int_value)
 		filer_window->directory->notify_time = DIR_NOTIFY_TIME_FOR_SORT_DATA;
 	else
 		filer_window->directory->notify_time = 0;

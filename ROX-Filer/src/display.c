@@ -58,7 +58,7 @@
 
 /* Options bits */
 static Option o_display_caps_first;
-static Option o_display_dirs_first;
+Option o_display_dirs_first;
 Option o_display_size;
 Option o_display_details;
 Option o_display_sort_by;
