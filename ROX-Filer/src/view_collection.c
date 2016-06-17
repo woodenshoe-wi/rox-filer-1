@@ -1145,6 +1145,8 @@ static gint coll_button_release(GtkWidget *widget,
 			        GdkEventButton *event,
 				ViewCollection *view_collection)
 {
+	filer_set_pointer(view_collection->filer_window, event->x, event->y);
+
 	if (dnd_motion_release(event))
 	{
 		if (motion_buttons_pressed == 0 &&
@@ -1155,6 +1157,7 @@ static gint coll_button_release(GtkWidget *widget,
 			collection_end_lasso(view_collection->collection,
 				event->button == 1 ? GDK_SET : GDK_INVERT);
 		}
+
 		return FALSE;
 	}
 

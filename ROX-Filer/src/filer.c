@@ -95,6 +95,9 @@ static FilerWindow *window_with_primary = NULL;
 
 static GHashTable *settings_table=NULL;
 
+static gint last_motion_x = 0;
+static gint last_motion_y = 0;
+
 typedef struct {
 	gchar *path;
 
@@ -185,6 +188,9 @@ static void free_subdir_info(void);
 
 static GdkCursor *busy_cursor = NULL;
 static GdkCursor *crosshair = NULL;
+static GdkCursor *hand_cursor = NULL;
+static GdkCursor *press_cursor = NULL;
+static GdkCursor *blank_cursor = NULL;
 
 /* Indicates whether the filer's display is different to the machine it
  * is actually running on.
@@ -230,6 +236,10 @@ void filer_init(void)
 
 	busy_cursor = gdk_cursor_new(GDK_WATCH);
 	crosshair = gdk_cursor_new(GDK_CROSSHAIR);
+	hand_cursor = gdk_cursor_new(GDK_HAND2);
+	press_cursor = gdk_cursor_new(GDK_TARGET);
+	blank_cursor = gdk_cursor_new(GDK_BLANK_CURSOR);
+
 
 	window_with_id = g_hash_table_new_full(g_str_hash, g_str_equal,
 					       NULL, NULL);
@@ -3112,6 +3122,9 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 	view_get_iter_at_point(view, &iter, event->window, event->x, event->y);
 	item = iter.peek(&iter);
 
+	if (press && item && event->button == 1)
+		gdk_window_set_cursor(filer_window->window->window, press_cursor);
+
 	if (item && view_cursor_visible(view))
 		view_cursor_to_iter(view, &iter);
 
@@ -3319,6 +3332,10 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 
 	if (item)
 	{
+		if (motion_state != MOTION_READY_FOR_DND &&
+				!(event->state & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK)))
+			gdk_window_set_cursor(filer_window->window->window, hand_cursor);
+
 		if (item != tip_item)
 		{
 			tooltip_show(NULL);
@@ -3331,9 +3348,14 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	}
 	else
 	{
+		gdk_window_set_cursor(filer_window->window->window, NULL);
+
 		tooltip_show(NULL);
 		tip_item = NULL;
 	}
+
+	last_motion_x = event->x;
+	last_motion_y = event->y;
 
 	if (motion_state != MOTION_READY_FOR_DND)
 		return FALSE;
@@ -3375,6 +3397,8 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 
 	g_return_val_if_fail(view_count_selected(view) > 0, TRUE);
 
+	gdk_window_set_cursor(filer_window->window->window, blank_cursor);
+
 	if (view_count_selected(view) == 1)
 	{
 		if (item->base_type == TYPE_UNKNOWN)
@@ -3407,6 +3431,14 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	return FALSE;
 }
 
+void filer_set_pointer(FilerWindow *fw, int x, int y)
+{
+	ViewIter iter;
+	view_get_iter_at_point(fw->view,
+			&iter, fw->window->window, x, y);
+	gdk_window_set_cursor(fw->window->window,
+			iter.peek(&iter) ? hand_cursor : NULL);
+}
 static void drag_end(GtkWidget *widget, GdkDragContext *context,
 		     FilerWindow *filer_window)
 {
@@ -3417,6 +3449,9 @@ static void drag_end(GtkWidget *widget, GdkDragContext *context,
 		view_clear_selection(filer_window->view);
 		filer_window->temp_item_selected = FALSE;
 	}
+
+	filer_set_pointer(filer_window, last_motion_x, last_motion_y);
+
 }
 
 /* Remove highlights */
@@ -3446,6 +3481,9 @@ static gboolean drag_motion(GtkWidget		*widget,
 	const char	*type = NULL;
 	gboolean	retval = FALSE;
 	gboolean	same_window;
+
+	last_motion_x = x;
+	last_motion_y = y;
 
 	if ((context->actions & GDK_ACTION_ASK) && o_dnd_left_menu.int_value)
 	{
