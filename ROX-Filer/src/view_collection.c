@@ -1595,7 +1595,7 @@ static DirItem *iter_init(ViewIter *iter)
 	}
 	else if (flags & VIEW_ITER_FROM_BASE)
 		i = view_collection->cursor_base;
-	else if (flags & VIEW_ITER_EVEN_OLD_CURSOR)
+	if (flags & VIEW_ITER_EVEN_OLD_CURSOR)
 		i = collection->cursor_item != -1 ?
 			collection->cursor_item : view_collection->collection->cursor_item_old;
 
@@ -1801,6 +1801,9 @@ static void view_collection_cursor_to_iter(ViewIface *view, ViewIter *iter)
 
 	collection_set_cursor_item(collection, iter ? iter->i : -1,
 			filer_window->auto_scroll == -1);
+
+	if (!iter)
+		collection->cursor_item_old = -1;
 }
 
 static void view_collection_set_selected(ViewIface *view,

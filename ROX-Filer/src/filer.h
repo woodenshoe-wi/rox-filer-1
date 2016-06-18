@@ -80,7 +80,6 @@ struct _FilerWindow
 
 	Directory	*directory;
 
-	gboolean	had_cursor;	/* (before changing directory) */
 	char		*auto_select;	/* If it we find while scanning */
 
 	GtkWidget	*message;	/* The 'Running as ...' message */

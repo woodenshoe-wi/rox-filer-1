@@ -561,16 +561,6 @@ static void update_display(Directory *dir,
 			set_scanning_display(filer_window, FALSE);
 			toolbar_update_info(filer_window);
 
-			if (filer_window->had_cursor &&
-					!view_cursor_visible(view))
-			{
-				ViewIter start;
-				view_get_iter(view, &start, 0);
-				if (start.next(&start))
-					view_cursor_to_iter(view, &start);
-				view_show_cursor(view);
-				filer_window->had_cursor = FALSE;
-			}
 			if (filer_window->auto_select)
 				display_set_autoselect(filer_window,
 						filer_window->auto_select);
@@ -1195,19 +1185,18 @@ void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean botto
 	if (!o_window_link.int_value) return;
 
 	ViewIter iter;
+
+	view_get_cursor(fw->view, &iter);
+	DirItem *cursor_item = iter.peek(&iter);
+
 	view_get_iter(fw->view, &iter,
 			VIEW_ITER_NO_LOOP | VIEW_ITER_EVEN_OLD_CURSOR | VIEW_ITER_DIR |
 			(dir == GDK_SCROLL_UP ?  VIEW_ITER_BACKWARDS : 0));
 
 	if (iter.next(&iter))
 	{
-		if (fw->right_link &&
-				!strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
-					iter.peek(&iter)->leafname))
-		{
-			view_cursor_to_iter(fw->view, &iter);//for when next is null
+		if (cursor_item == iter.peek(&iter))
 			iter.next(&iter);
-		}
 
 		if (iter.peek(&iter))
 		{
@@ -1643,6 +1632,8 @@ void filer_change_to(FilerWindow *fw,
 
 	g_return_if_fail(fw != NULL);
 
+	gboolean have_cursor = view_cursor_visible(fw->view) && !fw->right_link;
+
 	filer_cancel_thumbnails(fw);
 
 	tooltip_show(NULL);
@@ -1701,7 +1692,6 @@ void filer_change_to(FilerWindow *fw,
 
 	force_resize = check_settings(fw, FALSE);
 
-	fw->had_cursor |= view_cursor_visible(fw->view);
 
 	if (fw->window->window)
 		gdk_window_set_role(fw->window->window,
@@ -1714,15 +1704,22 @@ void filer_change_to(FilerWindow *fw,
 
 	if (from_dup)
 	{
-		//show cursor is have to be after what set col size
-		if (fw->had_cursor)
+		if (have_cursor)
+			//show cursor is have to be after what set col size
 			view_show_cursor(fw->view);
 
 		display_set_autoselect(fw, from_dup);
+
 		g_free(from_dup);
 	}
-	else
-		view_cursor_to_iter(fw->view, NULL);
+	else if (have_cursor)
+	{
+		ViewIter start;
+		view_get_iter(fw->view, &start, 0);
+		if (start.next(&start))
+			view_cursor_to_iter(fw->view, &start);
+		view_show_cursor(fw->view);
+	}
 
 	if (fw->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, fw);
@@ -1816,7 +1813,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->sym_path = g_strdup(path);
 	filer_window->real_path = real_path;
 	filer_window->scanning = FALSE;
-	filer_window->had_cursor = FALSE;
 	filer_window->auto_select = NULL;
 	filer_window->toolbar_text = NULL;
 	filer_window->toolbar_size_text = NULL;
