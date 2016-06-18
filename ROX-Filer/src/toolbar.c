@@ -147,7 +147,7 @@ static Tool all_tools[] = {
 						"  Scroll: Temporary huge zoom\n"
 						"Current size:\n"
 						"  ┘ : Huge\n"
-						"  ┤ : arge\n"
+						"  ┤ : Large\n"
 						"  ┐ : Small\n"
 						"  ┌, ├ : Auto"),
 	 toolbar_size_clicked, DROP_NONE, TRUE,
