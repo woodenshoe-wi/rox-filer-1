@@ -1632,7 +1632,7 @@ void filer_change_to(FilerWindow *fw,
 
 	g_return_if_fail(fw != NULL);
 
-	gboolean have_cursor = view_cursor_visible(fw->view) && !fw->right_link;
+	gboolean have_cursor = view_cursor_visible(fw->view);
 
 	filer_cancel_thumbnails(fw);
 

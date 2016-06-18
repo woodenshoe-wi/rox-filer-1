@@ -709,11 +709,13 @@ static gint bar_pressed(GtkWidget *widget,
 		{
 			ViewIter iter;
 			if (check_double() &&
-				(view_get_cursor(filer_window->view, &iter), iter.peek(&iter))
-				)
+				(view_get_cursor(filer_window->view, &iter), iter.peek(&iter)))
+			{
+				view_cursor_to_iter(filer_window->view, NULL);
 				filer_change_to(filer_window,
 						make_path(filer_window->sym_path, iter.peek(&iter)->leafname),
 						NULL);
+			}
 			else
 				gtk_window_begin_move_drag(win,
 						event->button, event->x_root, event->y_root, event->time);
