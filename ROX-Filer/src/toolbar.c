@@ -728,7 +728,10 @@ static gint bar_pressed(GtkWidget *widget,
 		break;
 	case 3:
 		if (check_double())
+		{
+			view_cursor_to_iter(filer_window->view, NULL);
 			change_to_parent(filer_window);
+		}
 		else
 			gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
 					event->button, event->x_root, event->y_root, event->time);

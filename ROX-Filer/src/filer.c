@@ -1186,8 +1186,9 @@ void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean botto
 
 	ViewIter iter;
 
-	view_get_cursor(fw->view, &iter);
-	DirItem *cursor_item = iter.peek(&iter);
+	view_get_iter(fw->view, &iter,
+			VIEW_ITER_FROM_CURSOR | VIEW_ITER_EVEN_OLD_CURSOR);
+	DirItem *cursor_item = iter.next(&iter);
 
 	view_get_iter(fw->view, &iter,
 			VIEW_ITER_NO_LOOP | VIEW_ITER_EVEN_OLD_CURSOR | VIEW_ITER_DIR |
