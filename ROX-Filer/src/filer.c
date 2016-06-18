@@ -95,6 +95,9 @@ static FilerWindow *window_with_primary = NULL;
 
 static GHashTable *settings_table=NULL;
 
+static gint last_motion_x = 0;
+static gint last_motion_y = 0;
+
 typedef struct {
 	gchar *path;
 
@@ -185,6 +188,8 @@ static void free_subdir_info(void);
 
 static GdkCursor *busy_cursor = NULL;
 static GdkCursor *crosshair = NULL;
+static GdkCursor *hand_cursor = NULL;
+static GdkCursor *blank_cursor = NULL;
 
 /* Indicates whether the filer's display is different to the machine it
  * is actually running on.
@@ -230,6 +235,9 @@ void filer_init(void)
 
 	busy_cursor = gdk_cursor_new(GDK_WATCH);
 	crosshair = gdk_cursor_new(GDK_CROSSHAIR);
+	hand_cursor = gdk_cursor_new(GDK_HAND2);
+	blank_cursor = gdk_cursor_new(GDK_BLANK_CURSOR);
+
 
 	window_with_id = g_hash_table_new_full(g_str_hash, g_str_equal,
 					       NULL, NULL);
@@ -553,16 +561,6 @@ static void update_display(Directory *dir,
 			set_scanning_display(filer_window, FALSE);
 			toolbar_update_info(filer_window);
 
-			if (filer_window->had_cursor &&
-					!view_cursor_visible(view))
-			{
-				ViewIter start;
-				view_get_iter(view, &start, 0);
-				if (start.next(&start))
-					view_cursor_to_iter(view, &start);
-				view_show_cursor(view);
-				filer_window->had_cursor = FALSE;
-			}
 			if (filer_window->auto_select)
 				display_set_autoselect(filer_window,
 						filer_window->auto_select);
@@ -1187,19 +1185,19 @@ void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean botto
 	if (!o_window_link.int_value) return;
 
 	ViewIter iter;
+
+	view_get_iter(fw->view, &iter,
+			VIEW_ITER_FROM_CURSOR | VIEW_ITER_EVEN_OLD_CURSOR);
+	DirItem *cursor_item = iter.next(&iter);
+
 	view_get_iter(fw->view, &iter,
 			VIEW_ITER_NO_LOOP | VIEW_ITER_EVEN_OLD_CURSOR | VIEW_ITER_DIR |
 			(dir == GDK_SCROLL_UP ?  VIEW_ITER_BACKWARDS : 0));
 
 	if (iter.next(&iter))
 	{
-		if (fw->right_link &&
-				!strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
-					iter.peek(&iter)->leafname))
-		{
-			view_cursor_to_iter(fw->view, &iter);//for when next is null
+		if (cursor_item == iter.peek(&iter))
 			iter.next(&iter);
-		}
 
 		if (iter.peek(&iter))
 		{
@@ -1635,6 +1633,8 @@ void filer_change_to(FilerWindow *fw,
 
 	g_return_if_fail(fw != NULL);
 
+	gboolean have_cursor = view_cursor_visible(fw->view);
+
 	filer_cancel_thumbnails(fw);
 
 	tooltip_show(NULL);
@@ -1693,7 +1693,6 @@ void filer_change_to(FilerWindow *fw,
 
 	force_resize = check_settings(fw, FALSE);
 
-	fw->had_cursor |= view_cursor_visible(fw->view);
 
 	if (fw->window->window)
 		gdk_window_set_role(fw->window->window,
@@ -1706,15 +1705,22 @@ void filer_change_to(FilerWindow *fw,
 
 	if (from_dup)
 	{
-		//show cursor is have to be after what set col size
-		if (fw->had_cursor)
+		if (have_cursor)
+			//show cursor is have to be after what set col size
 			view_show_cursor(fw->view);
 
 		display_set_autoselect(fw, from_dup);
+
 		g_free(from_dup);
 	}
-	else
-		view_cursor_to_iter(fw->view, NULL);
+	else if (have_cursor)
+	{
+		ViewIter start;
+		view_get_iter(fw->view, &start, 0);
+		if (start.next(&start))
+			view_cursor_to_iter(fw->view, &start);
+		view_show_cursor(fw->view);
+	}
 
 	if (fw->mini_type == MINI_PATH)
 		g_idle_add((GSourceFunc) minibuffer_show_cb, fw);
@@ -1808,7 +1814,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->sym_path = g_strdup(path);
 	filer_window->real_path = real_path;
 	filer_window->scanning = FALSE;
-	filer_window->had_cursor = FALSE;
 	filer_window->auto_select = NULL;
 	filer_window->toolbar_text = NULL;
 	filer_window->toolbar_size_text = NULL;
@@ -3319,6 +3324,10 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 
 	if (item)
 	{
+		if (motion_state != MOTION_READY_FOR_DND &&
+				!(event->state & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK)))
+			gdk_window_set_cursor(filer_window->window->window, hand_cursor);
+
 		if (item != tip_item)
 		{
 			tooltip_show(NULL);
@@ -3331,9 +3340,14 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	}
 	else
 	{
+		gdk_window_set_cursor(filer_window->window->window, NULL);
+
 		tooltip_show(NULL);
 		tip_item = NULL;
 	}
+
+	last_motion_x = event->x;
+	last_motion_y = event->y;
 
 	if (motion_state != MOTION_READY_FOR_DND)
 		return FALSE;
@@ -3375,6 +3389,8 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 
 	g_return_val_if_fail(view_count_selected(view) > 0, TRUE);
 
+	gdk_window_set_cursor(filer_window->window->window, blank_cursor);
+
 	if (view_count_selected(view) == 1)
 	{
 		if (item->base_type == TYPE_UNKNOWN)
@@ -3407,6 +3423,14 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	return FALSE;
 }
 
+void filer_set_pointer(FilerWindow *fw, int x, int y)
+{
+	ViewIter iter;
+	view_get_iter_at_point(fw->view,
+			&iter, fw->window->window, x, y);
+	gdk_window_set_cursor(fw->window->window,
+			iter.peek(&iter) ? hand_cursor : NULL);
+}
 static void drag_end(GtkWidget *widget, GdkDragContext *context,
 		     FilerWindow *filer_window)
 {
@@ -3417,6 +3441,9 @@ static void drag_end(GtkWidget *widget, GdkDragContext *context,
 		view_clear_selection(filer_window->view);
 		filer_window->temp_item_selected = FALSE;
 	}
+
+	filer_set_pointer(filer_window, last_motion_x, last_motion_y);
+
 }
 
 /* Remove highlights */
@@ -3446,6 +3473,9 @@ static gboolean drag_motion(GtkWidget		*widget,
 	const char	*type = NULL;
 	gboolean	retval = FALSE;
 	gboolean	same_window;
+
+	last_motion_x = x;
+	last_motion_y = y;
 
 	if ((context->actions & GDK_ACTION_ASK) && o_dnd_left_menu.int_value)
 	{

@@ -80,7 +80,6 @@ struct _FilerWindow
 
 	Directory	*directory;
 
-	gboolean	had_cursor;	/* (before changing directory) */
 	char		*auto_select;	/* If it we find while scanning */
 
 	GtkWidget	*message;	/* The 'Running as ...' message */
@@ -219,7 +218,7 @@ void filer_copy_settings(FilerWindow *src, FilerWindow *dest);
 void filer_link(FilerWindow *left, FilerWindow *right);
 void filer_cut_links(FilerWindow *fw, gboolean left_only);
 void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean bottom);
-
+void filer_set_pointer(FilerWindow *fw, int x, int y);
 
 UnmountPrompt filer_get_unmount_action(const char *path);
 void filer_set_unmount_action(const char *path, UnmountPrompt action);

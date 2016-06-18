@@ -1145,6 +1145,8 @@ static gint coll_button_release(GtkWidget *widget,
 			        GdkEventButton *event,
 				ViewCollection *view_collection)
 {
+	filer_set_pointer(view_collection->filer_window, event->x, event->y);
+
 	if (dnd_motion_release(event))
 	{
 		if (motion_buttons_pressed == 0 &&
@@ -1155,6 +1157,7 @@ static gint coll_button_release(GtkWidget *widget,
 			collection_end_lasso(view_collection->collection,
 				event->button == 1 ? GDK_SET : GDK_INVERT);
 		}
+
 		return FALSE;
 	}
 
@@ -1587,14 +1590,18 @@ static DirItem *iter_init(ViewIter *iter)
 	if (flags & VIEW_ITER_FROM_CURSOR)
 	{
 		i = collection->cursor_item;
-		if (i == -1)
+		if (i == -1 && (
+					!(flags & VIEW_ITER_EVEN_OLD_CURSOR) ||
+					collection->cursor_item_old == -1
+					))
 			return NULL;	/* No cursor */
 	}
 	else if (flags & VIEW_ITER_FROM_BASE)
 		i = view_collection->cursor_base;
-	else if (flags & VIEW_ITER_EVEN_OLD_CURSOR)
+
+	if (flags & VIEW_ITER_EVEN_OLD_CURSOR)
 		i = collection->cursor_item != -1 ?
-			collection->cursor_item : view_collection->collection->cursor_item_old;
+			collection->cursor_item : collection->cursor_item_old;
 
 	if (i < 0 || i >= n)
 	{
@@ -1798,6 +1805,9 @@ static void view_collection_cursor_to_iter(ViewIface *view, ViewIter *iter)
 
 	collection_set_cursor_item(collection, iter ? iter->i : -1,
 			filer_window->auto_scroll == -1);
+
+	if (!iter)
+		collection->cursor_item_old = -1;
 }
 
 static void view_collection_set_selected(ViewIface *view,

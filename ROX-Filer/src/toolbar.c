@@ -147,7 +147,7 @@ static Tool all_tools[] = {
 						"  Scroll: Temporary huge zoom\n"
 						"Current size:\n"
 						"  ┘ : Huge\n"
-						"  ┤ : arge\n"
+						"  ┤ : Large\n"
 						"  ┐ : Small\n"
 						"  ┌, ├ : Auto"),
 	 toolbar_size_clicked, DROP_NONE, TRUE,
@@ -709,11 +709,13 @@ static gint bar_pressed(GtkWidget *widget,
 		{
 			ViewIter iter;
 			if (check_double() &&
-				(view_get_cursor(filer_window->view, &iter), iter.peek(&iter))
-				)
+				(view_get_cursor(filer_window->view, &iter), iter.peek(&iter)))
+			{
+				view_cursor_to_iter(filer_window->view, NULL);
 				filer_change_to(filer_window,
 						make_path(filer_window->sym_path, iter.peek(&iter)->leafname),
 						NULL);
+			}
 			else
 				gtk_window_begin_move_drag(win,
 						event->button, event->x_root, event->y_root, event->time);
@@ -726,7 +728,10 @@ static gint bar_pressed(GtkWidget *widget,
 		break;
 	case 3:
 		if (check_double())
+		{
+			view_cursor_to_iter(filer_window->view, NULL);
 			change_to_parent(filer_window);
+		}
 		else
 			gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
 					event->button, event->x_root, event->y_root, event->time);
