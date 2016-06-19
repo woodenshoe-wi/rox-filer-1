@@ -1484,7 +1484,10 @@ static gchar *add_seqnum(const gchar *base) {
 		pass = TRUE;
 
 		g_free(ret);
-		ret = g_strdup_printf(i == 1 ? "%s" : "%s%d", base, i);
+		if (i == 1)
+			ret = g_strdup_printf("%s", base);
+		else
+			ret = g_strdup_printf("%s%d", base, i);
 
 		DirItem  *item;
 		ViewIter iter;
