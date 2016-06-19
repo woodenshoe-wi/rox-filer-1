@@ -508,7 +508,9 @@ static void filer_set_pointer(void *fw)
 
 static void check_and_resize(FilerWindow *fw) {
 	fw->may_resize = FALSE;
-	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS) return;
+	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS &&
+			!fw->new_win_first_scan)
+		return;
 
 	gint w,h;
 	gtk_window_get_size(GTK_WINDOW(fw->window), &w, &h);
@@ -601,6 +603,7 @@ static void update_display(Directory *dir,
 
 			filer_window->may_resize = FALSE;
 			filer_window->first_scan = FALSE;
+			filer_window->new_win_first_scan = FALSE;
 			break;
 		case DIR_UPDATE:
 			if ((filer_window->sort_type != SORT_NAME ||
@@ -1847,6 +1850,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window = g_new(FilerWindow, 1);
 	filer_window->under_init = TRUE;
 	filer_window->first_scan = TRUE;
+	filer_window->new_win_first_scan = TRUE;
 	filer_window->req_sort = FALSE;
 	filer_window->may_resize = FALSE;
 
