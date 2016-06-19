@@ -1754,11 +1754,16 @@ void filer_change_to(FilerWindow *fw,
 	}
 	else if (have_cursor)
 	{
-		ViewIter start;
-		view_get_iter(fw->view, &start, 0);
-		if (start.next(&start))
-			view_cursor_to_iter(fw->view, &start);
-		view_show_cursor(fw->view);
+		GdkEvent *event = gtk_get_current_event();
+		if (event && event->type == GDK_KEY_PRESS)
+		{
+			ViewIter start;
+			view_get_iter(fw->view, &start, 0);
+			if (start.next(&start))
+				view_cursor_to_iter(fw->view, &start);
+			view_show_cursor(fw->view);
+		}
+		gdk_event_free(event);
 	}
 
 	if (fw->mini_type == MINI_PATH)

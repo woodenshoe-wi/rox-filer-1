@@ -476,11 +476,14 @@ static void toolbar_up_clicked(GtkWidget *widget, FilerWindow *filer_window)
 {
 	gint eb = get_release();
 
-	if (eb == 2)
+	if (NEW_WIN_BUTTON(eb) && eb != 2)
+		filer_open_parent(filer_window);
+	else
 	{
-		if (strcmp(filer_window->real_path, filer_window->sym_path) == 0)
-			change_to_parent(filer_window);
-		else
+		view_cursor_to_iter(filer_window->view, NULL);
+
+		if (eb == 2 &&
+			strcmp(filer_window->real_path, filer_window->sym_path) == 0)
 		{ /* to realpath parent */
 			gchar *dir = g_path_get_dirname(filer_window->real_path);
 			gchar *base = g_path_get_basename(filer_window->real_path);
@@ -488,11 +491,9 @@ static void toolbar_up_clicked(GtkWidget *widget, FilerWindow *filer_window)
 			g_free(dir);
 			g_free(base);
 		}
+		else
+			change_to_parent(filer_window);
 	}
-	else if (NEW_WIN_BUTTON(eb))
-		filer_open_parent(filer_window);
-	else
-		change_to_parent(filer_window);
 }
 
 static void toolbar_autosize_clicked(GtkWidget *widget, FilerWindow *filer_window)

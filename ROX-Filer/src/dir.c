@@ -401,10 +401,7 @@ DirItem *dir_update_item(Directory *dir, const gchar *leafname)
  */
 void dir_queue_recheck(Directory *dir, DirItem *item)
 {
-	g_return_if_fail(dir != NULL);
-	g_return_if_fail(item != NULL);
-	g_return_if_fail(item->flags & ITEM_FLAG_NEED_RESCAN_QUEUE);
-
+	item->flags &= ~ITEM_FLAG_NEED_RESCAN_QUEUE;
 	g_mutex_lock(&m_dir);
 	g_queue_push_head(dir->recheck_list, g_strdup(item->leafname));
 	g_mutex_unlock(&m_dir);

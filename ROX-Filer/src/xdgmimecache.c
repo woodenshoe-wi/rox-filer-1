@@ -40,9 +40,8 @@
 #include <netinet/in.h> /* for ntohl/ntohs */
 
 #ifdef HAVE_MMAP
+/* this is useless */
 #include <sys/mman.h>
-#else
-#warning Building xdgmime without MMAP support. Binary "mime.cache" files will not be used.
 #endif
 
 #include <sys/stat.h>
