@@ -872,12 +872,12 @@ static gint collection_scroll_event(GtkWidget *widget, GdkEventScroll *event)
 
 	scrollbackorder += diff;
 	if (scrollfunc)
-		return TRUE;
+		return FALSE;
 
 	g_object_ref(widget);
 	scrollfunc = g_idle_add(scroll_idle, widget);
 
-	return TRUE;
+	return FALSE;
 }
 
 /* 'from' and 'to' are pixel positions. 'step' is the size of each item.

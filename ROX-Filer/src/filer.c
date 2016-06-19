@@ -95,9 +95,6 @@ static FilerWindow *window_with_primary = NULL;
 
 static GHashTable *settings_table=NULL;
 
-static gint last_motion_x = 0;
-static gint last_motion_y = 0;
-
 typedef struct {
 	gchar *path;
 
@@ -478,6 +475,37 @@ static void queue_interesting(FilerWindow *filer_window)
 	}
 }
 
+gint pointer_idle = 0;
+static gboolean _set_pointer(void *vp)
+{
+	FilerWindow *fw = (FilerWindow *) vp;
+	ViewIter iter;
+	gint x, y;
+	DirItem *item = NULL;
+
+	GdkWindow *gwin = gdk_window_get_pointer(fw->window->window, NULL, NULL, NULL);
+
+	if (GTK_WIDGET(fw->view)->window == gwin)
+	{
+		gdk_window_get_pointer(gwin, &x, &y, NULL);
+
+		view_get_iter_at_point(fw->view, &iter, gwin, x, y);
+		item = iter.peek(&iter);
+	}
+
+	gdk_window_set_cursor(fw->window->window,
+			item ? hand_cursor : NULL);
+
+	pointer_idle = 0;
+	return FALSE;
+}
+static void filer_set_pointer(void *fw)
+{
+	if (pointer_idle)
+		g_source_remove(pointer_idle);
+	pointer_idle = g_idle_add(_set_pointer, fw);
+}
+
 static void check_and_resize(FilerWindow *fw) {
 	fw->may_resize = FALSE;
 	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS) return;
@@ -554,10 +582,6 @@ static void update_display(Directory *dir,
 
 			filer_window->dir_icon = fi;
 
-			if (filer_window->window->window)
-				gdk_window_set_cursor(
-						filer_window->window->window,
-						NULL);
 			set_scanning_display(filer_window, FALSE);
 			toolbar_update_info(filer_window);
 
@@ -570,7 +594,10 @@ static void update_display(Directory *dir,
 				check_and_resize(filer_window);
 
 			if (filer_window->first_scan)
+			{
 				filer_create_thumbs(filer_window, NULL);
+				filer_set_pointer(filer_window);
+			}
 
 			filer_window->may_resize = FALSE;
 			filer_window->first_scan = FALSE;
@@ -604,11 +631,15 @@ static void update_display(Directory *dir,
 				filer_window->may_resize = TRUE;
 
 			if (!filer_window->first_scan)
+			{
 				filer_create_thumbs(filer_window, items);
+				filer_set_pointer(filer_window);
+			}
 
 			break;
 		case DIR_UPDATE_ICON:
 			view_update_items(view, items);
+			filer_set_pointer(filer_window);
 			break;
 		case DIR_ERROR_CHANGED:
 			filer_set_title(filer_window);
@@ -1150,6 +1181,7 @@ static gint pointer_in(GtkWidget *widget,
 			FilerWindow *filer_window)
 {
 	may_rescan(filer_window, TRUE);
+	filer_set_pointer(filer_window);
 	return FALSE;
 }
 
@@ -1158,6 +1190,13 @@ static gint pointer_out(GtkWidget *widget,
 			FilerWindow *filer_window)
 {
 	tooltip_show(NULL);
+	return FALSE;
+}
+static gboolean scroll_cb(GtkWidget *widget,
+			GdkEventScroll *event,
+			FilerWindow *fw)
+{
+	filer_set_pointer(fw);
 	return FALSE;
 }
 
@@ -1981,6 +2020,9 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 	g_signal_connect(view, "drag_data_get",
 			GTK_SIGNAL_FUNC(drag_data_get), NULL);
 
+	g_signal_connect(view, "scroll-event",
+			GTK_SIGNAL_FUNC(scroll_cb), filer_window);
+
 	if (dir)
 	{
 		/* Only when changing type. Otherwise, will attach later. */
@@ -2163,6 +2205,8 @@ static gboolean configure_cb(
 
 	if (fw->right_link)
 		filer_link(fw, fw->right_link);
+
+	filer_set_pointer(fw);
 
 	return FALSE;
 }
@@ -3346,9 +3390,6 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 		tip_item = NULL;
 	}
 
-	last_motion_x = event->x;
-	last_motion_y = event->y;
-
 	if (motion_state != MOTION_READY_FOR_DND)
 		return FALSE;
 
@@ -3389,8 +3430,6 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 
 	g_return_val_if_fail(view_count_selected(view) > 0, TRUE);
 
-	gdk_window_set_cursor(filer_window->window->window, blank_cursor);
-
 	if (view_count_selected(view) == 1)
 	{
 		if (item->base_type == TYPE_UNKNOWN)
@@ -3423,14 +3462,6 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	return FALSE;
 }
 
-void filer_set_pointer(FilerWindow *fw, int x, int y)
-{
-	ViewIter iter;
-	view_get_iter_at_point(fw->view,
-			&iter, fw->window->window, x, y);
-	gdk_window_set_cursor(fw->window->window,
-			iter.peek(&iter) ? hand_cursor : NULL);
-}
 static void drag_end(GtkWidget *widget, GdkDragContext *context,
 		     FilerWindow *filer_window)
 {
@@ -3441,9 +3472,6 @@ static void drag_end(GtkWidget *widget, GdkDragContext *context,
 		view_clear_selection(filer_window->view);
 		filer_window->temp_item_selected = FALSE;
 	}
-
-	filer_set_pointer(filer_window, last_motion_x, last_motion_y);
-
 }
 
 /* Remove highlights */
@@ -3473,9 +3501,6 @@ static gboolean drag_motion(GtkWidget		*widget,
 	const char	*type = NULL;
 	gboolean	retval = FALSE;
 	gboolean	same_window;
-
-	last_motion_x = x;
-	last_motion_y = y;
 
 	if ((context->actions & GDK_ACTION_ASK) && o_dnd_left_menu.int_value)
 	{
