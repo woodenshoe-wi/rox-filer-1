@@ -2032,6 +2032,10 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 	g_signal_connect(view, "scroll-event",
 			GTK_SIGNAL_FUNC(scroll_cb), filer_window);
 
+	gtk_widget_add_events(view, GDK_LEAVE_NOTIFY_MASK);
+	g_signal_connect_swapped(view, "leave-notify-event",
+			G_CALLBACK(filer_set_pointer), filer_window);
+
 	if (dir)
 	{
 		/* Only when changing type. Otherwise, will attach later. */
