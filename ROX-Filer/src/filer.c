@@ -508,7 +508,9 @@ static void filer_set_pointer(void *fw)
 
 static void check_and_resize(FilerWindow *fw) {
 	fw->may_resize = FALSE;
-	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS) return;
+	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS &&
+			!fw->new_win_first_scan)
+		return;
 
 	gint w,h;
 	gtk_window_get_size(GTK_WINDOW(fw->window), &w, &h);
@@ -601,6 +603,7 @@ static void update_display(Directory *dir,
 
 			filer_window->may_resize = FALSE;
 			filer_window->first_scan = FALSE;
+			filer_window->new_win_first_scan = FALSE;
 			break;
 		case DIR_UPDATE:
 			if ((filer_window->sort_type != SORT_NAME ||
@@ -670,11 +673,11 @@ static void attach(FilerWindow *filer_window)
 
 	if (filer_window->directory->error)
 	{
-		if (spring_in_progress || filer_window->view_type == VIEW_TYPE_COLLECTION)
+		if (spring_in_progress)
 			g_printerr(_("Error scanning '%s':\n%s\n"),
 				filer_window->sym_path,
 				filer_window->directory->error);
-		else
+		else if (filer_window->view_type != VIEW_TYPE_COLLECTION)
 			delayed_error(_("Error scanning '%s':\n%s"),
 					filer_window->sym_path,
 					filer_window->directory->error);
@@ -1847,6 +1850,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window = g_new(FilerWindow, 1);
 	filer_window->under_init = TRUE;
 	filer_window->first_scan = TRUE;
+	filer_window->new_win_first_scan = TRUE;
 	filer_window->req_sort = FALSE;
 	filer_window->may_resize = FALSE;
 
@@ -2027,6 +2031,10 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 
 	g_signal_connect(view, "scroll-event",
 			GTK_SIGNAL_FUNC(scroll_cb), filer_window);
+
+	gtk_widget_add_events(view, GDK_LEAVE_NOTIFY_MASK);
+	g_signal_connect_swapped(view, "leave-notify-event",
+			G_CALLBACK(filer_set_pointer), filer_window);
 
 	if (dir)
 	{
