@@ -483,6 +483,9 @@ static gboolean _set_pointer(void *vp)
 	gint x, y;
 	DirItem *item = NULL;
 
+	pointer_idle = 0;
+	if (!g_list_find(all_filer_windows, fw)) return FALSE;//destroyed
+
 	GdkWindow *gwin = gdk_window_get_pointer(fw->window->window, NULL, NULL, NULL);
 
 	if (GTK_WIDGET(fw->view)->window == gwin)
@@ -496,7 +499,6 @@ static gboolean _set_pointer(void *vp)
 	gdk_window_set_cursor(fw->window->window,
 			item ? hand_cursor : NULL);
 
-	pointer_idle = 0;
 	return FALSE;
 }
 static void filer_set_pointer(void *fw)
