@@ -483,7 +483,7 @@ static void toolbar_up_clicked(GtkWidget *widget, FilerWindow *filer_window)
 		view_cursor_to_iter(filer_window->view, NULL);
 
 		if (eb == 2 &&
-			strcmp(filer_window->real_path, filer_window->sym_path) == 0)
+			strcmp(filer_window->real_path, filer_window->sym_path) != 0)
 		{ /* to realpath parent */
 			gchar *dir = g_path_get_dirname(filer_window->real_path);
 			gchar *base = g_path_get_basename(filer_window->real_path);
