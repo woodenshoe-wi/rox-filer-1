@@ -733,6 +733,10 @@ static gint bar_pressed(GtkWidget *widget,
 	case 3:
 		if (check_double())
 		{
+			const char *current = filer_window->sym_path;
+			if (current[0] == '/' && current[1] == '\0')
+				break;
+
 			view_cursor_to_iter(filer_window->view, NULL);
 			change_to_parent(filer_window);
 		}
