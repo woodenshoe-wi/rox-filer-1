@@ -1241,13 +1241,17 @@ void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean botto
 	if (iter.next(&iter))
 	{
 		if (cursor_item == iter.peek(&iter))
+		{
+			ViewIter backup = iter;
+
 			iter.next(&iter);
 
-		if (iter.peek(&iter))
-		{
-			view_cursor_to_iter(fw->view, &iter);
-			link_cursor(fw);
+			if (!iter.peek(&iter))
+				iter = backup;
 		}
+
+		view_cursor_to_iter(fw->view, &iter);
+		link_cursor(fw);
 	}
 	else
 		gdk_beep();
