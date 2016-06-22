@@ -40,7 +40,7 @@ build() {
   # Attention: always make sure you check the dimensions of the source-svg,
   # you can read the dimensions via inkscape's export function
 #  rsvg-convert -w 48 -h 38 -f png -o "$srcdir/rox.png" "$srcdir/rox.svg"
-  rsvg-convert -w 128 -h 128 -f png -o "$srcdir/rox.png" "$srcdir/rox-filer/rox.svg"
+#  rsvg-convert -w 128 -h 128 -f png -o "$srcdir/rox.png" "$srcdir/rox-filer/rox.svg"
 }
 
 package() {
@@ -56,5 +56,5 @@ package() {
 
   install -Dm644 "$srcdir/rox-filer/rox.desktop" "$pkgdir/usr/share/applications/rox.desktop"
   install -Dm644 "$srcdir/rox-filer/rox.svg" "$pkgdir/usr/share/pixmaps/rox.svg"
-  install -Dm644 "$srcdir/rox.png" "$pkgdir/usr/share/pixmaps/rox.png"
+  install -Dm644 "$srcdir/rox-filer/ROX-Filer/.DirIcon" "$pkgdir/usr/share/pixmaps/rox.png"
 }

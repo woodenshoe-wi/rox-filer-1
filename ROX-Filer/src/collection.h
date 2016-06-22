@@ -42,17 +42,21 @@ typedef struct _Collection Collection;
 typedef struct _CollectionItem   CollectionItem;
 
 typedef struct _CollectionClass  CollectionClass;
-typedef void (*CollectionDrawFunc)(GtkWidget *widget,
-			     	  CollectionItem *item,
-			     	  GdkRectangle *area,
-				  gpointer user_data);
-typedef gboolean (*CollectionTestFunc)( Collection *collection,
-					int point_x, int point_y,
-			       		CollectionItem *item,
-			       		int width, int height,
-					gpointer user_data);
-typedef void (*CollectionFreeFunc)(Collection *collection,
-			     	   CollectionItem *item);
+typedef void (*CollectionDrawFunc)(
+		GtkWidget *widget,
+		int idx,
+		GdkRectangle *area,
+		gpointer user_data,
+		gboolean cursor);
+
+typedef gboolean (*CollectionTestFunc)(
+		Collection *collection,
+		int point_x, int point_y,
+		CollectionItem *item,
+		int width, int height,
+		gpointer user_data);
+
+typedef void (*CollectionFreeFunc)(Collection *collection, CollectionItem *item);
 
 struct _CollectionItem
 {

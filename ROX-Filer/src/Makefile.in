@@ -8,11 +8,12 @@ CC = @CC@
 
 PKG_CONFIG = @PKG_CONFIG@
 LIBS = @LIBS@ @LFS_LDFLAGS@
+DEFS = @DEFS@
 #PROF = -fprofile-arcs -pg
 
 PKG_CONFIG_FLAGS=
 
-CFLAGS = -I. -I${srcdir} ${PROF} @CFLAGS@ @LFS_CFLAGS@ \
+CFLAGS = -I. -I${srcdir} ${DEFS} ${PROF} @CFLAGS@ @LFS_CFLAGS@ \
 	 `${PKG_CONFIG} ${PKG_CONFIG_FLAGS} --cflags gtk+-2.0 libxml-2.0 sm ice`
 LDFLAGS = ${PROF} @LDFLAGS@ `${PKG_CONFIG} ${PKG_CONFIG_FLAGS} --libs gtk+-2.0 libxml-2.0 sm ice| sed 's/-lpangoxft-[^ ]*//'` ${LIBS}
 

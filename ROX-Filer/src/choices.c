@@ -77,7 +77,7 @@ void choices_init(void)
 
 	/* Initialize old system */
 	choices = getenv("CHOICESPATH");
-	
+
 	if (choices)
 	{
 		if (*choices != ':' && *choices != '\0')
@@ -97,7 +97,7 @@ void choices_init(void)
 	else
 	{
 		saving_disabled = FALSE;
-		
+
 		dir_list = g_new(gchar *, 4);
 		dir_list[0] = g_build_filename(g_get_home_dir(), "Choices",
 					       NULL);
@@ -124,7 +124,7 @@ void choices_init(void)
 
 	xdg_dir_list = dirs;
 	xdg_dir_count = n + 1;
-	
+
 #if 0
 	{
 		gchar	**cdir = dir_list;
@@ -151,7 +151,7 @@ void choices_init(void)
 void choices_migrate(void)
 {
 	gchar *newpath;
-	
+
 	/* Attempt migration */
 	newpath=choices_find_xdg_path_save(".", PROJECT, SITE, FALSE);
 	if(!exists(newpath) && !saving_disabled)
@@ -247,7 +247,7 @@ static gchar *choices_find_path_save(const char *leaf, const char *dir,
 				gboolean create)
 {
 	gchar	*path, *retval;
-	
+
 	g_return_val_if_fail(dir_list != NULL, NULL);
 
 	if (saving_disabled)
@@ -284,7 +284,7 @@ gchar *choices_find_xdg_path_save(const char *leaf, const char *dir,
 				  const char *site, gboolean create)
 {
 	gchar	*path, *retval, *tmp;
-	
+
 	g_return_val_if_fail(xdg_dir_list != NULL, NULL);
 
 	if (create && !exists(xdg_dir_list[0]))
@@ -307,7 +307,7 @@ gchar *choices_find_xdg_path_save(const char *leaf, const char *dir,
 	} else {
 		tmp=g_strdup(xdg_dir_list[0]);
 	}
-	
+
 	path = g_build_filename(tmp, dir, NULL);
 	g_free(tmp);
 	if (create && !exists(path))
@@ -315,7 +315,7 @@ gchar *choices_find_xdg_path_save(const char *leaf, const char *dir,
 		if (mkdir(path, 0777))
 			g_warning("mkdir(%s): %s\n", path, g_strerror(errno));
 	}
-	
+
 	retval = g_build_filename(path, leaf, NULL);
 	g_free(path);
 
@@ -349,7 +349,7 @@ GPtrArray *choices_list_xdg_dirs(char *dir, char *site)
 					   dir, NULL);
 		else
 			path = g_build_filename(xdg_dir_list[i], dir, NULL);
-		
+
 		if (exists(path))
 			g_ptr_array_add(list, path);
 		else
@@ -385,7 +385,7 @@ static void migrate_choices(void)
 
 	npath=choices_find_xdg_path_save("...", PROJECT, SITE, FALSE);
 	opath=choices_find_path_save("...", PROJECT,FALSE);
-	
+
 	/*
 	dest=choices_find_xdg_path_save(".", PROJECT, SITE, TRUE);
 	g_free(dest);
@@ -440,7 +440,7 @@ static void migrate_choices(void)
 			     opath, npath, failed_msg ? failed_msg : "");
 		g_free(failed_msg);
 	}
-		
+
 	g_free(opath);
 	g_free(npath);
 }

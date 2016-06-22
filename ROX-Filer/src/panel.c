@@ -299,6 +299,7 @@ static void panel_load_options_from_xml(Panel *panel, xmlDocPtr doc)
 		return;
 	get_int_prop(options, "style", &panel->style);
 	get_int_prop(options, "width", &panel->width);
+	get_int_prop(options, "transparency", &panel->transparency);
 	get_int_prop(options, "avoid", &panel->avoid);
 	get_int_prop(options, "xinerama", &panel->xinerama);
 	get_int_prop(options, "monitor", &panel->monitor);
@@ -330,6 +331,26 @@ static void save_panels(void)
 	}
 	g_free(tmp);
 	g_free(filename);
+}
+
+
+static gboolean transparent_expose(GtkWidget *widget,
+			GdkEventExpose *event,
+			Panel *panel)
+{
+	if (widget->state == GTK_STATE_SELECTED ||
+			widget->state == GTK_STATE_PRELIGHT)
+		return FALSE;
+
+	cairo_t *cr = gdk_cairo_create(widget->window);
+
+	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+	gdk_cairo_region(cr, event->region);
+
+	cairo_paint_with_alpha(cr, panel->transparency / 100.0);
+
+	cairo_destroy(cr);
+	return FALSE;
 }
 
 /* 'name' may be NULL or "" to remove the panel */
@@ -409,11 +430,17 @@ Panel *panel_new(const gchar *name, PanelSide side)
 	panel->name = g_strdup(name);
 	panel->side = side;
 	panel->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	GdkScreen *screen = gtk_widget_get_screen(panel->window);
+	GdkColormap *rgba = gdk_screen_get_rgba_colormap(screen);
+	if (rgba)
+		gtk_widget_set_colormap(panel->window, rgba);
+
 	panel->autoscroll_speed = 0;
 
 	/* These are fallbacks from legacy global options */
 	panel->style = o_panel_style.int_value;
 	panel->width = o_panel_width.int_value;
+	panel->transparency = o_view_alpha.int_value;
 	panel->xinerama = o_panel_xinerama.int_value;
 	panel->monitor = o_panel_monitor.int_value;
 	panel->avoid = o_panel_avoid.int_value;
@@ -499,24 +526,27 @@ Panel *panel_new(const gchar *name, PanelSide side)
 	frame = make_insert_frame(panel);
 	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 4);
 
+	g_signal_connect(box, "expose-event",
+			 G_CALLBACK(transparent_expose), panel);
+
 	/* This is used so that we can find the middle easily! */
 	panel->gap = gtk_event_box_new();
 	gtk_box_pack_start(GTK_BOX(box), panel->gap, FALSE, FALSE, 0);
-	
+
 	frame = make_insert_frame(panel);
 	g_object_set_data(G_OBJECT(frame), "after", "yes");
 	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 4);
 
 	if (o_panel_is_dock.int_value)
 		gtk_window_set_type_hint(GTK_WINDOW(panel->window),
-				GDK_WINDOW_TYPE_HINT_DOCK);	
+				GDK_WINDOW_TYPE_HINT_DOCK);
 
 	gtk_widget_realize(panel->window);
 	make_panel_window(panel->window);
 	gtk_window_stick(GTK_WINDOW(panel->window));
-	
+
 	gtk_widget_show_all(align);
-	
+
 	loading_panel = panel;
 	if (panel_doc)
 	{
@@ -537,7 +567,7 @@ Panel *panel_new(const gchar *name, PanelSide side)
 	{
 		/* Don't scare users with an empty panel... */
 		guchar *apps;
-		
+
 		panel_add_item(panel, "~", "Home", FALSE, NULL, NULL, FALSE);
 
 		apps = pathdup(make_path(app_dir, ".."));
@@ -578,11 +608,11 @@ Panel *panel_new(const gchar *name, PanelSide side)
 
 /* Externally visible function to add an item to a panel */
 gboolean panel_add(PanelSide side,
-		   const gchar *path, const gchar *label, gboolean after, const gchar *shortcut, const gchar *args, 
+		   const gchar *path, const gchar *label, gboolean after, const gchar *shortcut, const gchar *args,
 		   gboolean locked)
 {
 	g_return_val_if_fail(side >= 0 && side < PANEL_NUMBER_OF_SIDES, FALSE);
-	
+
 	g_return_val_if_fail(current_panel[side] != NULL, FALSE);
 
 	panel_add_item(current_panel[side], path, label, after, shortcut, args, locked);
@@ -729,7 +759,7 @@ static void panel_load_from_xml(Panel *panel, xmlDocPtr doc)
 static const char *pan_from_file(gchar *line)
 {
 	gchar	*sep, *leaf;
-	
+
 	g_return_val_if_fail(line != NULL, NULL);
 	g_return_val_if_fail(loading_panel != NULL, NULL);
 
@@ -744,7 +774,7 @@ static const char *pan_from_file(gchar *line)
 		leaf = g_strndup(line, sep - line);
 	else
 		leaf = NULL;
-	
+
 	panel_add_item(loading_panel, sep + 1, leaf, sep[0] == '>',
 		       NULL, NULL, FALSE);
 
@@ -811,18 +841,18 @@ static void panel_icon_set_tip(PanelIcon *pi)
 				node->xmlChildrenNode, 1);
 		if (str)
 		{
-			gtk_tooltips_set_tip(tooltips, pi->widget, str, NULL);
+			gtk_widget_set_tooltip_text(pi->widget, str);
 			g_free(str);
 		}
 	}
 	else if ((!panel_want_show_text(pi)) && !pi->socket)
 	{
 		if (icon->item->leafname && icon->item->leafname[0])
-			gtk_tooltips_set_tip(tooltips, pi->widget,
-					icon->item->leafname, NULL);
+			gtk_widget_set_tooltip_text(pi->widget,
+					icon->item->leafname);
 	}
 	else
-		gtk_tooltips_set_tip(tooltips, pi->widget, NULL, NULL);
+		gtk_widget_set_tooltip_text(pi->widget, NULL);
 
 	if (ai)
 		g_object_unref(ai);
@@ -854,12 +884,12 @@ static void panel_add_item(Panel *panel,
 			GDK_BUTTON3_MOTION_MASK |
 			GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK |
 			GDK_BUTTON_RELEASE_MASK);
-	
+
 	gtk_box_pack_start(GTK_BOX(after ? panel->after : panel->before),
 			widget, FALSE, TRUE, 0);
 	if (after)
 		gtk_box_reorder_child(GTK_BOX(panel->after), widget, 0);
-	
+
 	gtk_widget_realize(widget);
 
 	pi = panel_icon_new(panel, path, name);
@@ -867,7 +897,7 @@ static void panel_add_item(Panel *panel,
 
 	/* Widget takes the initial ref of Icon */
 	g_object_set_data(G_OBJECT(widget), "icon", pi);
-	
+
 	pi->widget = widget;
 	g_object_ref(widget);
 
@@ -908,6 +938,9 @@ static void panel_add_item(Panel *panel,
 		gtk_container_add(GTK_CONTAINER(pi->widget), pi->label);
 		gtk_misc_set_alignment(GTK_MISC(pi->label), 0.5, 1);
 		gtk_misc_set_padding(GTK_MISC(pi->label), 1, 2);
+
+		g_signal_connect(pi->label, "expose_event",
+				G_CALLBACK(transparent_expose), panel);
 	}
 
 	icon_set_shortcut(icon, shortcut);
@@ -945,7 +978,7 @@ static gboolean remove_item_from_side(GtkWidget *container, const gchar *path,
 			break;
 		}
 	}
-	
+
 	g_list_free(kids);
 
 	return found;
@@ -1010,7 +1043,7 @@ static void size_request(GtkWidget *widget, GtkRequisition *req, PanelIcon *pi)
 
 	image_width = gdk_pixbuf_get_width(pi->image);
 	image_height = gdk_pixbuf_get_height(pi->image);
-	
+
 	if (req->height > 0 && max_height < req->height)
 	{
 		pi->style = TEXT_BESIDE_ICON;
@@ -1025,7 +1058,7 @@ static void size_request(GtkWidget *widget, GtkRequisition *req, PanelIcon *pi)
 		req->height += image_height;
 		gtk_misc_set_alignment(GTK_MISC(pi->label), 0.5, 1);
 	}
-	
+
 	if (horz)
 		req->width += PANEL_ICON_SPACING;
 	else
@@ -1049,11 +1082,12 @@ static gint draw_icon(GtkWidget *widget, GdkRectangle *badarea, PanelIcon *pi)
 	GdkPixbuf	*image;
 	int		text_height = 0;
 
-	gdk_drawable_get_size(widget->window, &area.width, &area.height);
+	area.width = gdk_window_get_width(widget->window);
+	area.height = gdk_window_get_height(widget->window);
 
 	if (panel_want_show_text(pi))
 		text_height = pi->label->requisition.height;
-	
+
 	g_return_val_if_fail(pi->image != NULL, FALSE);
 
 	image = pi->image;
@@ -1071,7 +1105,7 @@ static gint draw_icon(GtkWidget *widget, GdkRectangle *badarea, PanelIcon *pi)
 		image_x = PANEL_ICON_SPACING - 2;
 		image_y = (area.height - height) >> 1;
 	}
-	
+
 	gdk_pixbuf_render_to_drawable_alpha(
 			image,
 			widget->window,
@@ -1114,7 +1148,7 @@ static void perform_action(Panel *panel, PanelIcon *pi, GdkEventButton *event)
 {
 	BindAction	action;
 	Icon		*icon = (Icon *) pi;
-	
+
 	action = bind_lookup_bev(icon ? BIND_PANEL_ICON : BIND_PANEL, event);
 
 	if (pi && pi->socket)
@@ -1178,7 +1212,7 @@ static gint panel_button_release(GtkWidget *widget,
 		return TRUE;
 
 	perform_action(panel, NULL, event);
-	
+
 	return TRUE;
 }
 
@@ -1203,7 +1237,7 @@ static gint icon_button_release(GtkWidget *widget,
 		return TRUE;
 
 	perform_action(pi->panel, pi, event);
-	
+
 	return TRUE;
 }
 
@@ -1362,7 +1396,7 @@ static void reposition_panel(GtkWidget *window,
 
 	if (side == PANEL_BOTTOM)
 		y += panel->geometry.height - alloc->height;
-	
+
 	gtk_window_move(GTK_WINDOW(panel->window), x, y);
 	gdk_window_move(panel->window->window, x, y);
 
@@ -1480,7 +1514,7 @@ static void add_uri_list(GtkWidget          *widget,
 {
 	gboolean after = FALSE;
 	GList *uris, *next;
-	
+
 	if (!selection_data->data)
 		return;
 
@@ -1563,7 +1597,7 @@ static void make_widgets(xmlNodePtr side, GList *widgets)
 		if (icon->locked)
 			xmlSetProp(tree, "locked", "true");
 	}
-	
+
 	if (widgets)
 		g_list_free(widgets);
 }
@@ -1602,10 +1636,11 @@ void panel_save(Panel *panel)
 	options = xmlNewChild(root, NULL, "options", NULL);
 	set_int_prop(options, "style", panel->style);
 	set_int_prop(options, "width", panel->width);
+	set_int_prop(options, "transparency", panel->transparency);
 	set_int_prop(options, "avoid", panel->avoid);
 	set_int_prop(options, "xinerama", panel->xinerama);
 	set_int_prop(options, "monitor", panel->monitor);
-	
+
 	make_widgets(xmlNewChild(root, NULL, "start", NULL),
 		gtk_container_get_children(GTK_CONTAINER(panel->before)));
 
@@ -1684,7 +1719,7 @@ static gint panel_leave_event(GtkWidget *widget,
 	if (panel_keep_below(panel, TRUE))
 	{
 		/* Shouldn't need this as well as keep_below but some WMs don't
-		 * automatically lower as soon as the hint is set */ 
+		 * automatically lower as soon as the hint is set */
 		pinboard = pinboard_get_window();
 		window_put_just_above(panel->window->window, pinboard);
 	}
@@ -1709,7 +1744,7 @@ static void motion_may_raise(Panel *panel, int x, int y)
 	if (raise && panel_keep_below(panel, FALSE))
 	{
 		/* Shouldn't need this as well as keep_below but some WMs don't
-		 * automatically raise as soon as the hint is set */ 
+		 * automatically raise as soon as the hint is set */
 		gdk_window_raise(panel->window->window);
 	}
 }
@@ -1829,7 +1864,8 @@ static gint icon_motion_event(GtkWidget *widget,
 
 		gdk_window_get_origin(next->window, &x, &y);
 
-		gdk_drawable_get_size(next->window, &w, &h);
+		w = gdk_window_get_width(next->window);
+		h = gdk_window_get_height(next->window);
 
 		x += w;
 		y += h;
@@ -1915,7 +1951,7 @@ static void start_drag(PanelIcon *pi, GdkEventMotion *event)
 		else
 			icon_set_selected(icon, TRUE);
 	}
-	
+
 	g_return_if_fail(icon_selection != NULL);
 
 	if (icon_selection->next == NULL)
@@ -1961,12 +1997,12 @@ static void socket_destroyed(GtkWidget *socket, GtkWidget *widget)
 
 /* Try to run this applet.
  * Cases:
- * 
+ *
  * - No executable AppletRun:
  * 	icon->socket == NULL (unchanged) on return.
  *
  * Otherwise, create socket (setting icon->socket) and ref it twice.
- * 
+ *
  * - AppletRun quits without connecting a plug:
  * 	On child death lost_plug is unset and socket is empty.
  * 	Unref socket.
@@ -1987,12 +2023,12 @@ static void run_applet(PanelIcon *pi)
 	Icon	*icon = (Icon *) pi;
 
 	argv[0] = (char *) make_path(icon->path, "AppletRun");
-	
+
 	if (access(argv[0], X_OK) != 0)
 		return;
 
 	pi->socket = gtk_socket_new();
-	
+
 	gtk_container_add(GTK_CONTAINER(pi->widget), pi->socket);
 	gtk_widget_show_all(pi->socket);
 	gtk_widget_realize(pi->socket);
@@ -2049,8 +2085,8 @@ static void run_applet(PanelIcon *pi)
 		gtk_widget_ref(pi->socket);
 		g_signal_connect(pi->socket, "destroy",
 				G_CALLBACK(socket_destroyed), pi->widget);
-	}	
-	
+	}
+
 	g_free(argv[1]);
 }
 
@@ -2118,7 +2154,7 @@ static gboolean recreate_panels(char **names)
 	}
 
 	g_free(names);
-	
+
 	return FALSE;
 }
 
@@ -2152,7 +2188,7 @@ static void panel_style_changed(void)
 	if (o_override_redirect.has_changed)
 	{
 		gchar **names;
-		
+
 		names = g_new(char *, PANEL_NUMBER_OF_SIDES);
 
 		for (i = 0; i < PANEL_NUMBER_OF_SIDES; i++)
@@ -2193,7 +2229,7 @@ static gboolean draw_panel_edge(GtkWidget *widget, GdkEventExpose *event,
 		else
 			x = widget->allocation.width - EDGE_WIDTH;
 	}
-	
+
 	gdk_draw_rectangle(widget->window,
 			widget->style->fg_gc[GTK_STATE_NORMAL], TRUE,
 			x, y, width, height);
@@ -2206,9 +2242,9 @@ static gpointer parent_class;
 static void panel_icon_destroy(Icon *icon)
 {
 	PanelIcon *pi = (PanelIcon *) icon;
-	
+
 	g_return_if_fail(pi != NULL);
-	
+
 	if (pi->image)
 		g_object_unref(pi->image);
 
@@ -2401,7 +2437,7 @@ static void panel_side_radio_toggled(GtkWidget *widget, PanelSide new_side)
 	Panel *panel;
 	PanelSide old_side;
 	char *name, *other_side_name;
-	
+
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
 		return;
 
@@ -2447,6 +2483,19 @@ static void panel_width_changed_cb(GtkSpinButton *widget)
 	if (width != panel->width)
 	{
 		panel->width = width;
+		panel_update(panel);
+		panel_save(panel);
+	}
+}
+
+static void panel_transparency_changed_cb(GtkSpinButton *widget)
+{
+	Panel *panel = panel_from_opts_widget(GTK_WIDGET(widget));
+	int tpcy = gtk_spin_button_get_value_as_int(widget);
+
+	if (tpcy != panel->transparency)
+	{
+		panel->transparency = tpcy;
 		panel_update(panel);
 		panel_save(panel);
 	}
@@ -2533,6 +2582,8 @@ static void panel_connect_dialog_signal_handlers(GtkBuilder *builder,
 		fn = panel_style_radio_2_toggled_cb;
 	else if (strcmp(handler_name, "panel_width_changed_cb") == 0)
 		fn = panel_width_changed_cb;
+	else if (strcmp(handler_name, "panel_transparency_changed_cb") == 0)
+		fn = panel_transparency_changed_cb;
 	else if (strcmp(handler_name, "panel_avoid_toggled_cb") == 0)
 		fn = panel_avoid_toggled_cb;
 	else if (strcmp(handler_name, "panel_xinerama_confine_toggled_cb") == 0)
@@ -2571,6 +2622,9 @@ static void panel_setup_options_dialog(GtkBuilder *builder, Panel *panel)
 	gtk_spin_button_set_value(
 		GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "panel_width")),
 		panel->width);
+	gtk_spin_button_set_value(
+		GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "transparency")),
+		panel->transparency);
 	gtk_toggle_button_set_active(
 		GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "panel_avoid")),
 		panel->avoid);
@@ -2612,8 +2666,8 @@ static void panel_show_options(Panel *panel)
 	GtkWidget *dialog;
 	gboolean already_showing = FALSE;
 	GtkBuilder *builder;
-	gchar *ids[] = {"adjustment1", "adjustment2", "Panel Options", NULL};
-	
+	gchar *ids[] = {"adjustment1", "adjustment2", "adjustment3", "Panel Options", NULL};
+
 	builder = get_gtk_builder(ids);
 
 	if (panel_options_dialog)
@@ -2674,7 +2728,7 @@ static void panel_position_menu(GtkMenu *menu, gint *x, gint *y,
 		*x = monitor_geom[mon].x + margin;
 	else
 		*x = pos[0] - (requisition.width >> 2);
-		
+
 	if (pos[1] == -1)
 		*y = mon_bottom - margin - requisition.height;
 	else if (pos[1] == -2)
@@ -2786,14 +2840,14 @@ static void panel_drag_leave(GtkWidget	*widget,
 	GdkWindow *pinboard, *window;
 	GtkAllocation *alloc = &panel->window->allocation;
 	int x, y;
-	
+
 	window = panel->window->window;
 	gdk_window_get_pointer(window, &x, &y, NULL);
 	if ((x < 0 || y < 0 || x > alloc->width || y > alloc->height) &&
 		panel_keep_below(panel, TRUE))
 	{
 		/* Shouldn't need this as well as keep_below but some WMs don't
-		 * automatically lower as soon as the hint is set */ 
+		 * automatically lower as soon as the hint is set */
 		pinboard = pinboard_get_window();
 		window_put_just_above(panel->window->window, pinboard);
 	}
@@ -2803,7 +2857,7 @@ static void panel_update_geometry(Panel *panel)
 {
 	if (panel->xinerama && panel->monitor >= n_monitors)
 	{
-		g_warning(_("Xinerama monitor %d unavailable"), panel->monitor); 
+		g_warning(_("Xinerama monitor %d unavailable"), panel->monitor);
 		panel->xinerama = FALSE;
 	}
 
@@ -2827,7 +2881,7 @@ static void panel_update_geometry(Panel *panel)
 static GList *build_monitor_number(Option *option, xmlNode *node, guchar *label)
 {
 	GtkObject *adj;
-	
+
 	adj = gtk_adjustment_new(MAX(0, panel_monitor),
 				0, n_monitors - 1, 1, 10, 1);
 	return build_numentry_base(option, node, label, GTK_ADJUSTMENT(adj));

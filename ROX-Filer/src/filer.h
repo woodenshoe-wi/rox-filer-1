@@ -80,7 +80,6 @@ struct _FilerWindow
 
 	Directory	*directory;
 
-	gboolean	had_cursor;	/* (before changing directory) */
 	char		*auto_select;	/* If it we find while scanning */
 
 	GtkWidget	*message;	/* The 'Running as ...' message */
@@ -109,15 +108,18 @@ struct _FilerWindow
 	GtkLabel	*toolbar_size_text;
 	GtkLabel	*toolbar_settings_text;
 
-	gint		open_timeout;	/* Will resize and show window... */
-
 	GtkStateType	selection_state;	/* for drawing selection */
-	
+
+	FilerWindow *right_link;
+	FilerWindow *left_link;
+	gint right_link_idle;
+
+
 	gboolean	show_thumbs;
 	GQueue		*thumb_queue;		/* paths to thumbnail */
 	GtkWidget	*thumb_bar, *thumb_progress;
 	int		max_thumbs;		/* total for this batch */
-	gboolean	trying_thumbs;
+	int		trying_thumbs;
 
 	gint		auto_scroll;		/* Timer */
 
@@ -135,6 +137,10 @@ struct _FilerWindow
 	MaskedPixmap *dir_icon;
 
 	gboolean	under_init;
+	gboolean	first_scan;
+	gboolean	new_win_first_scan;
+	gboolean	req_sort;
+	gboolean	may_resize;
 
 	/* for checking user resize */
 	gint	configured;
@@ -148,17 +154,19 @@ extern GHashTable	*child_to_filer;
 extern Option		o_filer_auto_resize, o_unique_filer_windows;
 extern Option		o_filer_size_limit;
 extern Option		o_filer_width_limit;
-extern Option		o_view_alpha;
 extern Option		o_fast_font_calc;
+extern Option		o_window_link;
 extern gint 		fw_font_height;
 extern gint 		fw_font_widths[0x7f];
 
 
 /* Prototypes */
 void filer_init(void);
-FilerWindow *filer_opendir(const char *path, FilerWindow *src_win, const gchar *wm_class);
+FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
+		const gchar *wm_class, gboolean winlnk);
 gboolean filer_update_dir(FilerWindow *filer_window, gboolean warning);
 void filer_update_all(void);
+void filer_check_resize(gboolean all);
 DirItem *filer_selected_item(FilerWindow *filer_window);
 void change_to_parent(FilerWindow *filer_window);
 void full_refresh(void);
@@ -180,7 +188,7 @@ GList *filer_selected_items(FilerWindow *filer_window);
 void filer_create_thumb(FilerWindow *filer_window, const gchar *pathname);
 void filer_cancel_thumbnails(FilerWindow *filer_window);
 void filer_set_title(FilerWindow *filer_window);
-void filer_create_thumbs(FilerWindow *filer_window);
+void filer_create_thumbs(FilerWindow *filer_window, GPtrArray *items);
 void filer_add_tip_details(FilerWindow *filer_window,
 			   GString *tip, DirItem *item);
 void filer_selection_changed(FilerWindow *filer_window, gint time);
@@ -207,6 +215,10 @@ void filer_set_hidden(FilerWindow *fwin, gboolean hidden);
 void filer_next_selected(FilerWindow *filer_window, int dir);
 void filer_save_settings(FilerWindow *fwin, gboolean parent);
 void filer_clear_settings(FilerWindow *fwin);
+void filer_copy_settings(FilerWindow *src, FilerWindow *dest);
+void filer_link(FilerWindow *left, FilerWindow *right);
+void filer_cut_links(FilerWindow *fw, gboolean left_only);
+void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean bottom);
 
 UnmountPrompt filer_get_unmount_action(const char *path);
 void filer_set_unmount_action(const char *path, UnmountPrompt action);

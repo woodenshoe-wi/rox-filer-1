@@ -44,6 +44,8 @@
 #include "toolbar.h"	/* for resizing */
 #include "filer.h"
 #include "display.h"
+#include "usericons.h"
+#include "fscache.h"
 
 #define MIN_ITEM_WIDTH 64
 
@@ -71,9 +73,10 @@ static void view_collection_class_init(gpointer gclass, gpointer data);
 static void view_collection_init(GTypeInstance *object, gpointer gclass);
 
 static void draw_item(GtkWidget *widget,
-			CollectionItem *item,
+			int idx,
 			GdkRectangle *area,
-			gpointer user_data);
+			gpointer user_data,
+			gboolean cursor);
 static void fill_template(GdkRectangle *area, CollectionItem *item,
 			ViewCollection *view_collection, Template *template);
 static void huge_template(GdkRectangle *area, CollectionItem *colitem,
@@ -95,7 +98,8 @@ static void draw_string(GtkWidget *widget,
 		int 	width,		/* Width of the full string */
 		int 	height,		/* height of the full string */
 		GtkStateType selection_state,
-		gboolean box);
+		gboolean box,
+		gboolean link);
 static void view_collection_iface_init(gpointer giface, gpointer iface_data);
 static gint coll_motion_notify(GtkWidget *widget,
 			       GdkEventMotion *event,
@@ -184,7 +188,7 @@ GtkWidget *view_collection_new(FilerWindow *filer_window)
 	 */
 	gtk_viewport_set_vadjustment(GTK_VIEWPORT(view_collection),
 				 view_collection->collection->vadj);
-				 
+
 	gtk_range_set_adjustment(GTK_RANGE(filer_window->scrollbar),
 				 view_collection->collection->vadj);
 
@@ -273,7 +277,31 @@ static gboolean transparent_expose(GtkWidget *widget,
 
 	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	gdk_cairo_region(cr, event->region);
-	cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
+
+	if (view->filer_window->directory->error)
+	{
+		cairo_paint(cr);
+		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+		cairo_set_source_rgba(cr, 0.9, .0, .0, .7);
+		cairo_fill(cr);
+	}
+	else if (o_use_background_colour.int_value)
+	{
+		cairo_paint(cr);
+
+		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+//		gdk_cairo_region(cr, event->region);
+		GdkColor base;
+		gdk_color_parse(o_background_colour.value, &base);
+		cairo_set_source_rgba(cr,
+				base.red / p,
+				base.green / p,
+				base.blue / p,
+				(100 - o_view_alpha.int_value) / 100.0);
+		cairo_fill(cr);
+	}
+	else if (o_view_alpha.int_value != 0)
+		cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
 
 	if (!fg)
 		goto end;
@@ -386,17 +414,22 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
 	static const float p = 65535.0;
-	GdkColor *base = &widget->style->base[GTK_STATE_NORMAL];
+	GdkColor base;
+	if (o_use_background_colour.int_value)
+		gdk_color_parse(o_background_colour.value, &base);
+	else
+		base = widget->style->base[GTK_STATE_NORMAL];
+
 	cairo_set_source_rgba(cr,
-			base->red / p,
-			base->green / p,
-			base->blue / p,
+			base.red / p,
+			base.green / p,
+			base.blue / p,
 			(100 - o_view_alpha.int_value) / 100.0);
 	cairo_fill(cr);
 
 	size -= 1.4;
 
-	GdkColor colour = *base;
+	GdkColor colour = widget->style->fg[GTK_STATE_NORMAL];
 	colour = *type_get_colour(item, &colour);
 	gdk_cairo_set_source_color(cr, &colour);
 	cairo_set_line_width(cr, 0.9);
@@ -412,32 +445,210 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 
 	cairo_destroy(cr);
 }
+static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
+{
+	cairo_t *cr = gdk_cairo_create(widget->window);
+	GdkRectangle dr = *rect;
+
+	cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
+	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
+	cairo_set_line_width(cr, 1.0);
+
+//	double dashes[] = {4.0, 1.0};
+//	cairo_set_dash(cr, dashes, 2, 0);
+
+	dr.x += 1;
+	dr.y += 1;
+	dr.width = col->item_width - 1;
+	dr.height = col->item_height - 1;
+
+	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
+		cairo_set_source_rgb(cr, .9, .9, .9);
+	else
+		cairo_set_source_rgb(cr, .7, .7, .7);
+
+	gdk_cairo_rectangle(cr, &dr);
+	cairo_stroke(cr);
+
+	cairo_destroy(cr);
+}
+
+static gboolean next_thumb(ViewCollection *vc)
+{
+	int i;
+
+	for (i = 0; i < 3; i++)
+	{
+		if (g_queue_is_empty(vc->thumbs_queue))
+		{
+			vc->thumb_func = 0;
+			g_object_unref(vc);
+			return FALSE;
+		} else {
+			int idx = GPOINTER_TO_INT(g_queue_pop_tail(vc->thumbs_queue));
+			if (idx >= vc->collection->number_of_items)
+				continue;
+
+			FilerWindow    *fw = vc->filer_window;
+			CollectionItem *colitem = &vc->collection->items[idx];
+			DirItem        *item = (DirItem *) colitem->data;
+			ViewData       *view = (ViewData *) colitem->view_data;
+
+			if (!view->may_thumb)
+				continue;
+
+			view->may_thumb = FALSE;
+			gchar *path = pathdup(
+					make_path(fw->real_path, item->leafname));
+			view->thumb = pixmap_load_thumb(path);
+			g_free(path);
+
+			if (!view->image || view->thumb)
+			{
+				if (!view->thumb && !view->image)
+				{
+					view->image = di_image(item);
+					if (view->image)
+						g_object_ref(view->image);
+				}
+				collection_draw_item(vc->collection, idx, TRUE);
+			}
+		}
+	}
+
+	return TRUE;
+}
+
+static void clear_thumb_func(ViewCollection *vc)
+{
+	if (vc->thumb_func)
+	{
+		g_source_remove(vc->thumb_func);
+		vc->thumb_func = 0;
+		g_object_unref(vc);
+	}
+	if (vc->thumbs_queue)
+	{
+		g_queue_free(vc->thumbs_queue);
+		vc->thumbs_queue = NULL;
+	}
+}
+static void reset_thumb_func(ViewCollection *vc)
+{
+	clear_thumb_func(vc);
+	vc->thumbs_queue = g_queue_new();
+}
 
 static void draw_item(GtkWidget *widget,
-			CollectionItem *colitem,
+			int idx,
 			GdkRectangle *area,
-			gpointer user_data)
+			gpointer user_data,
+			gboolean cursor)
 {
-	DirItem		*item = (DirItem *) colitem->data;
-	gboolean	selected = colitem->selected;
-	Template	template;
-	ViewData *view = (ViewData *) colitem->view_data;
-	ViewCollection	*view_collection = (ViewCollection *) user_data;
-	FilerWindow	*filer_window = view_collection->filer_window;
-	GtkStateType	selection_state;
-	GdkColor	*colour;
-	PangoLayout *layout;
+	ViewCollection *vc = (ViewCollection *) user_data;
+	FilerWindow    *fw = vc->filer_window;
+	CollectionItem *colitem = &vc->collection->items[idx];
+	gboolean       selected = colitem->selected;
+	DirItem        *item = (DirItem *) colitem->data;
+	ViewData       *view = (ViewData *) colitem->view_data;
+	GtkStateType   selection_state;
+	GdkColor       *colour;
+	Template       template;
+	PangoLayout    *layout;
 
 	g_return_if_fail(view != NULL);
 
+	if (view->base_type == TYPE_UNKNOWN) {
+		if (fw->display_style == HUGE_ICONS &&
+				vc->collection->vadj->value == 0) return;
+		goto end_image;
+	}
+
+	if (!view->may_thumb && !view->thumb && !view->image)
+	{
+		view->image = get_globicon(
+				make_path(fw->sym_path, item->leafname));
+
+		if (!view->image)
+		{
+			const guchar *path = make_path(fw->real_path, item->leafname);
+
+			view->image = get_globicon(path);
+
+			//.DirIcon
+			if (!view->image && fw->show_thumbs &&
+					item->base_type == TYPE_FILE)
+				view->image = g_fscache_lookup_full(pixmap_cache, path,
+						FSCACHE_LOOKUP_ONLY_NEW, NULL);
+
+			if (!view->image)
+			{
+				if (fw->show_thumbs &&
+						!(item->flags & ITEM_FLAG_APPDIR) &&
+						(item->base_type == TYPE_FILE ||
+						 (item->base_type == TYPE_DIRECTORY &&
+						  o_display_show_dir_thumbs.int_value == 1)))
+				{
+					view->may_thumb = TRUE;
+				}
+				else
+				{
+					view->image = di_image(item);
+					if (view->image)
+						g_object_ref(view->image);
+				}
+			}
+		}
+	}
+
+	if (view->may_thumb)
+	{
+		//delay loading in scroll is not good,
+		//because half of view is blank and also too blink.
+		if (
+				fw->display_style != HUGE_ICONS ||
+				fw->scanning ||
+				vc->collection->vadj->value == 0)
+		{
+			g_queue_push_head(vc->thumbs_queue, GUINT_TO_POINTER(idx));
+
+			if (!vc->thumb_func)
+			{
+				g_object_ref(vc);
+				vc->thumb_func = g_idle_add_full(
+						G_PRIORITY_HIGH_IDLE + 20, //G_PRIORITY_DEFAULT_IDLE
+						(GSourceFunc) next_thumb, vc, NULL);
+			}
+
+			if (fw->display_style == HUGE_ICONS) return;
+		}
+		else
+		{
+			view->may_thumb = FALSE;
+			gchar *path = pathdup(
+					make_path(fw->real_path, item->leafname));
+			view->thumb = pixmap_load_thumb(path);
+			g_free(path);
+		}
+
+		if (!view->thumb && !view->image)
+		{
+			view->image = di_image(item);
+			if (view->image)
+				g_object_ref(view->image);
+		}
+	}
+
+end_image:
+
 	if (selected)
-		selection_state = filer_window->selection_state;
+		selection_state = fw->selection_state;
 	else
 		selection_state = GTK_STATE_NORMAL;
 
 	colour = &widget->style->base[selection_state];
 
-	fill_template(area, colitem, view_collection, &template);
+	fill_template(area, colitem, vc, &template);
 
 	/* Set up GC for coloured file types */
 	if (!type_gc)
@@ -445,6 +656,9 @@ static void draw_item(GtkWidget *widget,
 
 	gdk_gc_set_foreground(type_gc, type_get_colour(item,
 					&widget->style->text[GTK_STATE_NORMAL]));
+
+	if (cursor)
+		draw_cursor(widget, area, vc->collection);
 
 	GdkPixbuf *sendi = view->thumb;
 
@@ -476,94 +690,32 @@ static void draw_item(GtkWidget *widget,
 
 //	g_clear_object(&(view->thumb));
 
-	layout = make_layout(filer_window, item);
+	layout = make_layout(fw, item);
+
+	gboolean link = fw->right_link
+		? strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
+				item->leafname) ? FALSE : TRUE
+		: FALSE;
 
 	draw_string(widget, layout,
 			&template.leafname,
 			view->name_width,
 			view->name_height,
 			selection_state,
-			TRUE);
+			TRUE,
+			link);
 
-	if (filer_window->details_type != DETAILS_NONE &&
+	if (fw->details_type != DETAILS_NONE &&
 		view->details && item->base_type != TYPE_UNKNOWN)
 		draw_string(widget, view->details,
 				&template.details,
 				template.details.width,
 				0,
 				selection_state,
-				TRUE);
+				TRUE,
+				FALSE);
 
 	g_object_unref(G_OBJECT(layout));
-}
-
-static gboolean next_thumb(ViewCollection *vc)
-{
-	int i;
-
-	for (i = 0; i < 3; i++)
-	{
-		if (g_queue_is_empty(vc->thumb_path_queue))
-		{
-			vc->thumb_func = 0;
-			g_object_unref(vc);
-			return FALSE;
-		} else {
-			gchar *path = (gchar *) g_queue_pop_tail(vc->thumb_path_queue);
-			ViewData *view = (ViewData *) g_queue_pop_tail(vc->thumb_view_queue);
-			GdkRectangle *area =
-				(GdkRectangle *) g_queue_pop_tail(vc->thumb_area_queue);
-			DirItem *item = (DirItem *) g_queue_pop_tail(vc->thumb_item_queue);
-
-			if (!view->thumb && !view->image) {
-				view->thumb = pixmap_load_thumb(path);
-
-				if (!view->thumb)
-					view->image = di_image(item);
-				if (view->image)
-					g_object_ref(view->image);
-			}
-
-			if (view->thumb || view->image) {
-				gdk_window_invalidate_rect(
-						GTK_WIDGET(vc->collection)->window, area, FALSE);
-			}
-
-			g_free(path);
-			g_free(area);
-		}
-	}
-
-	return TRUE;
-}
-
-static void clear_thumb_func(ViewCollection *vc)
-{
-	if (vc->thumb_func)
-	{
-		g_source_remove(vc->thumb_func);
-		vc->thumb_func = 0;
-		g_object_unref(vc);
-	}
-	if (vc->thumb_path_queue)
-	{
-		g_queue_free_full(vc->thumb_path_queue, g_free);
-		vc->thumb_path_queue = NULL;
-		g_queue_free(vc->thumb_view_queue);
-		vc->thumb_view_queue = NULL;
-		g_queue_free_full(vc->thumb_area_queue, g_free);
-		vc->thumb_area_queue = NULL;
-		g_queue_free(vc->thumb_item_queue);
-		vc->thumb_item_queue = NULL;
-	}
-}
-static void reset_thumb_func(ViewCollection *vc)
-{
-	clear_thumb_func(vc);
-	vc->thumb_path_queue = g_queue_new();
-	vc->thumb_view_queue = g_queue_new();
-	vc->thumb_area_queue = g_queue_new();
-	vc->thumb_item_queue = g_queue_new();
 }
 
 /* A template contains the locations of the three rectangles (for the icon,
@@ -573,54 +725,8 @@ static void reset_thumb_func(ViewCollection *vc)
 static void fill_template(GdkRectangle *area, CollectionItem *colitem,
 			ViewCollection *view_collection, Template *template)
 {
-	FilerWindow  *filer_window = view_collection->filer_window;
 	DisplayStyle style = view_collection->filer_window->display_style;
 	ViewData     *view = (ViewData *) colitem->view_data;
-	DirItem      *item = (DirItem *) colitem->data;
-
-	if (filer_window->show_thumbs && !view->thumb && !view->image &&
-		(view->base_type == TYPE_FILE ||
-		 (view->base_type == TYPE_DIRECTORY &&
-		  o_display_show_dir_thumbs.int_value == 1)))
-	{
-		//delay loading in scroll is not good,
-		//because half of view is blank and also too blink. 
-		if (
-				style != HUGE_ICONS ||
-				filer_window->scanning ||
-				view_collection->collection->vadj->value == 0)
-		{
-			gchar *path = pathdup(
-					make_path(filer_window->real_path, item->leafname));
-			g_queue_push_head(view_collection->thumb_path_queue, path);
-
-			g_queue_push_head(view_collection->thumb_view_queue, view);
-
-			GdkRectangle *carea = g_memdup(area, sizeof(GdkRectangle));
-			g_queue_push_head(view_collection->thumb_area_queue, carea);
-
-			g_queue_push_head(view_collection->thumb_item_queue, item);
-
-			if (!view_collection->thumb_func)
-			{
-				g_object_ref(view_collection);
-				view_collection->thumb_func = g_idle_add_full(
-						G_PRIORITY_HIGH_IDLE + 20, //G_PRIORITY_DEFAULT_IDLE
-						(GSourceFunc) next_thumb, view_collection, NULL);
-			}
-		}
-		else
-		{
-			gchar *path = pathdup(
-					make_path(filer_window->real_path, item->leafname));
-			view->thumb = pixmap_load_thumb(path);
-			if (!view->thumb)
-				view->image = di_image(item);
-			if (view->image)
-				g_object_ref(view->image);
-			g_free(path);
-		}
-	}
 
 	if (view_collection->filer_window->details_type != DETAILS_NONE)
 	{
@@ -676,7 +782,6 @@ static void huge_template(
 			ih = image->huge_height;
 		}
 
-
 		if (iw <= ICON_WIDTH &&
 			ih <= ICON_HEIGHT)
 			scale = 1.0;
@@ -703,7 +808,7 @@ static void huge_template(
 		template->leafname.height = MIN(view->name_height,
 				area->height - ih - view->details_height - 1);
 
-		template->icon.x = area->x + (col_width - iw) / 2 + 1;
+		template->icon.x = area->x + (col_width - iw) / 2;
 		template->icon.y = area->y +
 			(area->height - view->details_height -
 			 template->leafname.height - ih);
@@ -725,7 +830,7 @@ static void huge_template(
 
 		template->leafname.x = area->x +
 			MAX((col_width - template->leafname.width) >> 1, 3);
-		template->icon.x = area->x + ((col_width - iw) >> 1) + 1;
+		template->icon.x = area->x + ((col_width - iw) >> 1);
 
 		template->icon.y = area->y +
 			(area->height - template->leafname.height - ih) / 2 + 1;
@@ -813,6 +918,7 @@ static void large_template(
 		template->leafname.y = ty;
 
 		iy = ty - ih;
+		iy -= (ICON_HEIGHT - ih) / 6;
 		iy = MAX(area->y, iy);
 
 		template->icon.x = ix;
@@ -862,8 +968,8 @@ static void small_full_template(GdkRectangle *area, CollectionItem *colitem,
 }
 
 #define INSIDE(px, py, area)	\
-	(px >= area.x && py >= area.y && \
-	 px <= area.x + area.width && py <= area.y + area.height)
+	(px > area.x && py > area.y && \
+	 px < area.x + area.width && py < area.y + area.height)
 
 static gboolean test_point(Collection *collection,
 				int point_x, int point_y,
@@ -895,7 +1001,8 @@ static void draw_string(GtkWidget *widget,
 		int 	width,		/* Width of the full string */
 		int 	height,		/* height of the full string */
 		GtkStateType selection_state,
-		gboolean box)
+		gboolean box,
+		gboolean link)
 {
 	if (width > area->width || height > area->height)
 	{
@@ -909,7 +1016,7 @@ static void draw_string(GtkWidget *widget,
 	else
 		gdk_draw_layout(widget->window, type_gc, area->x, area->y, layout);
 
-	if (width > area->width || height > area->height)
+	if (width > area->width || height > area->height || link)
 	{
 		static GdkGC *red_gc = NULL;
 
@@ -932,6 +1039,11 @@ static void draw_string(GtkWidget *widget,
 			gdk_draw_rectangle(widget->window, red_gc, TRUE,
 				area->x + area->width - small_width, area->y + area->height - 1,
 				small_width, 1);
+
+		if (link)
+			gdk_draw_rectangle(widget->window, red_gc, TRUE,
+				area->x, area->y + area->height - 3,
+				area->width, 3);
 
 		gdk_gc_set_clip_rectangle(type_gc, NULL);
 	}
@@ -984,7 +1096,7 @@ static void view_collection_extend_tip(ViewIface *view, ViewIter *iter,
 	ViewData *view_data = (ViewData *) colitem->view_data;
 	GdkRectangle area;
 	int row,col;
-	
+
 	collection_item_to_rowcol(collection, i, &row, &col);
 
 	g_return_if_fail(iter->view == (ViewIface *) view_collection);
@@ -1043,6 +1155,7 @@ static gint coll_button_release(GtkWidget *widget,
 			collection_end_lasso(view_collection->collection,
 				event->button == 1 ? GDK_SET : GDK_INVERT);
 		}
+
 		return FALSE;
 	}
 
@@ -1140,22 +1253,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 
 		if (style == HUGE_ICONS)
 		{
-			if (!filer_window->show_thumbs && view->image)
-			{
-				if (view->image->huge_width <= ICON_WIDTH &&
-					view->image->huge_height <= ICON_HEIGHT)
-					scale = 1.0;
-				else
-					scale *= (gfloat) huge_size /
-						MAX(view->image->huge_width, view->image->huge_height);
-
-				pix_width = view->image->huge_width * scale;
-				pix_height = view->image->huge_height * scale;
-			}
-			else
-			{
-				pix_width = pix_height = huge_size * scale;
-			}
+			pix_width = pix_height = huge_size * scale;
 		}
 	}
 
@@ -1230,17 +1328,22 @@ static void update_item(ViewCollection *view_collection, int i)
 	display_update_view(filer_window,
 			(DirItem *) colitem->data,
 			(ViewData *) colitem->view_data,
-			((ViewData *) colitem->view_data)->base_type == TYPE_UNKNOWN &&
-			((DirItem *) colitem->data)->flags & ITEM_FLAG_RECENT
-			);
+			FALSE);
 
-	calc_size(filer_window, colitem, &w, &h); 
+	calc_size(filer_window, colitem, &w, &h);
+
 	if (w > old_w || h > old_h)
+	{
 		collection_set_item_size(collection,
 					 MAX(old_w, w),
 					 MAX(old_h, h));
 
-	collection_draw_item(collection, i, TRUE);
+		//only lager
+		filer_window->may_resize = TRUE;
+	}
+
+	if (!filer_window->req_sort) //will redraw soon
+		collection_draw_item(collection, i, TRUE);
 }
 
 /* Implementations of the View interface. See view_iface.c for comments. */
@@ -1259,10 +1362,10 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 		height = ICON_HEIGHT;
 
 	view_collection->collection->vertical_order = FALSE;
-	if (filer_window->display_style == SMALL_ICONS && 
+	if (filer_window->display_style == SMALL_ICONS &&
 	    o_vertical_order_small.int_value)
 	  view_collection->collection->vertical_order = TRUE;
-	if (filer_window->display_style != SMALL_ICONS && 
+	if (filer_window->display_style != SMALL_ICONS &&
 	    o_vertical_order_large.int_value)
 	  view_collection->collection->vertical_order = TRUE;
 
@@ -1346,7 +1449,7 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 		reti = collection_insert(collection, item,
 					display_create_viewdata(filer_window, item));
 
-		calc_size(filer_window, &collection->items[reti], &w, &h); 
+		calc_size(filer_window, &collection->items[reti], &w, &h);
 		mw = MAX(mw, w);
 		mh = MAX(mh, h);
 	}
@@ -1364,34 +1467,47 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 
 static void view_collection_update_items(ViewIface *view, GPtrArray *items)
 {
-	ViewCollection	*view_collection = VIEW_COLLECTION(view);
-	Collection	*collection = view_collection->collection;
-	FilerWindow	*filer_window = view_collection->filer_window;
-	int		i;
+	ViewCollection *view_collection = VIEW_COLLECTION(view);
+	Collection     *collection = view_collection->collection;
+	FilerWindow    *filer_window = view_collection->filer_window;
+	int      i;
+	gboolean mayfirsttime = FALSE;
 
 	g_return_if_fail(items->len > 0);
-	
-	/* The item data has already been modified, so this gives the
-	 * final sort order...
-	 */
-	collection_qsort(collection, sort_fn(filer_window),
-			 filer_window->sort_order);
 
 	for (i = 0; i < items->len; i++)
 	{
 		DirItem *item = (DirItem *) items->pdata[i];
-		const gchar *leafname = item->leafname;
-		int j;
+		int j = -1;
 
 		if (!filer_match_filter(filer_window, item))
 			continue;
 
-		j = collection_find_item(collection, item,
-					 sort_fn(filer_window),
-					 filer_window->sort_order);
+		if (!mayfirsttime)
+			j = collection_find_item(collection, item,
+					sort_fn(filer_window), filer_window->sort_order);
 
 		if (j < 0)
-			g_warning("Failed to find '%s'\n", leafname);
+		{
+			mayfirsttime = TRUE;
+			j = collection_find_item(collection, item,
+						sort_by_name, filer_window->sort_order);
+		}
+
+		if (j < 0)
+		{
+			mayfirsttime = FALSE;
+			int k = collection->number_of_items;
+			while (k--)
+				if (item == collection->items[k].data)
+				{
+					j = k;
+					break;
+				}
+		}
+
+		if (j < 0)
+			g_warning("Failed to find '%s'\n", (const gchar *) item->leafname);
 		else
 			update_item(view_collection, j);
 	}
@@ -1419,7 +1535,7 @@ static void view_collection_select_all(ViewIface *view)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	collection_select_all(collection);
 }
 
@@ -1427,7 +1543,7 @@ static void view_collection_clear_selection(ViewIface *view)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	collection_clear_selection(collection);
 }
 
@@ -1435,7 +1551,7 @@ static int view_collection_count_items(ViewIface *view)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	return collection->number_of_items;
 }
 
@@ -1443,7 +1559,7 @@ static int view_collection_count_selected(ViewIface *view)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	return collection->number_selected;
 }
 
@@ -1472,12 +1588,19 @@ static DirItem *iter_init(ViewIter *iter)
 	if (flags & VIEW_ITER_FROM_CURSOR)
 	{
 		i = collection->cursor_item;
-		if (i == -1)
+		if (i == -1 && (
+					!(flags & VIEW_ITER_EVEN_OLD_CURSOR) ||
+					collection->cursor_item_old == -1
+					))
 			return NULL;	/* No cursor */
 	}
 	else if (flags & VIEW_ITER_FROM_BASE)
 		i = view_collection->cursor_base;
-	
+
+	if (flags & VIEW_ITER_EVEN_OLD_CURSOR)
+		i = collection->cursor_item != -1 ?
+			collection->cursor_item : collection->cursor_item_old;
+
 	if (i < 0 || i >= n)
 	{
 		/* Either a normal iteration, or an iteration from an
@@ -1498,6 +1621,10 @@ static DirItem *iter_init(ViewIter *iter)
 
 	if (flags & VIEW_ITER_SELECTED && !collection->items[i].selected)
 		return iter->next(iter);
+	if (iter->flags & VIEW_ITER_DIR &&
+			((DirItem *) collection->items[i].data)->base_type != TYPE_DIRECTORY)
+		return iter->next(iter);
+
 	return iter->peek(iter);
 }
 /* Advance iter to point to the next item and return the new item
@@ -1514,14 +1641,19 @@ static DirItem *iter_next(ViewIter *iter)
 	/* i is the last item returned (always valid) */
 
 	g_return_val_if_fail(i >= 0 && i < n, NULL);
-	
+
 	while (iter->n_remaining)
 	{
 		i++;
 		iter->n_remaining--;
 
 		if (i == n)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = 0;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
@@ -1529,10 +1661,14 @@ static DirItem *iter_next(ViewIter *iter)
 		    !collection->items[i].selected)
 			continue;
 
+		if (iter->flags & VIEW_ITER_DIR &&
+		    ((DirItem *) collection->items[i].data)->base_type != TYPE_DIRECTORY)
+			continue;
+
 		iter->i = i;
 		return collection->items[i].data;
 	}
-	
+
 	iter->i = -1;
 	return NULL;
 }
@@ -1556,7 +1692,12 @@ static DirItem *iter_prev(ViewIter *iter)
 		iter->n_remaining--;
 
 		if (i == -1)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = collection->number_of_items - 1;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
@@ -1564,10 +1705,14 @@ static DirItem *iter_prev(ViewIter *iter)
 		    !collection->items[i].selected)
 			continue;
 
+		if (iter->flags & VIEW_ITER_DIR &&
+		    ((DirItem *) collection->items[i].data)->base_type != TYPE_DIRECTORY)
+			continue;
+
 		iter->i = i;
 		return collection->items[i].data;
 	}
-	
+
 	iter->i = -1;
 	return NULL;
 }
@@ -1579,7 +1724,7 @@ static DirItem *iter_peek(ViewIter *iter)
 
 	if (i == -1)
 		return NULL;
-	
+
 	g_return_val_if_fail(i >= 0 && i < collection->number_of_items, NULL);
 
 	return collection->items[i].data;
@@ -1652,12 +1797,15 @@ static void view_collection_cursor_to_iter(ViewIface *view, ViewIter *iter)
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
 	FilerWindow	*filer_window = view_collection->filer_window;
-	
+
 	g_return_if_fail(iter == NULL ||
 			 iter->view == (ViewIface *) view_collection);
 
 	collection_set_cursor_item(collection, iter ? iter->i : -1,
 			filer_window->auto_scroll == -1);
+
+	if (!iter)
+		collection->cursor_item_old = -1;
 }
 
 static void view_collection_set_selected(ViewIface *view,
@@ -1666,7 +1814,7 @@ static void view_collection_set_selected(ViewIface *view,
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
-	
+
 	g_return_if_fail(iter != NULL &&
 			 iter->view == (ViewIface *) view_collection);
 	g_return_if_fail(iter->i >= 0 && iter->i < collection->number_of_items);
@@ -1686,7 +1834,7 @@ static gboolean view_collection_get_selected(ViewIface *view, ViewIter *iter)
 			iter->view == (ViewIface *) view_collection, FALSE);
 	g_return_val_if_fail(iter->i >= 0 &&
 				iter->i < collection->number_of_items, FALSE);
-	
+
 	return collection->items[iter->i].selected;
 }
 
@@ -1730,6 +1878,10 @@ static void view_collection_wink_item(ViewIface *view, ViewIter *iter)
 	g_return_if_fail(iter->i >= 0 && iter->i < collection->number_of_items);
 
 	collection_wink_item(collection, iter->i);
+
+	if (view_collection->filer_window->right_link &&
+			iter->peek(iter)->base_type == TYPE_DIRECTORY)
+		collection->winks_left = 1;
 }
 
 static void view_collection_autosize(ViewIface *view)
@@ -1775,7 +1927,11 @@ static void view_collection_autosize(ViewIface *view)
 
 	if (filer_window->toolbar)
 	{
-		gtk_widget_get_size_request(filer_window->toolbar, &min_x, NULL);
+		if(o_toolbar_min_width.int_value)
+			min_x = toolbar_min_width;
+		else
+			min_x = 200;
+
 		if (filer_window->scrollbar)
 			min_x -= filer_window->scrollbar->allocation.width;
 	}
@@ -1785,7 +1941,7 @@ static void view_collection_autosize(ViewIface *view)
 	 * Also, don't add space if the minibuffer is open.
 	 */
 	if (space == 0)
-		space = filer_window->display_style == SMALL_ICONS ? h : 2;
+		space = filer_window->display_style == SMALL_ICONS ? h : 1;
 
 	tn = t + space;
 	t = tn + 44 /* window decoration and charm. when small then wide */;
@@ -1809,7 +1965,7 @@ static void view_collection_autosize(ViewIface *view)
 	 * 	   sqrt(rt.rt + ...) > rt
 	 *
 	 * So, the +/- must be +:
-	 * 	
+	 *
 	 *	=> x = (rt + sqrt(rt.rt + 4hr(nw - 1))) / 2
 	 */
 
@@ -1857,7 +2013,7 @@ static void view_collection_autosize(ViewIface *view)
 	}
 
 	filer_window_set_size(filer_window,
-			w * MAX(cols, 1) + 2,
+			MAX(w * MAX(cols, 1), min_x),
 			MIN(max_y, h * rows + space) + exspace);
 }
 
@@ -1911,7 +2067,7 @@ static gboolean view_collection_auto_scroll_callback(ViewIface *view)
 	int		diff = 0;
 
 	gdk_window_get_pointer(window, &x, &y, &mask);
-	gdk_drawable_get_size(window, &w, NULL);
+	w = gdk_window_get_width(window);
 
 	h = collection->vadj->page_size;
 	y -= collection->vadj->value;

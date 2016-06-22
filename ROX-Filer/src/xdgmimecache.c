@@ -40,9 +40,8 @@
 #include <netinet/in.h> /* for ntohl/ntohs */
 
 #ifdef HAVE_MMAP
+/* this is useless */
 #include <sys/mman.h>
-#else
-#warning Building xdgmime without MMAP support. Binary "mime.cache" files will not be used.
 #endif
 
 #include <sys/stat.h>
@@ -384,7 +383,6 @@ cache_glob_lookup_literal (const char *file_name,
 	    {
 	      int weight = GET_UINT32 (cache->buffer, list_offset + 4 + 12 * mid + 8);
 	      int case_sensitive = weight & 0x100;
-	      weight = weight & 0xff;
 
 	      if (case_sensitive_check || !case_sensitive)
 		{

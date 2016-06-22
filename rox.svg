@@ -16,7 +16,9 @@
    width="90pt"
    height="90pt"
    sodipodi:docname="rox.svg"
-   version="1.1">
+   version="1.1"
+   inkscape:export-xdpi="102.47131"
+   inkscape:export-ydpi="102.47131">
   <defs
      id="defs1575">
     <linearGradient
@@ -172,7 +174,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="6.2778563"
-     inkscape:cx="50.483461"
+     inkscape:cx="31.056386"
      inkscape:cy="42.05561"
      inkscape:window-width="1655"
      inkscape:window-height="1142"
@@ -181,8 +183,8 @@
      gridtolerance="2.0000000px"
      inkscape:grid-bbox="false"
      inkscape:grid-points="false"
-     inkscape:window-x="265"
-     inkscape:window-y="36"
+     inkscape:window-x="289"
+     inkscape:window-y="250"
      showguides="true"
      inkscape:guide-bbox="true"
      inkscape:guide-points="true"
@@ -212,8 +214,7 @@ http://www.inkscape.org/</dc:description>
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title>Rox-Filer Icon for Archlinux
-based on work found on the internet trying to match the original xpm</dc:title>
+        <dc:title></dc:title>
         <dc:date>2004-07-14</dc:date>
         <dc:creator>
           <cc:Agent>

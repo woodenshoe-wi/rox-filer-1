@@ -59,6 +59,7 @@
 #include "xdgmime.h"
 #include "xtypes.h"
 #include "run.h"
+#include "view_iface.h"
 
 #define TYPE_NS "http://www.freedesktop.org/standards/shared-mime-info"
 enum {SET_MEDIA, SET_TYPE};
@@ -66,22 +67,24 @@ enum {SET_MEDIA, SET_TYPE};
 /* Colours for file types (same order as base types) */
 static gchar *opt_type_colours[][2] = {
 	{"display_err_colour",  "#ff0000"},
-	{"display_unkn_colour", "#000000"},
-	{"display_dir_colour",  "#000080"},
-	{"display_pipe_colour", "#444444"},
-	{"display_sock_colour", "#ff00ff"},
-	{"display_file_colour", "#000000"},
-	{"display_cdev_colour", "#000000"},
-	{"display_bdev_colour", "#000000"},
+	{"display_unkn_colour", "#ffe700"},
+	{"display_dir_colour",  "#61fffe"},
+	{"display_pipe_colour", "#dccbff"},
+	{"display_sock_colour", "#ff90ff"},
+	{"display_file_colour", "#ffffff"},
+	{"display_cdev_colour", "#ffc488"},
+	{"display_bdev_colour", "#ffe9cf"},
 	{"display_door_colour", "#ff00ff"},
-	{"display_exec_colour", "#006000"},
-	{"display_adir_colour", "#006000"}
+	{"display_exec_colour", "#75ff66"},
+	{"display_adir_colour", "#00e100"}
 };
 #define NUM_TYPE_COLOURS\
 		(sizeof(opt_type_colours) / sizeof(opt_type_colours[0]))
 
 /* Parsed colours for file types */
+static Option o_display_colour_types;
 static Option o_type_colours[NUM_TYPE_COLOURS];
+
 static GdkColor	type_colours[NUM_TYPE_COLOURS];
 
 /* Static prototypes */
@@ -114,19 +117,20 @@ MIME_type *application_x_desktop;
 MIME_type *inode_unknown;
 MIME_type *inode_door;
 
-static Option o_display_colour_types;
 static Option o_icon_theme;
 
 static GtkIconTheme *icon_theme = NULL;
 static GtkIconTheme *rox_theme = NULL;
 static GtkIconTheme *gnome_theme = NULL;
 
+static GMutex m_xdg;
+
 void type_init(void)
 {
 	int	    i;
 
 	icon_theme = gtk_icon_theme_new();
-	
+
 	type_hash = g_hash_table_new(g_str_hash, g_str_equal);
 
 	text_plain = get_mime_type("text/plain", TRUE);
@@ -147,7 +151,7 @@ void type_init(void)
 	option_add_string(&o_icon_theme, "icon_theme", "ROX");
 	option_add_int(&o_display_colour_types, "display_colour_types", TRUE);
 	option_register_widget("icon-theme-chooser", build_icon_theme);
-	
+
 	for (i = 0; i < NUM_TYPE_COLOURS; i++)
 		option_add_string(&o_type_colours[i],
 				  opt_type_colours[i][0],
@@ -200,8 +204,10 @@ static MIME_type *get_mime_type(const gchar *type_name, gboolean can_create)
 	mtype->image = NULL;
 	mtype->comment = NULL;
 
+	g_mutex_lock(&m_xdg);
 	mtype->executable = xdg_mime_mime_type_subclass(type_name,
 						"application/x-executable");
+	g_mutex_unlock(&m_xdg);
 
 	g_hash_table_insert(type_hash, g_strdup(type_name), mtype);
 
@@ -234,7 +240,7 @@ const char *basetype_name(DirItem *item)
 		case TYPE_DOOR:
 			return _("Door");
 	}
-	
+
 	return _("Unknown");
 }
 
@@ -261,7 +267,7 @@ GList *mime_type_name_list(gboolean only_regular)
 
 	list.list=NULL;
 	list.only_regular=only_regular;
-		
+
 	g_hash_table_foreach(type_hash, append_names, &list);
 	list.list = g_list_sort(list.list, (GCompareFunc) strcmp);
 
@@ -315,7 +321,10 @@ MIME_type *type_from_path(const char *path)
 		return mime_type;
 
 	/* Try name and contents next */
+	g_mutex_lock(&m_xdg);
 	type_name = xdg_mime_get_mime_type_for_file(path, NULL);
+	g_mutex_unlock(&m_xdg);
+
 	if (type_name)
 		return get_mime_type(type_name, TRUE);
 
@@ -466,7 +475,7 @@ MaskedPixmap *type_to_icon(MIME_type *type)
 	if (type->image)
 	{
 		/* Yes - don't recheck too often */
-		if (abs(now - type->image_time) < 2)
+		if (labs(now - type->image_time) < 9)
 		{
 			g_object_ref(type->image);
 			return type->image;
@@ -530,7 +539,7 @@ out:
 	}
 
 	type->image_time = now;
-	
+
 	g_object_ref(type->image);
 	return type->image;
 }
@@ -539,13 +548,13 @@ GdkAtom type_to_atom(MIME_type *type)
 {
 	char	*str;
 	GdkAtom	retval;
-	
+
 	g_return_val_if_fail(type != NULL, GDK_NONE);
 
 	str = g_strconcat(type->media_type, "/", type->subtype, NULL);
 	retval = gdk_atom_intern(str, FALSE);
 	g_free(str);
-	
+
 	return retval;
 }
 
@@ -572,7 +581,7 @@ static gboolean set_shell_action(GtkWidget *dialog)
 	g_return_val_if_fail(entry != NULL, FALSE);
 
 	command = gtk_entry_get_text(entry);
-	
+
 	if (!strchr(command, '$'))
 	{
 		show_shell_help(NULL);
@@ -582,10 +591,10 @@ static gboolean set_shell_action(GtkWidget *dialog)
 	path = get_action_save_path(dialog);
 	if (!path)
 		return FALSE;
-		
+
 	tmp = g_strdup_printf("#! /bin/sh\nexec %s\n", command);
 	len = strlen(tmp);
-	
+
 	fd = open(path, O_CREAT | O_WRONLY, 0755);
 	if (fd == -1)
 		error = errno;
@@ -635,10 +644,10 @@ static guchar *handler_for_radios(GObject *dialog)
 
 	radios = g_object_get_data(G_OBJECT(dialog), "rox-radios");
 	type = g_object_get_data(G_OBJECT(dialog), "mime_type");
-	
+
 	g_return_val_if_fail(radios != NULL, NULL);
 	g_return_val_if_fail(type != NULL, NULL);
-	
+
 	switch (radios_get_value(radios))
 	{
 		case SET_MEDIA:
@@ -758,7 +767,7 @@ static guchar *get_current_command(MIME_type *type)
 
 	if ((!S_ISREG(info.st_mode)) || info.st_size > 256)
 		goto out;		/* Only use small regular files */
-	
+
 	if (!load_file(handler, &data, &len))
 		goto out;		/* Didn't load OK */
 
@@ -865,7 +874,7 @@ void type_set_handler_dialog(MIME_type *type)
 			  "use this as the default."), SET_MEDIA,
 			_("Set default for all `%s/<anything>'"),
 			type->media_type);
-	
+
 	radios_add(radios,
 			_("Use this application for all files with this MIME "
 			  "type."), SET_TYPE,
@@ -878,7 +887,7 @@ void type_set_handler_dialog(MIME_type *type)
 	frame = drop_box_new(_("Drop a suitable application here"));
 
 	g_object_set_data(G_OBJECT(dialog), "rox-dropbox", frame);
-	
+
 	radios_pack(radios, GTK_BOX(dialog->vbox));
 	gtk_box_pack_start(GTK_BOX(dialog->vbox), frame, TRUE, TRUE, 0);
 
@@ -934,7 +943,7 @@ void type_set_handler_dialog(MIME_type *type)
 	gtk_box_pack_start(GTK_BOX(dialog->vbox), hbox, FALSE, TRUE, 0);
 
 	gtk_dialog_set_default_response(dialog, GTK_RESPONSE_OK);
-	
+
 	g_signal_connect(dialog, "response",
 			G_CALLBACK(set_action_response), NULL);
 
@@ -964,7 +973,7 @@ static gboolean remove_handler_with_confirm(const guchar *path)
 				return FALSE;
 			}
 		}
-		
+
 		if (unlink(path))
 		{
 			report_error(_("Can't remove %s: %s"),
@@ -1094,7 +1103,7 @@ static void alloc_type_colours(void)
 		if (allocated && (c->red != r || c->green != g || c->blue != b))
 			change_count++;
 	}
-	
+
 	/* Free colours if they were previously allocated and
 	 * have changed or become unneeded.
 	 */
@@ -1134,6 +1143,21 @@ static void options_changed(void)
 		g_hash_table_foreach(type_hash, expire_timer, NULL);
 		full_refresh();
 	}
+
+	gboolean changed = o_display_colour_types.has_changed;
+	if (!changed && o_display_colour_types.int_value)
+	{
+		int i;
+		for (i = 0; i < NUM_TYPE_COLOURS; i++)
+			changed |= o_type_colours[i].has_changed;
+	}
+	if (changed)
+	{
+		GList *next;
+		for (next = all_filer_windows; next; next = next->next)
+			view_style_changed(((FilerWindow *) next->data)->view, 0);
+	}
+
 }
 
 /* Return a pointer to a (static) colour for this item. If colouring is
@@ -1186,7 +1210,7 @@ static void get_comment(MIME_type *type, const guchar *path)
 {
 	xmlNode *node;
 	XMLwrapper *doc;
-	
+
 	doc = xml_cache_load(path);
 	if (!doc)
 		return;
@@ -1223,7 +1247,7 @@ static void find_comment(MIME_type *type)
 	for (i = 0; i < n_dirs; i++)
 	{
 		guchar *path;
-		
+
 		path = g_strdup_printf("%s/mime/%s/%s.xml", dirs[i],
 				type->media_type, type->subtype);
 		get_comment(type, path);
@@ -1353,7 +1377,7 @@ static void update_theme(Option *option)
 			break;
 	}
 	g_list_free(kids);
-	
+
 	if (next)
 		gtk_option_menu_set_history(om, i);
 	else
@@ -1377,7 +1401,7 @@ static void add_themes_from_dir(GPtrArray *names, const char *dir)
 
 		index_path = g_build_filename(dir, list->pdata[i],
 						"index.theme", NULL);
-		
+
 		if (access(index_path, F_OK) == 0)
 			g_ptr_array_add(names, list->pdata[i]);
 		else

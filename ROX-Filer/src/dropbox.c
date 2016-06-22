@@ -114,8 +114,8 @@ GtkWidget *drop_box_new(const char *message)
 	g_signal_connect(button, "clicked",
 			G_CALLBACK(open_dir_clicked), drop_box);
 
-	gtk_tooltips_set_tip(tooltips, button,
-			_("Show the current choice in a filer window"), NULL);
+	gtk_widget_set_tooltip_text(button,
+			_("Show the current choice in a filer window"));
 
 	drop_box_set_path(drop_box, NULL);
 
@@ -195,7 +195,7 @@ static void drop_box_class_init(gpointer gclass, gpointer data)
 
 	drop_box->path_dropped = NULL;
 	drop_box->clear = NULL;
-	
+
 	widget->drag_data_received = drop_box_drag_data_received;
 
 	g_signal_new("path_dropped",
@@ -262,7 +262,7 @@ static void drop_box_drag_data_received(GtkWidget *drop_box,
 				"onto the drop area."));
 		goto err;
 	}
-		
+
 	path = get_local_path((EscapedPath *) uris->data);
 
 	if (!path)
@@ -286,7 +286,7 @@ static void drop_box_drag_data_received(GtkWidget *drop_box,
 err:
 	if (path)
 		g_free(path);
-	
+
 	if (uris)
 		g_list_free(uris);
 	gtk_drag_finish(context, success, FALSE, time);	/* Failure */

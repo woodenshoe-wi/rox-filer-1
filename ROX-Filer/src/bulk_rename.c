@@ -70,8 +70,8 @@ void bulk_rename(const char *dir, GList *items)
 	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
 	gtk_dialog_add_action_widget(GTK_DIALOG(box), button, RESPONSE_RESET);
 	gtk_dialog_set_default_response(GTK_DIALOG(box), RESPONSE_RESET);
-	gtk_tooltips_set_tip(tooltips, button,
-			_("Make the New column a copy of Old"), NULL);
+	gtk_widget_set_tooltip_text(button,
+			_("Make the New column a copy of Old"));
 
 	gtk_dialog_add_button(GTK_DIALOG(box),
 				GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
@@ -95,13 +95,12 @@ void bulk_rename(const char *dir, GList *items)
 	g_object_set_data(G_OBJECT(box), "replace_entry", replace_entry);
 	gtk_box_pack_start(GTK_BOX(hbox), replace_entry, TRUE, TRUE, 0);
 	gtk_entry_set_text(GTK_ENTRY(replace_entry), "\\.htm$");
-	gtk_tooltips_set_tip(tooltips, replace_entry,
+	gtk_widget_set_tooltip_text(replace_entry,
 			_("This is a regular expression to search for.\n"
 			"^ matches the start of a filename\n"
 			"$ matches the end\n"
 			"\\. matches a dot\n"
-			"\\.htm$ matches the '.htm' in 'index.htm', etc"),
-			NULL);
+			"\\.htm$ matches the '.htm' in 'index.htm', etc"));
 
 	gtk_box_pack_start(GTK_BOX(hbox),
 				gtk_label_new(_("With:")), FALSE, TRUE, 0);
@@ -110,19 +109,19 @@ void bulk_rename(const char *dir, GList *items)
 	g_object_set_data(G_OBJECT(box), "with_entry", with_entry);
 	gtk_box_pack_start(GTK_BOX(hbox), with_entry, TRUE, TRUE, 0);
 	gtk_entry_set_text(GTK_ENTRY(with_entry), ".html");
-	gtk_tooltips_set_tip(tooltips, with_entry,
+	gtk_widget_set_tooltip_text(with_entry,
 			_("The first match in each filename will be replaced "
 			"by this string. "
 			"The only special characters are back-references "
 			"from \\0 to \\9. To use them literally, "
-			"they have to be escaped with a backslash."), NULL);
+			"they have to be escaped with a backslash."));
 
 	button = gtk_button_new_with_label(_("Apply"));
 	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, TRUE, 0);
-	gtk_tooltips_set_tip(tooltips, button,
+	gtk_widget_set_tooltip_text(button,
 			_("Do a search-and-replace in the New column. "
 			"The files are not actually renamed until you click "
-			"on the Rename button below."), NULL);
+			"on the Rename button below."));
 
 	g_signal_connect_swapped(replace_entry, "activate",
 			G_CALLBACK(gtk_widget_grab_focus), with_entry);
@@ -169,7 +168,7 @@ void bulk_rename(const char *dir, GList *items)
 
 		items = items->next;
 	}
-	
+
 	gtk_widget_show_all(tree);
 	gtk_widget_size_request(tree, &req);
 	req.width = MIN(req.width + 50, screen_width - 50);
@@ -337,7 +336,7 @@ static gboolean apply_replace(GtkWidget *box)
 
 		size = regerror(error, &compiled, NULL, 0);
 		g_return_val_if_fail(size > 0, TRUE);
-		
+
 		message = g_malloc(size);
 		regerror(error, &compiled, message, size);
 

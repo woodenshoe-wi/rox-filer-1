@@ -25,16 +25,17 @@ extern gboolean dnotify_wakeup_flag;
 #endif
 
 #define DIR_NOTIFY_TIME_FOR_SORT_DATA 1111
-#define DIR_NOTIFY_TIME 222
+#define DIR_NOTIFY_TIME 111
 
 typedef enum {
-	DIR_START_SCAN,	/* Set 'scanning' indicator */
-	DIR_END_SCAN,	/* Clear 'scanning' indicator */
-	DIR_ADD,	/* Add the listed items to the display */
-	DIR_REMOVE,	/* Remove listed items from display */
-	DIR_UPDATE,	/* Redraw these items */
-	DIR_ERROR_CHANGED,	/* Check dir->error */
-	DIR_QUEUE_INTERESTING,  /* Call dir_queue_recheck */
+	DIR_START_SCAN,    /* 0 Set 'scanning' indicator */
+	DIR_END_SCAN,      /* 1 Clear 'scanning' indicator */
+	DIR_ADD,           /* 2 Add the listed items to the display */
+	DIR_REMOVE,        /* 3 Remove listed items from display */
+	DIR_UPDATE,        /* 4 Redraw these items */
+	DIR_UPDATE_ICON,   /* 5 Redraw these items */
+	DIR_ERROR_CHANGED, /* 6 Check dir->error */
+	DIR_QUEUE_INTERESTING,  /* 7 Call dir_queue_recheck */
 } DirAction;
 
 typedef struct _DirUser DirUser;
@@ -70,6 +71,8 @@ struct _Directory
 	gboolean	notify_active;	/* Notify timeout is running */
 	int			notify_time;	/* Time of Notify timeout */
 	gint		idle_callback;	/* Idle callback ID */
+	gboolean	in_scan_thread, req_scan_off, req_notify;
+	GThread		*t_scan;
 
 	GHashTable 	*known_items;	/* What our users know about */
 	GPtrArray	*new_items;	/* New items to add in */
@@ -94,6 +97,8 @@ struct _Directory
 
 	gint		rescan_timeout;	/* See dir_rescan_soon() */
 
+	gint64 last_scan_time;
+
 #ifdef USE_NOTIFY
 	int		notify_fd;	/* -1 if not watching */
 #endif
@@ -110,11 +115,12 @@ void refresh_dirs(const char *path);
 void dir_check_this(const guchar *path);
 DirItem *dir_update_item(Directory *dir, const gchar *leafname);
 void dir_merge_new(Directory *dir);
-void dir_force_update_path(const gchar *path);
+void dir_force_update_path(const gchar *path, gboolean icon);
 #if defined(USE_DNOTIFY)
 void dnotify_wakeup(void);
 #endif
 void dir_drop_all_notifies(void);
 void dir_queue_recheck(Directory *dir, DirItem *item);
+void dir_stop(void); /* stop all scan thread */
 
 #endif /* _DIR_H */

@@ -25,9 +25,12 @@ struct _ViewData
 
 	MaskedPixmap *image;		/* Image; not thumbnail */
 	GdkPixbuf *thumb;
+	gboolean may_thumb;
 	int base_type; /* for time lag */
+	gboolean recent;
 };
 
+extern Option o_display_dirs_first;
 extern Option o_display_inherit_options, o_display_sort_by;
 extern Option o_display_size, o_display_details, o_display_show_hidden;
 extern Option o_display_show_headers, o_display_show_full_type;
@@ -38,6 +41,9 @@ extern Option o_small_width;
 extern Option o_max_length;
 extern Option o_vertical_order_small, o_vertical_order_large;
 extern Option o_xattr_show;
+extern Option o_view_alpha;
+extern Option o_use_background_colour;
+extern Option o_background_colour;
 extern int huge_size;
 
 /* Prototypes */

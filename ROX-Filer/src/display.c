@@ -53,14 +53,12 @@
 #include "minibuffer.h"
 #include "dir.h"
 #include "diritem.h"
-#include "fscache.h"
 #include "view_iface.h"
 #include "xtypes.h"
-#include "usericons.h"
 
 /* Options bits */
 static Option o_display_caps_first;
-static Option o_display_dirs_first;
+Option o_display_dirs_first;
 Option o_display_size;
 Option o_display_details;
 Option o_display_sort_by;
@@ -76,16 +74,17 @@ Option o_display_inherit_options;
 static Option o_filer_change_size_num;
 Option o_vertical_order_small, o_vertical_order_large;
 Option o_xattr_show;
+Option o_view_alpha;
+Option o_use_background_colour;
+Option o_background_colour;
+
 static Option o_wrap_by_char;
 static Option o_huge_size;
 int huge_size = HUGE_SIZE;
 
 /* Static prototypes */
-static void display_details_set(FilerWindow *filer_window, DetailsType details);
-static void display_style_set(FilerWindow *filer_window, DisplayStyle style);
 static void options_changed(void);
 static char *getdetails(FilerWindow *filer_window, DirItem *item);
-static void display_set_actual_size_real(FilerWindow *filer_window);
 
 /****************************************************************
  *			EXTERNAL INTERFACE			*
@@ -95,27 +94,39 @@ void display_init()
 {
 	option_add_int(&o_display_caps_first, "display_caps_first", FALSE);
 	option_add_int(&o_display_dirs_first, "display_dirs_first", FALSE);
-	option_add_int(&o_display_size, "display_icon_size", AUTO_SIZE_ICONS);
-	option_add_int(&o_display_details, "display_details", DETAILS_NONE);
-	option_add_int(&o_display_sort_by, "display_sort_by", SORT_NAME);
-	option_add_int(&o_large_width, "display_large_width", 155);
-	option_add_int(&o_small_width, "display_small_width", 250);
-	option_add_int(&o_max_length, "display_max_length", 0);
-	option_add_int(&o_display_show_hidden, "display_show_hidden", FALSE);
-	option_add_int(&o_display_show_thumbs, "display_show_thumbs", FALSE);
-	option_add_int(&o_display_show_dir_thumbs, "display_show_dir_thumbs", FALSE);
-	option_add_int(&o_display_show_headers, "display_show_headers", TRUE);
-	option_add_int(&o_display_show_full_type, "display_show_full_type", FALSE);
+
 	option_add_int(&o_display_inherit_options,
-		       "display_inherit_options", FALSE); 
-	option_add_int(&o_filer_change_size_num, "filer_change_size_num", 30); 
-	option_add_int(&o_vertical_order_small, "vertical_order_small", FALSE);
-	option_add_int(&o_vertical_order_large, "vertical_order_large", FALSE);
+		       "display_inherit_options", FALSE);
+	option_add_int(&o_display_sort_by, "display_sort_by", SORT_NAME);
+	option_add_int(&o_display_show_hidden, "display_show_hidden", TRUE);
 	option_add_int(&o_xattr_show, "xattr_show", TRUE);
-	option_add_int(&o_wrap_by_char, "wrap_by_char", FALSE);
 	option_add_int(&o_huge_size, "huge_size", HUGE_SIZE);
 
+	option_add_int(&o_display_size, "display_icon_size", AUTO_SIZE_ICONS);
+	option_add_int(&o_display_details, "display_details", DETAILS_NONE);
+	option_add_int(&o_filer_change_size_num, "filer_change_size_num", 90);
+
+	option_add_int(&o_large_width, "display_large_width", 120);
+	option_add_int(&o_max_length, "display_max_length", 240);
+	option_add_int(&o_wrap_by_char, "wrap_by_char", FALSE);
+	option_add_int(&o_small_width, "display_small_width", 160);
+
+	option_add_int(&o_view_alpha, "view_alpha", 40);
+
+	option_add_int(&o_vertical_order_small, "vertical_order_small", TRUE);
+	option_add_int(&o_vertical_order_large, "vertical_order_large", FALSE);
+	option_add_int(&o_display_show_headers, "display_show_headers", TRUE);
+	option_add_int(&o_display_show_full_type, "display_show_full_type", FALSE);
+
+	option_add_int(&o_display_show_thumbs, "display_show_thumbs", FALSE);
+	option_add_int(&o_display_show_dir_thumbs, "display_show_dir_thumbs", TRUE);
+
+	option_add_int(&o_use_background_colour, "use_background_colour", TRUE);
+	option_add_string(&o_background_colour, "background_colour", "#000000");
+
 	option_add_notify(options_changed);
+
+	huge_size = o_huge_size.int_value;
 }
 
 void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
@@ -150,14 +161,11 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 		g_object_unref(ctemp);
 	}
 
-	gdk_pixbuf_render_to_drawable_alpha(pixbuf,
-				window,
-				0, 0, 				/* src */
-				*x, y,		                /* dest */
-				-1, -1,
-				GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
-				GDK_RGB_DITHER_NORMAL, 0, 0);
-	
+	cairo_t *cr = gdk_cairo_create(window);
+	gdk_cairo_set_source_pixbuf(cr, pixbuf, *x, y);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+
 	*x+=gdk_pixbuf_get_width(pixbuf)+1;
 	g_object_unref(pixbuf);
 }
@@ -225,13 +233,10 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 		dx = gdk_pixbuf_get_width(scaled);
 	}
 
-	gdk_draw_pixbuf(window,
-				NULL,
-				scaled,
-				0, 0, /* src */
-				*x - 1, y + dy + 1, /* dest */
-				-1, -1,
-				GDK_RGB_DITHER_NORMAL, 0, 0);
+	cairo_t *cr = gdk_cairo_create(window);
+	gdk_cairo_set_source_pixbuf(cr, scaled, *x - 1, y + dy + 1);
+	cairo_paint(cr);
+	cairo_destroy(cr);
 
 	*x += dx * 2 / 3;
 }
@@ -314,7 +319,7 @@ void draw_huge_icon(
 ) {
 	int       image_x, image_y, width, height, mw, mh;
 	GdkPixbuf *pixbuf, *scaled = NULL;
-	gfloat    scale;
+	gfloat    scale, ws, hs;
 
 	if (!image)
 		return draw_noimage(window, area);
@@ -322,10 +327,17 @@ void draw_huge_icon(
 	width = gdk_pixbuf_get_width(image);
 	height = gdk_pixbuf_get_height(image);
 
-	scale = MIN(area->width / (gfloat) width, area->height / (gfloat) height);
-
+	ws = area->width / (gfloat) width;
+	hs = area->height / (gfloat) height;
+	scale = MAX(ws, hs);
 	width *= scale;
 	height *= scale;
+	if (area->height < height || area->width < width)
+	{
+		scale = MIN(ws, hs);
+		width = gdk_pixbuf_get_width(image) * scale;
+		height = gdk_pixbuf_get_height(image) * scale;;
+	}
 
 	if (scale != 1.0)
 		scaled = gdk_pixbuf_scale_simple(image,
@@ -343,14 +355,10 @@ void draw_huge_icon(
 			? create_spotlight_pixbuf(scaled, colour)
 			: scaled;
 
-	gdk_pixbuf_render_to_drawable_alpha(
-			pixbuf,
-			window,
-			0, 0, 				/* src */
-			image_x, image_y,	/* dest */
-			width, height,
-			GDK_PIXBUF_ALPHA_FULL, 128,	/* (unused) */
-			GDK_RGB_DITHER_NORMAL, 0, 0);
+	cairo_t *cr = gdk_cairo_create(window);
+	gdk_cairo_set_source_pixbuf(cr, pixbuf, image_x, image_y);
+	cairo_paint(cr);
+	cairo_destroy(cr);
 
 	if (scale != 1.0)
 		g_object_unref(scaled);
@@ -361,8 +369,7 @@ void draw_huge_icon(
 	gtk_icon_size_lookup(mount_icon_size, &mw, &mh);
 
 	image_x = area->x;
-
-	if (area->width < mw * 3 && area->height < mh * 3)
+	if (area->width < mw * 2 && area->height < mh * 2)
 	{
 		if (item->flags & ITEM_FLAG_MOUNT_POINT)
 		{
@@ -477,7 +484,7 @@ int sort_by_type(const void *item1, const void *item2)
 
 	m1 = i1->mime_type;
 	m2 = i2->mime_type;
-	
+
 	if (m1 && m2)
 	{
 		diff = strcmp(m1->media_type, m2->media_type);
@@ -491,7 +498,7 @@ int sort_by_type(const void *item1, const void *item2)
 
 	if (diff)
 		return diff > 0 ? 1 : -1;
-	
+
 	return sort_by_name(item1, item2);
 }
 
@@ -591,48 +598,48 @@ void display_set_sort_type(FilerWindow *filer_window, SortType sort_type,
 /* Change the icon size and style.
  * force_resize should only be TRUE for new windows.
  */
-void display_set_layout(FilerWindow  *filer_window,
-			DisplayStyle style,
+void display_set_layout(FilerWindow *fw,
+			DisplayStyle want,
 			DetailsType  details,
 			gboolean     force_resize)
 {
-	gboolean style_changed = FALSE, details_changed;
-	DisplayStyle real_style = filer_window->display_style;
+	gboolean details_changed = fw->details_type != details;
+	gboolean wanted_changed = details_changed || fw->display_style_wanted != want;
+	DisplayStyle prev_style = fw->display_style;
 
-	g_return_if_fail(filer_window != NULL);
+	fw->details_type = details;
+	fw->display_style = fw->display_style_wanted = want;
 
-	if (style == AUTO_SIZE_ICONS)
-		filer_window->icon_scale = 1.0;
-
-	details_changed = filer_window->details_type != details;
-	style_changed = details_changed ||
-				filer_window->display_style_wanted != style;
-	  
-	display_style_set(filer_window, style);
-	display_details_set(filer_window, details);
-
-	if (details_changed || real_style != filer_window->display_style)
-		view_style_changed(filer_window->view, VIEW_UPDATE_NAME);
-	else
-		/* Recreate layouts because wrapping may have changed */
-		view_style_changed(filer_window->view, 0);
-
-	if (force_resize || o_filer_auto_resize.int_value == RESIZE_ALWAYS
-	    || (o_filer_auto_resize.int_value == RESIZE_STYLE && style_changed))
+	if (want == AUTO_SIZE_ICONS)
 	{
-		view_autosize(filer_window->view);
+		fw->display_style =
+			view_count_items(fw->view) >= o_filer_change_size_num.int_value ?
+				SMALL_ICONS : LARGE_ICONS;
+
+		fw->icon_scale = 1.0;
 	}
 
-	if (filer_window->toolbar_size_text)
+	if (details_changed || prev_style != fw->display_style)
+		view_style_changed(fw->view, VIEW_UPDATE_NAME);
+	else
+		view_style_changed(fw->view, 0);
+
+	if (force_resize ||
+			o_filer_auto_resize.int_value == RESIZE_ALWAYS ||
+			(o_filer_auto_resize.int_value == RESIZE_STYLE && wanted_changed)
+			)
+		view_autosize(fw->view);
+
+	if (fw->toolbar_size_text)
 	{
 		gchar *size_label = g_strdup_printf("%s%s", N_("Size"),
-			filer_window->display_style_wanted == LARGE_ICONS ? "┤" :
-			filer_window->display_style_wanted == SMALL_ICONS ? "┐" :
-			filer_window->display_style_wanted == HUGE_ICONS  ? "┘" :
-			filer_window->display_style_wanted == AUTO_SIZE_ICONS ?
-				filer_window->display_style == LARGE_ICONS ? "├" : "┌" :
-			"┼" );
-		gtk_label_set_text(filer_window->toolbar_size_text, size_label);
+			want == LARGE_ICONS ? "┤" :
+			want == SMALL_ICONS ? "┐" :
+			want == HUGE_ICONS  ? "┘" :
+			want == AUTO_SIZE_ICONS ?
+				fw->display_style == LARGE_ICONS ? "├" : "┌"
+			: "┼");
+		gtk_label_set_text(fw->toolbar_size_text, size_label);
 
 		g_free(size_label);
 	}
@@ -653,7 +660,7 @@ void display_set_thumbs(FilerWindow *filer_window, gboolean thumbs)
 
 	filer_set_title(filer_window);
 
-	filer_create_thumbs(filer_window);
+	filer_create_thumbs(filer_window, NULL);
 }
 
 void display_update_hidden(FilerWindow *filer_window)
@@ -706,7 +713,7 @@ void display_set_filter(FilerWindow *filer_window, FilterType type,
 void display_set_autoselect(FilerWindow *filer_window, const gchar *leaf)
 {
 	gchar *new;
-	
+
 	g_return_if_fail(filer_window != NULL);
 	g_return_if_fail(leaf != NULL);
 
@@ -778,7 +785,9 @@ ViewData *display_create_viewdata(FilerWindow *filer_window, DirItem *item)
 	view->details = NULL;
 	view->image = NULL;
 	view->thumb = NULL;
+	view->may_thumb = FALSE;
 	view->base_type = TYPE_UNKNOWN;
+	view->recent = FALSE;
 
 	display_update_view(filer_window, item, view, TRUE);
 
@@ -823,6 +832,22 @@ static void options_changed(void)
 	)
 		flags |= VIEW_UPDATE_VIEWDATA;
 
+
+	gboolean changed =
+		o_display_show_thumbs.has_changed ||
+		o_display_dirs_first.has_changed ||
+		o_display_caps_first.has_changed ||
+		o_display_show_full_type.has_changed ||
+		o_vertical_order_small.has_changed ||
+		o_vertical_order_large.has_changed ||
+		o_xattr_show.has_changed ||
+		o_view_alpha.has_changed ||
+		o_use_background_colour.has_changed ||
+		o_background_colour.has_changed ||
+		o_filer_auto_resize.has_changed ||
+		o_filer_size_limit.has_changed ||
+		o_filer_width_limit.has_changed;
+
 	for (next = all_filer_windows; next; next = next->next)
 	{
 		FilerWindow *filer_window = (FilerWindow *) next->data;
@@ -834,10 +859,13 @@ static void options_changed(void)
 		    o_display_caps_first.has_changed)
 			view_sort(VIEW(filer_window->view));
 
-		view_style_changed(filer_window->view, flags);
+		if (flags || changed)
+		{
+			view_style_changed(filer_window->view, flags);
 
-		if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
-			view_autosize(filer_window->view);
+			if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
+				view_autosize(filer_window->view);
+		}
 	}
 }
 
@@ -868,7 +896,7 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 	else if (filer_window->details_type == DETAILS_TIMES)
 	{
 		guchar	*ctime, *mtime, *atime;
-		
+
 		ctime = pretty_time(&item->ctime);
 		mtime = pretty_time(&item->mtime);
 		atime = pretty_time(&item->atime);
@@ -929,21 +957,8 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 		else
 			buf = g_strdup("-");
 	}
-		
+
 	return buf;
-}
-
-/* Note: Call style_changed after this */
-static void display_details_set(FilerWindow *filer_window, DetailsType details)
-{
-	filer_window->details_type = details;
-}
-
-/* Note: Call style_changed after this */
-static void display_style_set(FilerWindow *filer_window, DisplayStyle style)
-{
-	filer_window->display_style_wanted = style;
-	display_set_actual_size_real(filer_window);
 }
 
 PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
@@ -1086,48 +1101,16 @@ void display_update_view(FilerWindow *filer_window,
 
 	if (!update_name_layout)
 	{
-		if (view->thumb)
-			g_clear_object(&view->thumb);
-
-		if (view->image)
-			g_clear_object(&view->image);
+		g_clear_object(&view->thumb);
+		g_clear_object(&view->image);
+		view->may_thumb = FALSE;
 	}
 
-	if (!view->image)
-		view->image = get_globicon(
-				make_path(filer_window->sym_path, item->leafname));
+	if (!update_name_layout &&
+			view->recent == (item->flags & ITEM_FLAG_RECENT))
+		return;
 
-	if (!view->image)
-	{
-		const guchar *path = make_path(filer_window->real_path, item->leafname);
-
-		view->image = get_globicon(path);
-
-		if (item->base_type != TYPE_UNKNOWN) {
-			//.DirIcon
-			if (!view->image && filer_window->show_thumbs &&
-					item->base_type == TYPE_FILE)
-				view->image = g_fscache_lookup_full(pixmap_cache, path,
-						FSCACHE_LOOKUP_ONLY_NEW, NULL);
-
-			if (!view->image &&
-					(item->flags & ITEM_FLAG_APPDIR ||
-					 !filer_window->show_thumbs ||
-					 (item->base_type != TYPE_FILE &&
-					  (item->base_type != TYPE_DIRECTORY ||
-					   o_display_show_dir_thumbs.int_value != 1))
-					)
-			   )
-			{
-				view->image = di_image(item);
-				if (view->image) {
-					g_object_ref(view->image);
-				}
-			}
-		}
-	}
-
-	if (!update_name_layout) return;
+	view->recent = item->flags & ITEM_FLAG_RECENT;
 
 	basic &= !(item->flags & ITEM_FLAG_RECENT);
 	basic &= (filer_window->display_style == SMALL_ICONS ||
@@ -1163,25 +1146,3 @@ void display_update_view(FilerWindow *filer_window,
 	view->name_height = h / PANGO_SCALE;
 }
 
-/* Sets display_style from display_style_wanted.
- * See also display_set_actual_size().
- */
-static void display_set_actual_size_real(FilerWindow *filer_window)
-{
-	DisplayStyle size = filer_window->display_style_wanted;
-	int n;
-	
-	g_return_if_fail(filer_window != NULL);
-
-	if (size == AUTO_SIZE_ICONS)
-	{
-		n = view_count_items(filer_window->view);
-
-		if (n >= o_filer_change_size_num.int_value)
-			size = SMALL_ICONS;
-		else
-			size = LARGE_ICONS;
-	}
-	
-	filer_window->display_style = size;
-}

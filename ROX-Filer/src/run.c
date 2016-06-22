@@ -30,6 +30,7 @@
 #include "run.h"
 #include "support.h"
 #include "gui_support.h"
+#include "options.h"
 #include "filer.h"
 #include "display.h"
 #include "main.h"
@@ -46,9 +47,9 @@ static gboolean follow_symlink(const char *full_path,
 			       FilerWindow *filer_window,
 			       FilerWindow *src_window);
 static gboolean open_file(const guchar *path, MIME_type *type);
-static void open_mountpoint(const guchar *full_path, DirItem *item,
+static FilerWindow *open_mountpoint(const guchar *full_path, DirItem *item,
 			    FilerWindow *filer_window, FilerWindow *src_window,
-			    gboolean edit);
+			    gboolean edit, gboolean winlnk);
 static gboolean run_desktop(const char *full_path,
 			    const char **args, const char *dir);
 static gboolean type_open(const char *path, MIME_type *type);
@@ -79,7 +80,7 @@ void run_app(const char *path)
 	argv[0] = g_string_append(apprun, "/AppRun")->str;
 
 	rox_spawn(home_dir, argv);
-	
+
 	g_string_free(apprun, TRUE);
 }
 
@@ -106,20 +107,20 @@ void run_with_files(const char *path, GList *uri_list)
 		argv[argc++] = make_path(path, "AppRun");
 	else
 		argv[argc++] = path;
-	
+
 	while (uri_list)
 	{
 		const EscapedPath *uri = uri_list->data;
 		char *local;
 
 		local = get_local_path(uri);
-		if (local) 
+		if (local)
 			argv[argc++] = local;
 		else
 			argv[argc++] = unescape_uri(uri);
 		uri_list = uri_list->next;
 	}
-	
+
 	argv[argc++] = NULL;
 
 	type = type_from_path(argv[0]);
@@ -157,7 +158,7 @@ void run_with_data(const char *path, gpointer data, gulong length)
 		argv[0] = make_path(path, "AppRun");
 	else
 		argv[0] = path;
-	
+
 	if (pipe(fds))
 	{
 		delayed_error("pipe: %s", g_strerror(errno));
@@ -269,15 +270,49 @@ gboolean run_diritem(const guchar *full_path,
 				return TRUE;
 			}
 
+			gboolean winlnk =
+				!filer_window && o_window_link.int_value && src_window;
+			FilerWindow *tfw = filer_window;
+			if (winlnk) {
+				tfw = src_window->right_link;
+				if (tfw)
+					filer_copy_settings(src_window, tfw);
+/*
+				if (src_window->right_link)
+					gtk_widget_destroy(src_window->right_link->window);
+*/
+			}
+
 			if (item->flags & ITEM_FLAG_MOUNT_POINT)
 			{
-				open_mountpoint(full_path, item,
-						filer_window, src_window, edit);
+				tfw = open_mountpoint(full_path, item,
+						tfw, src_window, edit, winlnk);
 			}
-			else if (filer_window)
-				filer_change_to(filer_window, full_path, NULL);
+			else if (tfw)
+				filer_change_to(tfw, full_path, NULL);
 			else
-				filer_opendir(full_path, src_window, NULL);
+			{
+				tfw = filer_opendir(full_path, src_window, NULL, winlnk);
+			}
+
+			if (winlnk)
+			{
+				//clear link mark
+				gtk_widget_queue_draw(GTK_WIDGET(src_window->view));
+
+				src_window->right_link = tfw;
+				filer_set_title(src_window);
+				tfw->left_link = src_window;
+				filer_set_title(tfw);
+
+				filer_link(src_window, tfw);
+
+				//this emits configure event
+				//gtk_window_present(GTK_WINDOW(src_window->window));
+
+				gdk_window_focus(src_window->window->window, 0);
+			}
+
 			return TRUE;
 		case TYPE_FILE:
 			if (EXECUTABLE_FILE(item) && !edit)
@@ -320,7 +355,7 @@ gboolean run_by_path(const guchar *full_path)
 	diritem_restat(full_path, item, NULL, TRUE);
 	retval = run_diritem(full_path, item, NULL, NULL, FALSE);
 	diritem_free(item);
-	
+
 	return retval;
 }
 
@@ -348,7 +383,7 @@ gboolean run_by_uri(const gchar *uri, gchar **errmsg)
 			if(!retval)
 				*errmsg=g_strdup_printf(_("%s not accessable"),
 							tmp);
-		
+
 			g_free(tmp2);
 			g_free(tmp);
 
@@ -368,13 +403,13 @@ gboolean run_by_uri(const gchar *uri, gchar **errmsg)
 
 		diritem_free(item);
 		g_free(cmd);
-		
+
 	} else {
 		retval=FALSE;
 		*errmsg=g_strdup_printf(_("%s: no handler for %s"),
 					uri, scheme);
 	}
-	
+
 	g_free(scheme);
 
 	return retval;
@@ -388,7 +423,7 @@ void show_help_files(const char *dir)
 	help_dir = make_path(dir, "Help");
 
 	if (file_exists(help_dir))
-		filer_opendir(help_dir, NULL, NULL);
+		filer_opendir(help_dir, NULL, NULL, FALSE);
 	else
 		info_message(
 			_("Application:\n"
@@ -411,14 +446,14 @@ void open_to_show(const guchar *path)
 	if (slash == dir || !slash)
 	{
 		/* Item in the root (or root itself!) */
-		new = filer_opendir("/", NULL, NULL);
+		new = filer_opendir("/", NULL, NULL, FALSE);
 		if (new && dir[1])
 			display_set_autoselect(new, dir + 1);
 	}
 	else
 	{
 		*slash = '\0';
-		new = filer_opendir(dir, NULL, NULL);
+		new = filer_opendir(dir, NULL, NULL, FALSE);
 		if (new)
 		{
 			if (slash[1] == '.')
@@ -464,7 +499,7 @@ void examine(const guchar *path)
 static void write_data(gpointer data, gint fd, GdkInputCondition cond)
 {
 	PipedData *pd = (PipedData *) data;
-	
+
 	while (pd->sent < pd->length)
 	{
 		int	sent;
@@ -550,8 +585,8 @@ static gboolean follow_symlink(const char *full_path,
 	else
 	{
 		FilerWindow *new;
-		
-		new = filer_opendir(new_dir, src_window, NULL);
+
+		new = filer_opendir(new_dir, src_window, NULL, FALSE);
 		if (new)
 			display_set_autoselect(new, slash + 1);
 	}
@@ -585,9 +620,9 @@ static gboolean open_file(const guchar *path, MIME_type *type)
 }
 
 /* Called like run_diritem, when a mount-point is opened */
-static void open_mountpoint(const guchar *full_path, DirItem *item,
+static FilerWindow *open_mountpoint(const guchar *full_path, DirItem *item,
 			    FilerWindow *filer_window, FilerWindow *src_window,
-			    gboolean edit)
+			    gboolean edit, gboolean winlnk)
 {
 	gboolean mounted = (item->flags & ITEM_FLAG_MOUNTED) != 0;
 
@@ -606,8 +641,10 @@ static void open_mountpoint(const guchar *full_path, DirItem *item,
 		if (filer_window)
 			filer_change_to(filer_window, full_path, NULL);
 		else
-			filer_opendir(full_path, src_window, NULL);
+			return filer_opendir(full_path, src_window, NULL, winlnk);
 	}
+
+	return filer_window;
 }
 
 /* full_path is a .desktop file. Execute the application, using the Exec line
@@ -790,7 +827,7 @@ static gboolean type_open(const char *path, MIME_type *type)
 		g_free(argv[0]);
 
 	g_free(open);
-	
+
 	return TRUE;
 }
 

@@ -151,7 +151,7 @@ GtkWidget *view_details_new(FilerWindow *filer_window)
 	gtk_range_set_adjustment(GTK_RANGE(filer_window->scrollbar),
 		gtk_tree_view_get_vadjustment(GTK_TREE_VIEW(view_details)));
 
-	if (filer_window->sort_type != -1)
+	if (filer_window->sort_type != SORT_UNKNOWN)
 		view_details_sort((ViewIface *) view_details);
 
 	details_update_header_visibility(view_details);
@@ -323,7 +323,7 @@ static void details_get_value(GtkTreeModel *tree_model,
 			g_value_set_int(value, PANGO_WEIGHT_NORMAL);
 		else
 			g_value_set_object(value, NULL);
-			     
+
 		return;
 	}
 	m = item->mode;
@@ -387,11 +387,11 @@ static void details_get_value(GtkTreeModel *tree_model,
 		case COL_TYPE:
 			g_value_init(value, G_TYPE_STRING);
 			if(o_display_show_full_type.int_value)
-				g_value_set_string(value, 
+				g_value_set_string(value,
 						   item->flags & ITEM_FLAG_APPDIR? "Application" :
 						   mime_type_comment(item->mime_type));
 			else
-				g_value_set_string(value, 
+				g_value_set_string(value,
 						   item->flags & ITEM_FLAG_APPDIR? "App" :
 						   S_ISDIR(m) ? "Dir" :
 						   S_ISCHR(m) ? "Char" :
@@ -401,7 +401,7 @@ static void details_get_value(GtkTreeModel *tree_model,
 						   S_ISFIFO(m) ? "Pipe" :
 						   S_ISDOOR(m) ? "Door" :
 						   "File");
-			
+
 			break;
 		case COL_WEIGHT:
 			g_value_init(value, G_TYPE_INT);
@@ -542,8 +542,7 @@ static gboolean details_get_sort_column_id(GtkTreeSortable *sortable,
 		case SORT_SIZE: col = COL_SIZE; break;
 		case SORT_OWNER: col = COL_OWNER; break;
 		case SORT_GROUP: col = COL_GROUP; break;
-		case SORT_DATEA:
-			break;
+		case SORT_DATEA: col = N_COLUMNS; break;
 		default:
 			g_warning("details_get_sort_column_id(): error!");
 			return FALSE;
@@ -779,7 +778,7 @@ static gboolean view_details_button_release(GtkWidget *widget,
 		select_lasso(view_details,
 				bev->button == 1 ? GDK_SET : GDK_INVERT);
 		filer_set_autoscroll(filer_window, FALSE);
-		set_lasso(view_details, 
+		set_lasso(view_details,
 			  view_details->drag_box_x[0],
 			  view_details->drag_box_y[0]);
 		view_details->lasso_box = FALSE;
@@ -817,7 +816,7 @@ static gboolean view_details_expose(GtkWidget *widget, GdkEventExpose *event)
 	gboolean    had_cursor;
 
 	had_cursor = (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS) != 0;
-	
+
 	if (view_details->filer_window->selection_state == GTK_STATE_SELECTED)
 		GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
 	else
@@ -909,7 +908,7 @@ static void view_details_size_request(GtkWidget *widget,
 	(*GTK_WIDGET_CLASS(parent_class)->size_request)(widget, requisition);
 
 	view_details->desired_size = *requisition;
-	
+
 	requisition->height = 50;
 	requisition->width = 50;
 }
@@ -981,7 +980,7 @@ static void view_details_class_init(gpointer gclass, gpointer data)
 					   _("Font for displaying mono-spaced text"),
 					   "monospace",
 					   G_PARAM_READABLE));
-								    
+
 }
 
 static gboolean block_focus(GtkWidget *button, GtkDirectionType dir,
@@ -1000,7 +999,7 @@ static gboolean test_can_change_selection(GtkTreeSelection *sel,
 	ViewDetails *view_details;
 
 	view_details = VIEW_DETAILS(gtk_tree_selection_get_tree_view(sel));
-	
+
 	return view_details->can_change_selection != 0;
 }
 
@@ -1059,6 +1058,14 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 				GTK_SELECTION_MULTIPLE);
 	gtk_tree_selection_set_select_function(view_details->selection,
 			test_can_change_selection, view_details, NULL);
+
+	if (o_use_background_colour.int_value)
+	{
+		GdkColor base;
+		gdk_color_parse(o_background_colour.value, &base);
+		gtk_widget_modify_base(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &base);
+	}
 
 	/* Sorting */
 	view_details->sort_fn = NULL;
@@ -1228,7 +1235,7 @@ static void resort(ViewDetails *view_details)
 		default:
 			g_assert_not_reached();
 	}
-	
+
 	g_ptr_array_sort_with_data(view_details->items,
 				   (GCompareDataFunc) wrap_sort,
 				   view_details);
@@ -1295,7 +1302,7 @@ static void view_details_add_items(ViewIface *view, GPtrArray *new_items)
 			vitem->utf8_name = to_utf8(leafname);
 		else
 			vitem->utf8_name = NULL;
-		
+
 		g_ptr_array_add(items, vitem);
 
 		iter.user_data = GINT_TO_POINTER(items->len - 1);
@@ -1355,7 +1362,7 @@ static void view_details_update_items(ViewIface *view, GPtrArray *items)
 	GtkTreeModel	*model = (GtkTreeModel *) view_details;
 
 	g_return_if_fail(items->len > 0);
-	
+
 	/* The item data has already been modified, so this gives the
 	 * final sort order...
 	 */
@@ -1495,7 +1502,7 @@ static int view_details_count_selected(ViewIface *view)
 	return gtk_tree_selection_count_selected_rows(view_details->selection);
 #else
 	int count = 0;
-	
+
 	gtk_tree_selection_selected_foreach(view_details->selection,
 					    view_details_count_inc, &count);
 	return count;
@@ -1810,7 +1817,7 @@ static DirItem *iter_init(ViewIter *iter)
 	}
 	else if (flags & VIEW_ITER_FROM_BASE)
 		i = view_details->cursor_base;
-	
+
 	if (i < 0 || i >= n)
 	{
 		/* Either a normal iteration, or an iteration from an
@@ -1831,6 +1838,10 @@ static DirItem *iter_init(ViewIter *iter)
 
 	if (flags & VIEW_ITER_SELECTED && !is_selected(view_details, i))
 		return iter->next(iter);
+	if (flags & VIEW_ITER_DIR &&
+			((ViewItem *) view_details->items->pdata[i])->item->base_type != TYPE_DIRECTORY)
+		return iter->next(iter);
+
 	return iter->peek(iter);
 }
 
@@ -1852,7 +1863,12 @@ static DirItem *iter_prev(ViewIter *iter)
 		iter->n_remaining--;
 
 		if (i == -1)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = n - 1;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
@@ -1860,10 +1876,14 @@ static DirItem *iter_prev(ViewIter *iter)
 		    !is_selected(view_details, i))
 			continue;
 
+		if (iter->flags & VIEW_ITER_DIR &&
+			((ViewItem *) view_details->items->pdata[i])->item->base_type != TYPE_DIRECTORY)
+			continue;
+
 		iter->i = i;
 		return ((ViewItem *) view_details->items->pdata[i])->item;
 	}
-	
+
 	iter->i = -1;
 	return NULL;
 }
@@ -1879,14 +1899,19 @@ static DirItem *iter_next(ViewIter *iter)
 	/* i is the last item returned (always valid) */
 
 	g_return_val_if_fail(i >= 0 && i < n, NULL);
-	
+
 	while (iter->n_remaining)
 	{
 		i++;
 		iter->n_remaining--;
 
 		if (i == n)
+		{
+			if (iter->flags & VIEW_ITER_NO_LOOP)
+				break;
+
 			i = 0;
+		}
 
 		g_return_val_if_fail(i >= 0 && i < n, NULL);
 
@@ -1894,10 +1919,14 @@ static DirItem *iter_next(ViewIter *iter)
 		    !is_selected(view_details, i))
 			continue;
 
+		if (iter->flags & VIEW_ITER_DIR &&
+			((ViewItem *) view_details->items->pdata[i])->item->base_type != TYPE_DIRECTORY)
+			continue;
+
 		iter->i = i;
 		return ((ViewItem *) view_details->items->pdata[i])->item;
 	}
-	
+
 	iter->i = -1;
 	return NULL;
 }
@@ -1910,7 +1939,7 @@ static DirItem *iter_peek(ViewIter *iter)
 
 	if (i == -1)
 		return NULL;
-	
+
 	g_return_val_if_fail(i >= 0 && i < n, NULL);
 
 	return ((ViewItem *) view_details->items->pdata[i])->item;
@@ -1978,7 +2007,7 @@ static gboolean view_details_auto_scroll_callback(ViewIface *view)
 	window = gtk_tree_view_get_bin_window(tree);
 
 	gdk_window_get_pointer(window, &x, &y, &mask);
-	gdk_drawable_get_size(window, &w, NULL);
+	w = gdk_window_get_width(window);
 
 	adj = gtk_range_get_adjustment(scrollbar);
 	h = adj->page_size;
