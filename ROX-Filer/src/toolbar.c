@@ -691,7 +691,10 @@ static gboolean check_double()
 	//correctly double click depends on release time. *1.2 is hack
 	//This case we can't get release event because of begin_*_drag
 	if (current - lasttime < dct * 1000 * 1.3)
+	{
+		lasttime = 0;
 		return TRUE;
+	}
 
 	lasttime = current;
 	return FALSE;
@@ -700,7 +703,7 @@ static gint bar_pressed(GtkWidget *widget,
 				GdkEventButton *event,
 				FilerWindow *filer_window)
 {
-	if (event->type == GDK_2BUTTON_PRESS) return FALSE;
+	if (event->type != GDK_BUTTON_PRESS) return FALSE;
 	GtkWindow *win = GTK_WINDOW(gtk_widget_get_toplevel(widget));
 
 	switch (event->button)
