@@ -96,11 +96,6 @@ indicator'>If this is on then files which have one or more extended attributes s
           <numentry name='display_small_width' label='Small Icons (Max width):' unit='pixels' min='0' max='2000' width='4'>Maximum width for the text beside a Small Icon.</numentry>
 		</hbox>
 		<spacer/>
-		<hbox>
-			<numentry name='view_alpha' label='Transparency:' unit='%' min='0' max='100' width='3'>
-			This depends on your environment. Basically if your windows had shadows, then you'll get transparent view.
-			</numentry>
-		</hbox>
 	<spacer/>
 	<toggle name='vertical_order_small' label='Order small icons vertically'>If this option is on, then small icons are arranged in columns, not rows.</toggle>
 	<toggle name='vertical_order_large' label='Order large icons vertically'>If this option is on, then large icons are arranged in columns, not rows.</toggle>
@@ -339,6 +334,7 @@ xterm -e wget $1</entry>
       <label help='1'>Themes should be placed inside the ~/.icons directory.</label>
       <label help='1'>Use the 'Set Icon...' dialog box to set the icon for each MIME type. Note that icons set this way override those from the selected theme.</label>
     </frame>
+  </section>
 	<section title='Colours'>
       <frame label='File type colours'>
         <toggle name='display_colour_types' label='Colour files based on their types'>Filenames (and details) are coloured according to the file's type.</toggle>
@@ -368,9 +364,14 @@ xterm -e wget $1</entry>
 				<toggle name='use_background_colour' label='Use custom background colour:'></toggle>
 				<colour name='background_colour' label=''/>
 			</hbox>
+			<spacer/>
+			<hbox>
+				<numentry name='view_alpha' label='Transparency:' unit='%' min='0' max='100' width='3'>
+				This depends on your environment. Basically if your windows had shadows, then you'll get transparent view.
+				</numentry>
+			</hbox>
 		</frame>
     </section>
-  </section>
   <section title='Compatibility'>
     <frame label='Command line program'>
       <make-script label='Make script'/>
