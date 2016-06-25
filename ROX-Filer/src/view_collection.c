@@ -1152,8 +1152,12 @@ static gint coll_button_release(GtkWidget *widget,
 		{
 			filer_set_autoscroll(view_collection->filer_window,
 					     FALSE);
+
 			collection_end_lasso(view_collection->collection,
-				event->button == 1 ? GDK_SET : GDK_INVERT);
+				event->button != 1 ||
+				event->state & GDK_CONTROL_MASK ||
+				event->state & GDK_MOD1_MASK ?
+					GDK_INVERT : GDK_SET);
 		}
 
 		return FALSE;

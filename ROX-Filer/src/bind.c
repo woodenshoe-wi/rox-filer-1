@@ -104,7 +104,7 @@ BindAction bind_lookup_bev(BindContext context, GdkEventButton *event)
 
 	if (background)
 	{
-		gboolean clear = (!ctrl) && select;
+		gboolean clear = (!ctrl) && (!shift) && select;
 
 		if (context == BIND_PANEL)
 			return ACT_CLEAR_SELECTION;
