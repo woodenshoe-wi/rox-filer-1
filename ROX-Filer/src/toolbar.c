@@ -726,7 +726,7 @@ static gint bar_pressed(GtkWidget *widget,
 		}
 		break;
 	case 2:
-		filer_cut_links(filer_window, FALSE);
+		filer_cut_links(filer_window, 0);
 		view_autosize(filer_window->view);
 		view_cursor_to_iter(filer_window->view, NULL);
 		break;

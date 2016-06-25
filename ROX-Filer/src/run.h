@@ -16,8 +16,7 @@ gboolean run_by_uri(const gchar *uri, gchar **errmsg);
 gboolean run_diritem(const guchar *full_path,
 		     DirItem *item,
 		     FilerWindow *filer_window,
-		     FilerWindow *src_window,
-		     gboolean edit);
+		     OpenFlags flags);
 void open_to_show(const guchar *path);
 void examine(const guchar *path);
 void show_help_files(const char *dir);

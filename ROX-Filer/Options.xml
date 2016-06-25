@@ -20,7 +20,7 @@
         <vbox>
           <toggle name='filer_short_flag_names' label='Short titlebar flags'>Use single letters instead of words for Scanning, All and Thumbs indicators in the titlebar.</toggle>
           <toggle name='filer_unique_windows' label='Unique windows'>If you open a directory and that directory is already displayed in another window, then this option causes the other window to be closed.</toggle>
-          <toggle name='window_link' label='Window Link'>If you open a directory by middle button, the new window and the source window are toggled into link mode. In link mode, a directory left-clicked wills open in the window placed right side of the source window.</toggle>
+		  <toggle name='window_link' label='Window Link'>If you open a directory by middle button, the new window and the source window are toggled into link mode. In link mode, a directory left-clicked wills open in the window placed right side of the source window. If this is off, ctrl + middle button is assigned it.</toggle>
         </vbox>
         <vbox>
           <toggle name='bind_new_button_1' label='New window on button 1'>Clicking with mouse button 1 (usually the left button) opens a directory in a new window with this turned on. Clicking with the button-2 (middle) will reuse the current window.</toggle>

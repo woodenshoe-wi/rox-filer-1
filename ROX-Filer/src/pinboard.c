@@ -1318,6 +1318,7 @@ static void perform_action(PinIcon *pi, GdkEventButton *event)
 	switch (action)
 	{
 		case ACT_OPEN_ITEM:
+		case ACT_OPEN_ITEM_CLOSE:
 			dnd_motion_ungrab();
 			pinboard_wink_item(pi, TRUE);
 			if (event->type == GDK_2BUTTON_PRESS)
@@ -1325,11 +1326,12 @@ static void perform_action(PinIcon *pi, GdkEventButton *event)
 			icon_run(icon);
 			break;
 		case ACT_EDIT_ITEM:
+		case ACT_EDIT_ITEM_CLOSE:
 			dnd_motion_ungrab();
 			pinboard_wink_item(pi, TRUE);
 			if (event->type == GDK_2BUTTON_PRESS)
 				icon_set_selected(icon, FALSE);
-			run_diritem(icon->path, icon->item, NULL, NULL, TRUE);
+			run_diritem(icon->path, icon->item, NULL, OPEN_SHIFT);
 			break;
 		case ACT_PRIME_AND_SELECT:
 			if (!icon->selected)
