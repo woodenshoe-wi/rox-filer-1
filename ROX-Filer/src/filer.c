@@ -1878,6 +1878,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->new_win_first_scan = TRUE;
 	filer_window->req_sort = FALSE;
 	filer_window->may_resize = FALSE;
+	filer_window->presented = FALSE;
 
 	filer_window->message = NULL;
 	filer_window->minibuffer = NULL;
@@ -2253,6 +2254,11 @@ static gboolean focus_in_cb(
 		GdkEvent *event,
 		FilerWindow *fw)
 {
+	if (!fw->presented)
+	{
+		fw->presented = TRUE;
+		return FALSE;
+	}
 	if (!fw->left_link) return FALSE;
 
 	GdkRectangle lfrect, rfrect;

@@ -133,6 +133,7 @@ struct _FilerWindow
 	gboolean	new_win_first_scan;
 	gboolean	req_sort;
 	gboolean	may_resize;
+	gboolean	presented;
 
 	/* for checking user resize */
 	gint	configured;
