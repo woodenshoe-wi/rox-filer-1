@@ -1242,7 +1242,10 @@ void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean botto
 			iter.next(&iter);
 
 			if (!iter.peek(&iter))
+			{
+				if (fw->right_link) return;
 				iter = backup;
+			}
 		}
 
 		view_cursor_to_iter(fw->view, &iter);
