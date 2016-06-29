@@ -265,6 +265,33 @@ static void view_collection_class_init(gpointer gclass, gpointer data)
 	GTK_OBJECT_CLASS(object)->destroy = view_collection_destroy;
 }
 
+static gboolean set_bg_src(cairo_t *cr)
+{
+	static const float p = 65535.0;
+	if (o_use_background_colour.int_value)
+	{
+		GdkColor base;
+		gdk_color_parse(o_background_colour.value, &base);
+		cairo_set_source_rgba(cr,
+				base.red / p,
+				base.green / p,
+				base.blue / p,
+				(100 - o_view_alpha.int_value) / 100.0);
+
+		return TRUE;
+	}
+
+	if (o_display_colour_types.int_value)
+	{
+		cairo_set_source_rgba(cr,
+				1.0 - type_colours[TYPE_FILE].red / p,
+				1.0 - type_colours[TYPE_FILE].green / p,
+				1.0 - type_colours[TYPE_FILE].blue / p,
+				(100 - o_view_alpha.int_value) / 100.0);
+		return TRUE;
+	}
+	return FALSE;
+}
 static gboolean transparent_expose(GtkWidget *widget,
 			GdkEventExpose *event,
 			ViewCollection *view)
@@ -292,23 +319,7 @@ static gboolean transparent_expose(GtkWidget *widget,
 		cairo_paint(cr);
 
 		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-		if (o_use_background_colour.int_value)
-		{
-			GdkColor base;
-			gdk_color_parse(o_background_colour.value, &base);
-			cairo_set_source_rgba(cr,
-					base.red / p,
-					base.green / p,
-					base.blue / p,
-					(100 - o_view_alpha.int_value) / 100.0);
-		}
-		else
-			cairo_set_source_rgba(cr,
-					1.0 - type_colours[TYPE_FILE].red / p,
-					1.0 - type_colours[TYPE_FILE].green / p,
-					1.0 - type_colours[TYPE_FILE].blue / p,
-					(100 - o_view_alpha.int_value) / 100.0);
-
+		set_bg_src(cr);
 		cairo_paint(cr);
 	}
 	else if (o_view_alpha.int_value != 0)
@@ -425,17 +436,16 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
 	static const float p = 65535.0;
-	GdkColor base;
-	if (o_use_background_colour.int_value)
-		gdk_color_parse(o_background_colour.value, &base);
-	else
+	if (!set_bg_src(cr))
+	{
+		GdkColor base;
 		base = widget->style->base[GTK_STATE_NORMAL];
-
-	cairo_set_source_rgba(cr,
-			base.red / p,
-			base.green / p,
-			base.blue / p,
-			(100 - o_view_alpha.int_value) / 100.0);
+		cairo_set_source_rgba(cr,
+				base.red / p,
+				base.green / p,
+				base.blue / p,
+				(100 - o_view_alpha.int_value) / 100.0);
+	}
 	cairo_fill(cr);
 
 	size -= 1.4;
