@@ -1824,14 +1824,16 @@ static DirItem *iter_init(ViewIter *iter)
 	if (iter->n_remaining == 0)
 		return NULL;
 
-	if (flags & VIEW_ITER_FROM_CURSOR)
+	if (flags & VIEW_ITER_FROM_CURSOR || flags & VIEW_ITER_EVEN_OLD_CURSOR)
 	{
 		GtkTreePath *path;
 		gtk_tree_view_get_cursor((GtkTreeView *) view_details,
 					 &path, NULL);
-		if (!path)
+		if (path)
+			i = gtk_tree_path_get_indices(path)[0];
+		else if (flags & VIEW_ITER_FROM_CURSOR)
 			return NULL;	/* No cursor */
-		i = gtk_tree_path_get_indices(path)[0];
+
 		gtk_tree_path_free(path);
 	}
 	else if (flags & VIEW_ITER_FROM_BASE)
