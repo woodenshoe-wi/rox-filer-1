@@ -1795,7 +1795,8 @@ void filer_change_to(FilerWindow *fw,
 				view_cursor_to_iter(fw->view, &start);
 			view_show_cursor(fw->view);
 		}
-		gdk_event_free(event);
+		if (event)
+			gdk_event_free(event);
 	}
 
 	if (fw->mini_type == MINI_PATH)
