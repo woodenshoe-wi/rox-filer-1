@@ -104,8 +104,9 @@ struct _FilerWindow
 
 	FilerWindow *right_link;
 	FilerWindow *left_link;
-	gint right_link_idle;
+	guint right_link_idle;
 
+	guint pointer_idle;
 
 	gboolean	show_thumbs;
 	GQueue		*thumb_queue;		/* paths to thumbnail */
