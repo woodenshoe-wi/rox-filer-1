@@ -167,7 +167,7 @@ static Tool all_tools[] = {
 	 toolbar_sort_clicked, DROP_NONE, FALSE,
 	 FALSE},
 
-	{N_("Hidden"), ROX_STOCK_SHOW_HIDDEN, N_("Left: Show/hide hidden files\n"
+	{N_("Hide"), ROX_STOCK_SHOW_HIDDEN, N_("Left: Show/hide hidden files\n"
 						 "Right: Show/hide thumbnails"),
 	 toolbar_hidden_clicked, DROP_NONE, TRUE,
 	 FALSE},

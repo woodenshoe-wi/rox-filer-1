@@ -659,6 +659,7 @@ static void attach(FilerWindow *filer_window)
 {
 	gdk_window_set_cursor(filer_window->window->window, busy_cursor);
 	gdk_flush();
+
 	view_clear(filer_window->view);
 	filer_window->scanning = TRUE;
 
@@ -684,6 +685,9 @@ static void attach(FilerWindow *filer_window)
 					filer_window->sym_path,
 					filer_window->directory->error);
 	}
+
+	if (!filer_window->scanning)
+		filer_set_pointer(filer_window);
 }
 
 static void detach(FilerWindow *filer_window)
