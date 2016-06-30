@@ -2004,6 +2004,7 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 
 	g_return_if_fail(filer_window != NULL);
 
+	tooltip_show(NULL);
 	motion_window = NULL;
 
 	if (!filer_window->under_init)
