@@ -596,6 +596,7 @@ static gint collection_expose(GtkWidget *widget, GdkEventExpose *event)
 	else
 		last_col = phys_last_col;
 
+//	gint64 start_time = g_get_real_time();
 
 	for(row = start_row; row <= last_row; row++)
 		for(col = start_col; col <= last_col; col++)
@@ -607,6 +608,9 @@ static gint collection_expose(GtkWidget *widget, GdkEventExpose *event)
 				draw_one_item(collection, item, &item_area);
 			}
 		}
+
+//	g_print("expose row %d-%d, col %d-%d time : %li\n",
+//			start_row, last_row, start_col, last_col, g_get_real_time() - start_time);
 
 	if (collection->lasso_box)
 		draw_lasso_box(collection);
