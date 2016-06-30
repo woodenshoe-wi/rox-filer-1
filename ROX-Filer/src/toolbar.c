@@ -167,7 +167,7 @@ static Tool all_tools[] = {
 	 toolbar_sort_clicked, DROP_NONE, FALSE,
 	 FALSE},
 
-	{N_("Hidden"), ROX_STOCK_SHOW_HIDDEN, N_("Left: Show/hide hidden files\n"
+	{N_("Hide"), ROX_STOCK_SHOW_HIDDEN, N_("Left: Show/hide hidden files\n"
 						 "Right: Show/hide thumbnails"),
 	 toolbar_hidden_clicked, DROP_NONE, TRUE,
 	 FALSE},
@@ -726,7 +726,7 @@ static gint bar_pressed(GtkWidget *widget,
 		}
 		break;
 	case 2:
-		filer_cut_links(filer_window, FALSE);
+		filer_cut_links(filer_window, 0);
 		view_autosize(filer_window->view);
 		view_cursor_to_iter(filer_window->view, NULL);
 		break;

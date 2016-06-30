@@ -172,6 +172,15 @@ enum
 	TYPE_APPDIR,
 };
 
+typedef enum
+{
+	OPEN_SHIFT        = 0x01, /* Do ShiftOpen */
+	OPEN_SAME_WINDOW  = 0x02, /* Directories open in same window */
+	OPEN_CLOSE_WINDOW = 0x04, /* local use, Opening files closes the window */
+	OPEN_FROM_MINI    = 0x08, /* local use, Non-dir => close minibuffer */
+	OPEN_LINK_WINDOW  = 0x10,
+} OpenFlags;
+
 /* The namespaces for the SOAP messages */
 #define SOAP_ENV_NS_OLD "http://www.w3.org/2001/06/soap-envelope"
 #define SOAP_ENV_NS "http://www.w3.org/2001/12/soap-envelope"

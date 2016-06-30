@@ -20,7 +20,7 @@
         <vbox>
           <toggle name='filer_short_flag_names' label='Short titlebar flags'>Use single letters instead of words for Scanning, All and Thumbs indicators in the titlebar.</toggle>
           <toggle name='filer_unique_windows' label='Unique windows'>If you open a directory and that directory is already displayed in another window, then this option causes the other window to be closed.</toggle>
-          <toggle name='window_link' label='Window Link'>If you open a directory by middle button, the new window and the source window are toggled into link mode. In link mode, a directory left-clicked wills open in the window placed right side of the source window.</toggle>
+		  <toggle name='window_link' label='Window Link'>If you open a directory by middle button, the new window and the source window are toggled into link mode. In link mode, a directory left-clicked wills open in the window placed right side of the source window. If this is off, ctrl + middle button is assigned it.</toggle>
         </vbox>
         <vbox>
           <toggle name='bind_new_button_1' label='New window on button 1'>Clicking with mouse button 1 (usually the left button) opens a directory in a new window with this turned on. Clicking with the button-2 (middle) will reuse the current window.</toggle>
@@ -96,11 +96,6 @@ indicator'>If this is on then files which have one or more extended attributes s
           <numentry name='display_small_width' label='Small Icons (Max width):' unit='pixels' min='0' max='2000' width='4'>Maximum width for the text beside a Small Icon.</numentry>
 		</hbox>
 		<spacer/>
-		<hbox>
-			<numentry name='view_alpha' label='Transparency:' unit='%' min='0' max='100' width='3'>
-			This depends on your environment. Basically if your windows had shadows, then you'll get transparent view.
-			</numentry>
-		</hbox>
 	<spacer/>
 	<toggle name='vertical_order_small' label='Order small icons vertically'>If this option is on, then small icons are arranged in columns, not rows.</toggle>
 	<toggle name='vertical_order_large' label='Order large icons vertically'>If this option is on, then large icons are arranged in columns, not rows.</toggle>
@@ -339,6 +334,7 @@ xterm -e wget $1</entry>
       <label help='1'>Themes should be placed inside the ~/.icons directory.</label>
       <label help='1'>Use the 'Set Icon...' dialog box to set the icon for each MIME type. Note that icons set this way override those from the selected theme.</label>
     </frame>
+  </section>
 	<section title='Colours'>
       <frame label='File type colours'>
         <toggle name='display_colour_types' label='Colour files based on their types'>Filenames (and details) are coloured according to the file's type.</toggle>
@@ -368,9 +364,14 @@ xterm -e wget $1</entry>
 				<toggle name='use_background_colour' label='Use custom background colour:'></toggle>
 				<colour name='background_colour' label=''/>
 			</hbox>
+			<spacer/>
+			<hbox>
+				<numentry name='view_alpha' label='Transparency:' unit='%' min='0' max='100' width='3'>
+				This depends on your environment. Basically if your windows had shadows, then you'll get transparent view.
+				</numentry>
+			</hbox>
 		</frame>
     </section>
-  </section>
   <section title='Compatibility'>
     <frame label='Command line program'>
       <make-script label='Make script'/>
@@ -383,7 +384,7 @@ xterm -e wget $1</entry>
       <toggle name='panel_on_top' label="Panel stays on top">Keeps the panel above other windows. Enable this option to make sure the dock option works correctly in some versions of compiz. May require a restart to take effect.</toggle>
       <toggle name='panel_obey_workarea' label="Panel confined to work area">Keeps the panel confined to the work area specified by the Extended Window Manager Specification. Applies to new panels.</toggle>
 	  <toggle name='auto_move' label="Override control of the window move in the auto-resize">
-		  Normaly leave it for window managers. If this is on, the pointer warp on the auto-move is enabled too.</toggle>
+		Normaly window managers handle window move. If this is off, the pointer warp on the auto-move is disabled too.</toggle>
 	  <hbox>
         <numentry name='bottom_gap' label='Bottom gap:' unit='pixels' min='-99' max='999' width='3'>For the overrided auto-move in the auto-resize and the display settings.</numentry>
 	  <spacer/>

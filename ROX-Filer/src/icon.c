@@ -515,7 +515,7 @@ void icon_set_arguments(Icon *icon, const gchar *args)
 void icon_run(Icon *icon)
 {
 	if (icon->args == NULL)
-		run_diritem(icon->path, icon->item, NULL, NULL, FALSE);
+		run_diritem(icon->path, icon->item, NULL, 0);
 	else
 		run_with_args(icon->path, icon->item, icon->args);
 }
@@ -696,7 +696,7 @@ static void file_op(gpointer data, guint action, GtkWidget *widget)
 	{
 		case ACTION_SHIFT:
 			run_diritem(menu_icon->path, menu_icon->item,
-					NULL, NULL, TRUE);
+					NULL, OPEN_SHIFT);
 			break;
 		case ACTION_EDIT:
 			show_rename_box(menu_icon);

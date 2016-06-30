@@ -82,10 +82,10 @@ static gchar *opt_type_colours[][2] = {
 		(sizeof(opt_type_colours) / sizeof(opt_type_colours[0]))
 
 /* Parsed colours for file types */
-static Option o_display_colour_types;
+Option o_display_colour_types;
 static Option o_type_colours[NUM_TYPE_COLOURS];
 
-static GdkColor	type_colours[NUM_TYPE_COLOURS];
+GdkColor type_colours[NUM_TYPE_COLOURS];
 
 /* Static prototypes */
 static void alloc_type_colours(void);

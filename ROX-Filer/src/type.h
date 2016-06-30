@@ -54,6 +54,10 @@ extern MIME_type *mime_type_lookup(const char *type);
 extern GList *mime_type_name_list(gboolean only_regular);
 char *handler_for(MIME_type *type);
 
+extern GdkColor type_colours[];
+extern Option o_display_colour_types;
+
+
 GtkIconInfo *theme_lookup_icon(const gchar *icon_name, gint size,
 		GtkIconLookupFlags flags);
 GdkPixbuf *theme_load_icon(const gchar *icon_name, gint size,

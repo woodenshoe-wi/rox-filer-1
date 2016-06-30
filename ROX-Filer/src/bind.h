@@ -24,7 +24,9 @@ typedef enum {
 	ACT_SELECT_EXCL,	/* Select just this one item */
 	ACT_TOGGLE_SELECTED,	/* Toggle this item's selected state */
 	ACT_OPEN_ITEM,		/* Run app, load file or open dir */
+	ACT_OPEN_ITEM_CLOSE,
 	ACT_EDIT_ITEM,		/* Open app, load text file or mount dir */
+	ACT_EDIT_ITEM_CLOSE,
 	ACT_POPUP_MENU,		/* Show the popup menu */
 	ACT_CLEAR_SELECTION,	/* Unselect all icons in this area */
 	ACT_MOVE_ICON,		/* Reposition a pinboard/panel icon */

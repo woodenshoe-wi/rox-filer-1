@@ -101,7 +101,6 @@ static void dir_force_update_item(Directory *dir,
 		const gchar *leaf, gboolean thumb);
 static Directory *dir_new(const char *pathname);
 static void dir_scan(Directory *dir);
-static void delayed_notify(Directory *dir, gboolean mainthread);
 
 #ifdef USE_NOTIFY
 static void dir_rescan_soon(Directory *dir);
@@ -506,6 +505,38 @@ static const guchar *make_path2(const char *dir, const char *leaf)
 	return buffer->str;
 }
 
+static gint notify_timeout(gpointer data)
+{
+	Directory	*dir = (Directory *) data;
+
+	dir_merge_new(dir);
+
+	dir->notify_active = 0;
+	g_object_unref(dir);
+
+	return FALSE;
+}
+
+/* Call dir_merge_new() after a while. */
+static void delayed_notify(Directory *dir, gboolean mainthread)
+{
+	if (!mainthread)
+	{
+		dir->req_notify = TRUE;
+		return;
+	}
+
+	if (dir->notify_active)
+		return;
+
+	g_object_ref(dir);
+
+	if (dir->notify_time < DIR_NOTIFY_TIME)
+		dir->notify_time += DIR_NOTIFY_TIME / 4;
+
+	dir->notify_active = g_timeout_add(dir->notify_time, notify_timeout, dir);
+}
+
 /* This is called in the background when there are items on the
  * dir->recheck_list to process.
  */
@@ -599,6 +630,11 @@ static gboolean recheck_callback(gpointer data)
 	{
 		dir->req_scan_off = FALSE;
 
+		if (dir->notify_active)
+		{
+			g_source_remove(dir->notify_active);
+			notify_timeout(dir);
+		}
 		if (dir->req_notify)
 		{
 			dir->req_notify = FALSE;
@@ -785,42 +821,6 @@ static void free_items_array(GPtrArray *array)
 	g_ptr_array_free(array, TRUE);
 }
 
-static gint notify_timeout(gpointer data)
-{
-	Directory	*dir = (Directory *) data;
-
-	g_return_val_if_fail(dir->notify_active == TRUE, FALSE);
-
-	dir_merge_new(dir);
-
-	dir->notify_active = FALSE;
-	g_object_unref(dir);
-
-	return FALSE;
-}
-
-/* Call dir_merge_new() after a while. */
-static void delayed_notify(Directory *dir, gboolean mainthread)
-{
-	if (!mainthread)
-	{
-		dir->req_notify = TRUE;
-		return;
-	}
-
-	if (dir->notify_active)
-		return;
-
-	g_object_ref(dir);
-
-	if (dir->notify_time < DIR_NOTIFY_TIME)
-		dir->notify_time += DIR_NOTIFY_TIME / 4;
-
-	g_timeout_add(dir->notify_time, notify_timeout, dir);
-	dir->notify_active = TRUE;
-}
-
-
 static gboolean compare_items(DirItem  *item, DirItem  *old)
 {
 	if (item->lstat_errno == old->lstat_errno
@@ -888,6 +888,9 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 		}
 		else
 		{
+			if (item->flags & ITEM_FLAG_DIR_NEED_EXAMINE)
+				old.flags |= ITEM_FLAG_DIR_NEED_EXAMINE;
+
 			if (do_compare && compare_items(item, &old))
 				goto out;
 
@@ -1085,7 +1088,7 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 
 	dir->users = NULL;
 	dir->needs_update = TRUE;
-	dir->notify_active = FALSE;
+	dir->notify_active = 0;
 	dir->notify_time = 1;
 	dir->pathname = NULL;
 	dir->error = NULL;

@@ -1158,14 +1158,16 @@ static void perform_action(Panel *panel, PanelIcon *pi, GdkEventButton *event)
 	switch (action)
 	{
 		case ACT_OPEN_ITEM:
+		case ACT_OPEN_ITEM_CLOSE:
 			dnd_motion_ungrab();
 			wink_widget(pi->widget);
 			icon_run(icon);
 			break;
 		case ACT_EDIT_ITEM:
+		case ACT_EDIT_ITEM_CLOSE:
 			dnd_motion_ungrab();
 			wink_widget(pi->widget);
-			run_diritem(icon->path, icon->item, NULL, NULL, TRUE);
+			run_diritem(icon->path, icon->item, NULL, OPEN_SHIFT);
 			break;
 		case ACT_POPUP_MENU:
 			dnd_motion_ungrab();

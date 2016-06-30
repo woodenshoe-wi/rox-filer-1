@@ -44,12 +44,10 @@
 /* Static prototypes */
 static void write_data(gpointer data, gint fd, GdkInputCondition cond);
 static gboolean follow_symlink(const char *full_path,
-			       FilerWindow *filer_window,
-			       FilerWindow *src_window);
+					FilerWindow *fw, OpenFlags flags);
 static gboolean open_file(const guchar *path, MIME_type *type);
-static FilerWindow *open_mountpoint(const guchar *full_path, DirItem *item,
-			    FilerWindow *filer_window, FilerWindow *src_window,
-			    gboolean edit, gboolean winlnk);
+static void open_mountpoint(const guchar *full_path, DirItem *item,
+			    FilerWindow *fw, gboolean edit, OpenFlags flags);
 static gboolean run_desktop(const char *full_path,
 			    const char **args, const char *dir);
 static gboolean type_open(const char *path, MIME_type *type);
@@ -243,6 +241,58 @@ void run_with_args(const char *path, DirItem *item, const char *args)
 	g_strfreev(argv);
 }
 
+static FilerWindow *open_or_change(
+		FilerWindow *fw,
+		const gchar *pto,
+		const gchar *pfrom,
+		OpenFlags flags)
+{
+	FilerWindow *ret = fw;
+	gboolean same = FALSE;
+	gboolean winlnk = FALSE;
+
+	if (flags & OPEN_LINK_WINDOW)
+	{
+		winlnk = TRUE;
+		if (fw->right_link)
+		{
+			ret = fw->right_link;
+			filer_copy_settings(fw, ret);
+			same = TRUE;
+		}
+	}
+	else if (flags & OPEN_SAME_WINDOW)
+		same = TRUE;
+
+	if (same)
+		filer_change_to(ret, pto, pfrom);
+	else
+	{
+		ret = filer_opendir(pto, fw, NULL, winlnk);
+		if (pfrom && ret)
+			display_set_autoselect(ret, pfrom);
+	}
+
+	if (winlnk && ret)
+	{
+		//clear link mark
+		gtk_widget_queue_draw(GTK_WIDGET(fw->view));
+
+		fw->right_link = ret;
+		filer_set_title(fw);
+		ret->left_link = fw;
+		filer_set_title(ret);
+
+		filer_link(fw, ret);
+
+		//this emits configure event
+		//gtk_window_present(GTK_WINDOW(fw->window));
+
+		gdk_window_focus(fw->window->window, 0);
+	}
+
+	return ret;
+}
 /* Load a file, open a directory or run an application. Or, if 'edit' is set:
  * edit a file, open an application, follow a symlink or mount a device.
  *
@@ -254,12 +304,13 @@ void run_with_args(const char *path, DirItem *item, const char *args)
  */
 gboolean run_diritem(const guchar *full_path,
 		     DirItem *item,
-		     FilerWindow *filer_window,
-		     FilerWindow *src_window,
-		     gboolean edit)
+		     FilerWindow *fw,
+		     OpenFlags flags)
 {
+	gboolean edit = (flags & OPEN_SHIFT) != 0;
+
 	if (item->flags & ITEM_FLAG_SYMLINK && edit)
-		return follow_symlink(full_path, filer_window, src_window);
+		return follow_symlink(full_path, fw, flags);
 
 	switch (item->base_type)
 	{
@@ -270,56 +321,21 @@ gboolean run_diritem(const guchar *full_path,
 				return TRUE;
 			}
 
-			gboolean winlnk =
-				!filer_window && o_window_link.int_value && src_window;
-			FilerWindow *tfw = filer_window;
-			if (winlnk) {
-				tfw = src_window->right_link;
-				if (tfw)
-					filer_copy_settings(src_window, tfw);
-/*
-				if (src_window->right_link)
-					gtk_widget_destroy(src_window->right_link->window);
-*/
-			}
-
 			if (item->flags & ITEM_FLAG_MOUNT_POINT)
 			{
-				tfw = open_mountpoint(full_path, item,
-						tfw, src_window, edit, winlnk);
+				open_mountpoint(full_path, item,
+						fw, edit, flags);
 			}
-			else if (tfw)
-				filer_change_to(tfw, full_path, NULL);
 			else
-			{
-				tfw = filer_opendir(full_path, src_window, NULL, winlnk);
-			}
-
-			if (winlnk)
-			{
-				//clear link mark
-				gtk_widget_queue_draw(GTK_WIDGET(src_window->view));
-
-				src_window->right_link = tfw;
-				filer_set_title(src_window);
-				tfw->left_link = src_window;
-				filer_set_title(tfw);
-
-				filer_link(src_window, tfw);
-
-				//this emits configure event
-				//gtk_window_present(GTK_WINDOW(src_window->window));
-
-				gdk_window_focus(src_window->window->window, 0);
-			}
+				open_or_change(fw, full_path, NULL, flags);
 
 			return TRUE;
 		case TYPE_FILE:
 			if (EXECUTABLE_FILE(item) && !edit)
 			{
 				const char *argv[] = {NULL, NULL};
-				guchar	*dir = filer_window
-						? filer_window->sym_path
+				guchar	*dir = fw
+						? fw->sym_path
 						: NULL;
 
 				if (item->mime_type == application_x_desktop)
@@ -353,7 +369,7 @@ gboolean run_by_path(const guchar *full_path)
 	/* XXX: Loads an image - wasteful */
 	item = diritem_new("");
 	diritem_restat(full_path, item, NULL, TRUE);
-	retval = run_diritem(full_path, item, NULL, NULL, FALSE);
+	retval = run_diritem(full_path, item, NULL, 0);
 	diritem_free(item);
 
 	return retval;
@@ -529,8 +545,7 @@ finish:
  * new window if that is NULL.
  */
 static gboolean follow_symlink(const char *full_path,
-			       FilerWindow *filer_window,
-			       FilerWindow *src_window)
+			FilerWindow *fw, OpenFlags flags)
 {
 	char	*real, *slash;
 	char	*new_dir;
@@ -580,16 +595,7 @@ static gboolean follow_symlink(const char *full_path,
 	else
 		new_dir = "/";
 
-	if (filer_window)
-		filer_change_to(filer_window, new_dir, slash + 1);
-	else
-	{
-		FilerWindow *new;
-
-		new = filer_opendir(new_dir, src_window, NULL, FALSE);
-		if (new)
-			display_set_autoselect(new, slash + 1);
-	}
+	open_or_change(fw, new_dir, slash + 1, flags);
 
 	g_free(real);
 
@@ -620,9 +626,8 @@ static gboolean open_file(const guchar *path, MIME_type *type)
 }
 
 /* Called like run_diritem, when a mount-point is opened */
-static FilerWindow *open_mountpoint(const guchar *full_path, DirItem *item,
-			    FilerWindow *filer_window, FilerWindow *src_window,
-			    gboolean edit, gboolean winlnk)
+static void open_mountpoint(const guchar *full_path, DirItem *item,
+		FilerWindow *fw, gboolean edit, OpenFlags flags)
 {
 	gboolean mounted = (item->flags & ITEM_FLAG_MOUNTED) != 0;
 
@@ -631,20 +636,13 @@ static FilerWindow *open_mountpoint(const guchar *full_path, DirItem *item,
 		GList	*paths;
 
 		paths = g_list_prepend(NULL, (gpointer) full_path);
-		action_mount(paths, filer_window == NULL, !mounted, -1);
+		action_mount(paths, fw == NULL, !mounted, -1);
 		g_list_free(paths);
-		if (filer_window && !mounted)
-			filer_change_to(filer_window, full_path, NULL);
+		if (fw && !mounted)
+			filer_change_to(fw, full_path, NULL);
 	}
 	else
-	{
-		if (filer_window)
-			filer_change_to(filer_window, full_path, NULL);
-		else
-			return filer_opendir(full_path, src_window, NULL, winlnk);
-	}
-
-	return filer_window;
+		open_or_change(fw, full_path, NULL, flags);
 }
 
 /* full_path is a .desktop file. Execute the application, using the Exec line

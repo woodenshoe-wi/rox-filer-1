@@ -265,6 +265,33 @@ static void view_collection_class_init(gpointer gclass, gpointer data)
 	GTK_OBJECT_CLASS(object)->destroy = view_collection_destroy;
 }
 
+static gboolean set_bg_src(cairo_t *cr)
+{
+	static const float p = 65535.0;
+	if (o_use_background_colour.int_value)
+	{
+		GdkColor base;
+		gdk_color_parse(o_background_colour.value, &base);
+		cairo_set_source_rgba(cr,
+				base.red / p,
+				base.green / p,
+				base.blue / p,
+				(100 - o_view_alpha.int_value) / 100.0);
+
+		return TRUE;
+	}
+
+	if (o_display_colour_types.int_value)
+	{
+		cairo_set_source_rgba(cr,
+				1.0 - type_colours[TYPE_FILE].red / p,
+				1.0 - type_colours[TYPE_FILE].green / p,
+				1.0 - type_colours[TYPE_FILE].blue / p,
+				(100 - o_view_alpha.int_value) / 100.0);
+		return TRUE;
+	}
+	return FALSE;
+}
 static gboolean transparent_expose(GtkWidget *widget,
 			GdkEventExpose *event,
 			ViewCollection *view)
@@ -281,24 +308,19 @@ static gboolean transparent_expose(GtkWidget *widget,
 	if (view->filer_window->directory->error)
 	{
 		cairo_paint(cr);
+
 		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 		cairo_set_source_rgba(cr, 0.9, .0, .0, .7);
-		cairo_fill(cr);
+		cairo_paint(cr);
 	}
-	else if (o_use_background_colour.int_value)
+	else if (o_use_background_colour.int_value ||
+			o_display_colour_types.int_value)
 	{
 		cairo_paint(cr);
 
 		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-//		gdk_cairo_region(cr, event->region);
-		GdkColor base;
-		gdk_color_parse(o_background_colour.value, &base);
-		cairo_set_source_rgba(cr,
-				base.red / p,
-				base.green / p,
-				base.blue / p,
-				(100 - o_view_alpha.int_value) / 100.0);
-		cairo_fill(cr);
+		set_bg_src(cr);
+		cairo_paint(cr);
 	}
 	else if (o_view_alpha.int_value != 0)
 		cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
@@ -414,17 +436,16 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
 	static const float p = 65535.0;
-	GdkColor base;
-	if (o_use_background_colour.int_value)
-		gdk_color_parse(o_background_colour.value, &base);
-	else
+	if (!set_bg_src(cr))
+	{
+		GdkColor base;
 		base = widget->style->base[GTK_STATE_NORMAL];
-
-	cairo_set_source_rgba(cr,
-			base.red / p,
-			base.green / p,
-			base.blue / p,
-			(100 - o_view_alpha.int_value) / 100.0);
+		cairo_set_source_rgba(cr,
+				base.red / p,
+				base.green / p,
+				base.blue / p,
+				(100 - o_view_alpha.int_value) / 100.0);
+	}
 	cairo_fill(cr);
 
 	size -= 1.4;
@@ -1152,8 +1173,12 @@ static gint coll_button_release(GtkWidget *widget,
 		{
 			filer_set_autoscroll(view_collection->filer_window,
 					     FALSE);
+
 			collection_end_lasso(view_collection->collection,
-				event->button == 1 ? GDK_SET : GDK_INVERT);
+				event->button != 1 ||
+				event->state & GDK_CONTROL_MASK ||
+				event->state & GDK_MOD1_MASK ?
+					GDK_INVERT : GDK_SET);
 		}
 
 		return FALSE;

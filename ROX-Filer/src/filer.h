@@ -16,14 +16,6 @@ enum {
 
 typedef enum
 {
-	OPEN_SHIFT		= 0x01,	/* Do ShiftOpen */
-	OPEN_SAME_WINDOW	= 0x02, /* Directories open in same window */
-	OPEN_CLOSE_WINDOW	= 0x04, /* Opening files closes the window */
-	OPEN_FROM_MINI		= 0x08,	/* Non-dir => close minibuffer */
-} OpenFlags;
-
-typedef enum
-{
 	FILER_NEEDS_RESCAN	= 0x01, /* Call may_rescan after scanning */
 	FILER_UPDATING		= 0x02, /* (scanning) items may already exist */
 	FILER_CREATE_THUMBS	= 0x04, /* Create thumbs when scan ends */
@@ -141,6 +133,7 @@ struct _FilerWindow
 	gboolean	new_win_first_scan;
 	gboolean	req_sort;
 	gboolean	may_resize;
+	gboolean	presented;
 
 	/* for checking user resize */
 	gint	configured;
@@ -217,7 +210,7 @@ void filer_save_settings(FilerWindow *fwin, gboolean parent);
 void filer_clear_settings(FilerWindow *fwin);
 void filer_copy_settings(FilerWindow *src, FilerWindow *dest);
 void filer_link(FilerWindow *left, FilerWindow *right);
-void filer_cut_links(FilerWindow *fw, gboolean left_only);
+void filer_cut_links(FilerWindow *fw, gint side);
 void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean bottom);
 
 UnmountPrompt filer_get_unmount_action(const char *path);

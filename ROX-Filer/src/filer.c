@@ -659,6 +659,7 @@ static void attach(FilerWindow *filer_window)
 {
 	gdk_window_set_cursor(filer_window->window->window, busy_cursor);
 	gdk_flush();
+
 	view_clear(filer_window->view);
 	filer_window->scanning = TRUE;
 
@@ -684,6 +685,9 @@ static void attach(FilerWindow *filer_window)
 					filer_window->sym_path,
 					filer_window->directory->error);
 	}
+
+	if (!filer_window->scanning)
+		filer_set_pointer(filer_window);
 }
 
 static void detach(FilerWindow *filer_window)
@@ -900,24 +904,24 @@ gboolean filer_window_delete(GtkWidget *window,
 	return FALSE;
 }
 
-void filer_cut_links(FilerWindow *fw, gboolean left_only)
+void filer_cut_links(FilerWindow *fw, gint side)
 {
 	if (!fw->left_link && !fw->right_link) return;
 
-	if (fw->left_link)
+	if (side != 1 && fw->left_link)
 	{
 		fw->left_link->right_link = NULL;
 		filer_set_title(fw->left_link);
 		fw->left_link = NULL;
 	}
 
-	if (!left_only && fw->right_link)
+	if (side != -1 && fw->right_link)
 	{
 		gtk_widget_destroy(fw->right_link->window);
 		fw->right_link = NULL;
 	}
 
-	if (!left_only && fw->right_link_idle)
+	if (side != -1 && fw->right_link_idle)
 	{
 		g_source_remove(fw->right_link_idle);
 		fw->right_link_idle = 0;
@@ -931,7 +935,7 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 {
 	all_filer_windows = g_list_remove(all_filer_windows, filer_window);
 
-	filer_cut_links(filer_window, FALSE);
+	filer_cut_links(filer_window, 0);
 
 	g_object_set_data(G_OBJECT(widget), "filer_window", NULL);
 
@@ -1161,10 +1165,7 @@ void filer_openitem(FilerWindow *filer_window, ViewIter *iter, OpenFlags flags)
 		wink = FALSE;
 
 	old_dir = filer_window->directory;
-	if (run_diritem(full_path, item,
-			flags & OPEN_SAME_WINDOW ? filer_window : NULL,
-			filer_window,
-			shift))
+	if (run_diritem(full_path, item, filer_window, flags))
 	{
 		if (old_dir != filer_window->directory)
 			return;
@@ -1205,7 +1206,7 @@ static gboolean scroll_cb(GtkWidget *widget,
 	return FALSE;
 }
 
-static gboolean key_link_cb(gpointer ap)
+static gboolean link_cursor_cb(gpointer ap)
 {
 	ViewIter iter;
 	FilerWindow *fw = (FilerWindow *) ap;
@@ -1215,19 +1216,17 @@ static gboolean key_link_cb(gpointer ap)
 	if (iter.peek(&iter) && iter.peek(&iter)->base_type == TYPE_DIRECTORY)
 		filer_openitem(fw, &iter,
 				(iter.peek(&iter)->flags & ITEM_FLAG_APPDIR ?
-				 OPEN_SHIFT : OPEN_CLOSE_WINDOW));
+				 OPEN_SHIFT : 0) | OPEN_LINK_WINDOW);
 
 	return FALSE;
 }
 static void link_cursor(FilerWindow *fw)
 {
 	if (!fw->right_link_idle)
-		fw->right_link_idle = g_idle_add(key_link_cb, fw);
+		fw->right_link_idle = g_idle_add(link_cursor_cb, fw);
 }
 void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean bottom)
 {
-	if (!o_window_link.int_value) return;
-
 	ViewIter iter;
 
 	view_get_iter(fw->view, &iter,
@@ -1247,7 +1246,10 @@ void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean botto
 			iter.next(&iter);
 
 			if (!iter.peek(&iter))
+			{
+				if (fw->right_link) return;
 				iter = backup;
+			}
 		}
 
 		view_cursor_to_iter(fw->view, &iter);
@@ -1312,10 +1314,31 @@ static void return_pressed(FilerWindow *filer_window, GdkEventKey *event)
 
 	if (event->state & GDK_SHIFT_MASK)
 		flags |= OPEN_SHIFT;
-	if (event->state & GDK_MOD1_MASK)
+
+	if (event->state & GDK_MOD1_MASK ||
+			event->state & GDK_CONTROL_MASK)
+	{
+		if (filer_window->right_link &&
+				iter.peek(&iter)->base_type == TYPE_DIRECTORY)
+		{
+			if (o_window_link.int_value !=
+					((event->state & GDK_CONTROL_MASK) != 0))
+			{
+				filer_cut_links(filer_window->right_link, -1);
+				return;
+			}
+			else
+				filer_cut_links(filer_window, 1);
+		}
+		else if (o_window_link.int_value !=
+				((event->state & GDK_CONTROL_MASK) != 0))
+			flags |= OPEN_LINK_WINDOW;
+
 		flags |= OPEN_CLOSE_WINDOW;
+	}
 	else
 		flags |= OPEN_SAME_WINDOW;
+
 
 	filer_openitem(filer_window, &iter, flags);
 }
@@ -1548,7 +1571,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 	{
 		case GDK_Escape:
 			if ((filer_window->right_link || filer_window->left_link))
-				filer_cut_links(filer_window, FALSE);
+				filer_cut_links(filer_window, 0);
 			filer_target_mode(filer_window, NULL, NULL, NULL);
 			view_cursor_to_iter(view, NULL);
 			view_clear_selection(view);
@@ -1700,7 +1723,7 @@ void filer_change_to(FilerWindow *fw,
 		return;
 	}
 
-	filer_cut_links(fw, FALSE);
+	filer_cut_links(fw, 0);
 
 	fw->under_init = TRUE;
 	fw->first_scan = TRUE;
@@ -1859,6 +1882,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->new_win_first_scan = TRUE;
 	filer_window->req_sort = FALSE;
 	filer_window->may_resize = FALSE;
+	filer_window->presented = FALSE;
 
 	filer_window->message = NULL;
 	filer_window->minibuffer = NULL;
@@ -2234,6 +2258,11 @@ static gboolean focus_in_cb(
 		GdkEvent *event,
 		FilerWindow *fw)
 {
+	if (!fw->presented)
+	{
+		fw->presented = TRUE;
+		return FALSE;
+	}
 	if (!fw->left_link) return FALSE;
 
 	GdkRectangle lfrect, rfrect;
@@ -2244,7 +2273,7 @@ static gboolean focus_in_cb(
 	if (
 			rfrect.x + 33 < lfrect.x + lfrect.width ||
 			rfrect.x - 33 > lfrect.x + lfrect.width)
-		filer_cut_links(fw, TRUE);
+		filer_cut_links(fw, -1);
 
 	return FALSE;
 }
@@ -3165,10 +3194,10 @@ static guchar *filer_create_uri_list(FilerWindow *filer_window)
 	return retval;
 }
 
-void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
+void filer_perform_action(FilerWindow *fw, GdkEventButton *event)
 {
 	BindAction	action;
-	ViewIface	*view = filer_window->view;
+	ViewIface	*view = fw->view;
 	DirItem		*item = NULL;
 	gboolean	press = event->type == GDK_BUTTON_PRESS;
 	ViewIter	iter;
@@ -3185,23 +3214,22 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 
 	if (item && event->button == 1 &&
 		view_get_selected(view, &iter) &&
-		filer_window->selection_state == GTK_STATE_ACTIVE)
+		fw->selection_state == GTK_STATE_ACTIVE)
 	{
 		/* Possibly a really slow DnD operation? */
-		filer_window->temp_item_selected = FALSE;
+		fw->temp_item_selected = FALSE;
 
-		filer_selection_changed(filer_window, event->time);
+		filer_selection_changed(fw, event->time);
 		return;
 	}
 
-	if (filer_window->target_cb)
+	if (fw->target_cb)
 	{
 		dnd_motion_ungrab();
 		if (item && press && event->button == 1)
-			filer_window->target_cb(filer_window, &iter,
-					filer_window->target_data);
+			fw->target_cb(fw, &iter, fw->target_data);
 
-		filer_target_mode(filer_window, NULL, NULL, NULL);
+		filer_target_mode(fw, NULL, NULL, NULL);
 
 		return;
 	}
@@ -3252,36 +3280,69 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 		case ACT_SELECT_EXCL:
 			view_select_only(view, &iter);
 			break;
+
+		case ACT_EDIT_ITEM_CLOSE:
+			flags = OPEN_CLOSE_WINDOW;
+			/* (no break) */
 		case ACT_EDIT_ITEM:
 			flags |= OPEN_SHIFT;
-			/* (no break) */
+		case ACT_OPEN_ITEM_CLOSE:
+			if (~flags & OPEN_SHIFT)
+				flags = OPEN_CLOSE_WINDOW;
 		case ACT_OPEN_ITEM:
-			if (
-					(item->base_type == TYPE_DIRECTORY &&
-						(filer_window->right_link || filer_window->left_link))
-					!=
-					(event->button != 1 || event->state & GDK_MOD1_MASK)
-					&&
-					(!filer_window->right_link ||
-						strcmp(g_strrstr(filer_window->right_link->sym_path, "/") + 1,
-							item->leafname))
-				)
-				flags |= OPEN_CLOSE_WINDOW;
-			else
+			if (~flags & OPEN_CLOSE_WINDOW)
 				flags |= OPEN_SAME_WINDOW;
 
 			if (o_new_button_1.int_value)
 				flags ^= OPEN_SAME_WINDOW;
+			else if (item->base_type == TYPE_DIRECTORY)
+			{
+				gboolean ctrl = (event->state & GDK_CONTROL_MASK) != 0;
+
+				if ((fw->right_link || fw->left_link))
+				{
+					if (fw->right_link &&
+						!strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
+							item->leafname))
+					{
+						if (~flags & OPEN_SAME_WINDOW)
+						{
+							if (o_window_link.int_value != ctrl)
+							{
+								filer_cut_links(fw->right_link, -1);
+								break;
+							}
+							else
+								filer_cut_links(fw, 1);
+						}
+					}
+					else
+					{
+						//link mode
+						if (flags & OPEN_SAME_WINDOW)
+							flags |= OPEN_LINK_WINDOW;
+						else if (!ctrl)
+							flags |= OPEN_SAME_WINDOW;
+					}
+				}
+				else
+				{
+					if (~flags & OPEN_SAME_WINDOW &&
+						o_window_link.int_value != ctrl)
+						flags |= OPEN_LINK_WINDOW;
+				}
+			}
+
 			if (event->type == GDK_2BUTTON_PRESS)
 				view_set_selected(view, &iter, FALSE);
 			dnd_motion_ungrab();
 
-			filer_openitem(filer_window, &iter, flags);
+			filer_openitem(fw, &iter, flags);
 			break;
 		case ACT_POPUP_MENU:
 			dnd_motion_ungrab();
 			tooltip_show(NULL);
-			show_filer_menu(filer_window,
+			show_filer_menu(fw,
 					(GdkEvent *) event, &iter);
 			break;
 		case ACT_PRIME_AND_SELECT:
@@ -3312,15 +3373,15 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 			view_start_lasso_box(view, event);
 			break;
 		case ACT_RESIZE:
-			view_autosize(filer_window->view);
+			view_autosize(fw->view);
 			break;
 		default:
 			g_warning("Unsupported action : %d\n", action);
 			break;
 	}
 
-	if (filer_window->mini_type == MINI_REG_SELECT)
-		minibuffer_hide(filer_window);
+	if (fw->mini_type == MINI_REG_SELECT)
+		minibuffer_hide(fw);
 }
 
 /* It's time to make the tooltip appear. If we're not over the item any

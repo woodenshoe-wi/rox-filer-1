@@ -68,7 +68,7 @@ struct _Directory
 
 	struct stat	stat_info;	/* Internal use */
 
-	gboolean	notify_active;	/* Notify timeout is running */
+	guint		notify_active;	/* Notify timeout is running */
 	int			notify_time;	/* Time of Notify timeout */
 	gint		idle_callback;	/* Idle callback ID */
 	gboolean	in_scan_thread, req_scan_off, req_notify;

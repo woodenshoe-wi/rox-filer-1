@@ -121,7 +121,7 @@ void display_init()
 	option_add_int(&o_display_show_thumbs, "display_show_thumbs", FALSE);
 	option_add_int(&o_display_show_dir_thumbs, "display_show_dir_thumbs", TRUE);
 
-	option_add_int(&o_use_background_colour, "use_background_colour", TRUE);
+	option_add_int(&o_use_background_colour, "use_background_colour", FALSE);
 	option_add_string(&o_background_colour, "background_colour", "#000000");
 
 	option_add_notify(options_changed);
