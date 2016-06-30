@@ -1475,7 +1475,8 @@ static void view_details_clear(ViewIface *view)
 	g_ptr_array_set_size(items, 0);
 	gtk_tree_path_free(path);
 
-	gtk_tree_view_scroll_to_point(GTK_TREE_VIEW(view), 0, 0);
+	if (GTK_WIDGET_REALIZED(view))
+		gtk_tree_view_scroll_to_point(GTK_TREE_VIEW(view), 0, 0);
 }
 
 static void view_details_select_all(ViewIface *view)
