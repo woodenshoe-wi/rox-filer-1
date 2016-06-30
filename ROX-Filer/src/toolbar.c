@@ -137,7 +137,7 @@ static Tool all_tools[] = {
 	 TRUE},
 
 	{N_("Scan"), GTK_STOCK_REFRESH, N_("Rescan directory contents\n"
-						"  Middle: Delete/re-create thumb cache"),
+						"  Middle: Delete/re-create thumbnail cache"),
 	 toolbar_refresh_clicked, DROP_NONE, TRUE,
 	 FALSE},
 
