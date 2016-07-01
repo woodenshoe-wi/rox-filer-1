@@ -475,7 +475,6 @@ static void queue_interesting(FilerWindow *filer_window)
 	}
 }
 
-gint pointer_idle = 0;
 static gboolean _set_pointer(void *vp)
 {
 	FilerWindow *fw = (FilerWindow *) vp;
@@ -483,7 +482,7 @@ static gboolean _set_pointer(void *vp)
 	gint x, y;
 	DirItem *item = NULL;
 
-	pointer_idle = 0;
+	fw->pointer_idle = 0;
 	if (!g_list_find(all_filer_windows, fw)) return FALSE;//destroyed
 
 	GdkWindow *gwin = gdk_window_get_pointer(fw->window->window, NULL, NULL, NULL);
@@ -501,11 +500,10 @@ static gboolean _set_pointer(void *vp)
 
 	return FALSE;
 }
-static void filer_set_pointer(void *fw)
+static void filer_set_pointer(FilerWindow *fw)
 {
-	if (pointer_idle)
-		g_source_remove(pointer_idle);
-	pointer_idle = g_idle_add(_set_pointer, fw);
+	if (!fw->pointer_idle)
+		fw->pointer_idle = g_idle_add(_set_pointer, fw);
 }
 
 static void check_and_resize(FilerWindow *fw) {
@@ -1795,7 +1793,8 @@ void filer_change_to(FilerWindow *fw,
 				view_cursor_to_iter(fw->view, &start);
 			view_show_cursor(fw->view);
 		}
-		gdk_event_free(event);
+		if (event)
+			gdk_event_free(event);
 	}
 
 	if (fw->mini_type == MINI_PATH)
@@ -1914,6 +1913,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->right_link = NULL;
 	filer_window->left_link = NULL;
 	filer_window->right_link_idle = 0;
+	filer_window->pointer_idle = 0;
 
 	tidy_sympath(filer_window->sym_path);
 
@@ -2004,6 +2004,7 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 
 	g_return_if_fail(filer_window != NULL);
 
+	tooltip_show(NULL);
 	motion_window = NULL;
 
 	if (!filer_window->under_init)
