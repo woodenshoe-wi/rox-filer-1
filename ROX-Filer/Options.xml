@@ -20,7 +20,7 @@
         <vbox>
           <toggle name='filer_short_flag_names' label='Short titlebar flags'>Use single letters instead of words for Scanning, All and Thumbs indicators in the titlebar.</toggle>
           <toggle name='filer_unique_windows' label='Unique windows'>If you open a directory and that directory is already displayed in another window, then this option causes the other window to be closed.</toggle>
-		  <toggle name='window_link' label='Window Link'>If you open a directory by middle button, the new window and the source window are toggled into link mode. In link mode, a directory left-clicked wills open in the window placed right side of the source window. If this is off, ctrl + middle button is assigned it.</toggle>
+          <toggle name='window_link' label='Window Link'>If this is on and you open a directory by middle button, the new window and the source window are toggled into link mode. In link mode, left-click a directory to open it in a window placed to the right of the source window. If this value is off, ctrl + middle button toggles the linked window.</toggle>
         </vbox>
         <vbox>
           <toggle name='bind_new_button_1' label='New window on button 1'>Clicking with mouse button 1 (usually the left button) opens a directory in a new window with this turned on. Clicking with the button-2 (middle) will reuse the current window.</toggle>
@@ -90,7 +90,7 @@ indicator'>If this is on then files which have one or more extended attributes s
 			<numentry name='display_max_length' label='(Wrapped, Details):' unit='pixels' min='0' max='2000' width='4'>Maximum length for Large Icons mode and Details.</numentry>
         </hbox>
 		<toggle name='wrap_by_char' label='Wrap by characters'>
-			If this option is on, file names will wrap by charactesrs instead of words.
+			If this option is on, file names will wrap by characters instead of words.
 		</toggle>
 		<hbox>
           <numentry name='display_small_width' label='Small Icons (Max width):' unit='pixels' min='0' max='2000' width='4'>Maximum width for the text beside a Small Icon.</numentry>
@@ -134,10 +134,10 @@ indicator'>If this is on then files which have one or more extended attributes s
         <label help='1'>When thumbnails are turned on, each image file in a directory is loaded and a small thumbnail of it is shown.</label>
 		<toggle name='display_show_thumbs' label='Show image thumbnails'>
 			This is the default setting for new windows. Use the Display menu to turn thumbnails on and off for individual windows.</toggle>
-		<toggle name='display_show_dir_thumbs' label='Show image thumbnails on directory'>
-			If there is a previously created thumbnail in directory, the thumbnail even shows on directory instead of a dir icon in the Icons View.</toggle>
-		<toggle name='create_sub_dir_thumbs' label='Create sub dir thumbs automatically'>
-			When there is no thumbs in a sub dir, this process tries to create all(or 999) thumbs in the dir. If this picked a wrong thumb, re-creating thumbs in the sub dir wills solve it. Re-creating file thumbs is assigned middle click on the scan button.
+		<toggle name='display_show_dir_thumbs' label='Show image thumbnail for directory.'>
+			In Icons View, if there is a previously-created thumbnail in a directory, the thumbnail is displayed instead of the directory icon.</toggle>
+		<toggle name='create_sub_dir_thumbs' label='Create sub-directory thumbnails automatically'>
+			When no items in a sub-directory have a thumbnail, this process tries to create (max 999) thumbnails then chooses one for display. If you don't like the choice, visit the sub-directory and middle-click the scan button in the toolbar to choose the first item.
 		</toggle>
 		<spacer/>
 		<hbox>
@@ -162,7 +162,7 @@ indicator'>If this is on then files which have one or more extended attributes s
 		</menu>
 	</hbox>
 		<toggle name='jpeg_thumbs' label='Use JPEG for thumbnails'>
-			Small file size and fast just about 4-6 times, though has'nt alpha.</toggle>
+			Small file size and about 4-6 times faster, but without alpha channel transparency.</toggle>
 	<spacer/>
 	<hbox>
 		<numentry name='purge_time' label='Purge Time for Memory Cache:' unit='sec' min='0' max='999999' width='6'>
@@ -367,7 +367,7 @@ xterm -e wget $1</entry>
 			<spacer/>
 			<hbox>
 				<numentry name='view_alpha' label='Transparency:' unit='%' min='0' max='100' width='3'>
-				This depends on your environment. Basically if your windows had shadows, then you'll get transparent view.
+				This depends on your environment. Basically if your windows have shadows, then they can also be transparent.
 				</numentry>
 			</hbox>
 		</frame>
@@ -383,12 +383,12 @@ xterm -e wget $1</entry>
       <toggle name='panel_is_dock' label="Panel is a 'dock'">Makes sure panels stay against screen edges. Disable this option if the panel stays above other windows against your wishes. Requires a restart to take effect.</toggle>
       <toggle name='panel_on_top' label="Panel stays on top">Keeps the panel above other windows. Enable this option to make sure the dock option works correctly in some versions of compiz. May require a restart to take effect.</toggle>
       <toggle name='panel_obey_workarea' label="Panel confined to work area">Keeps the panel confined to the work area specified by the Extended Window Manager Specification. Applies to new panels.</toggle>
-	  <toggle name='auto_move' label="Override control of the window move in the auto-resize">
-		Normaly window managers handle window move. If this is off, the pointer warp on the auto-move is disabled too.</toggle>
+	  <toggle name='auto_move' label="Take control of window move on auto-resize">
+		When this is on, rox rather than the window manager, handles window move. When this is off, pointer warp on auto-move is disabled.</toggle>
 	  <hbox>
-        <numentry name='bottom_gap' label='Bottom gap:' unit='pixels' min='-99' max='999' width='3'>For the overrided auto-move in the auto-resize and the display settings.</numentry>
+        <numentry name='bottom_gap' label='Bottom gap:' unit='pixels' min='-99' max='999' width='3'>For the overridden auto-move in the auto-resize and the display settings.</numentry>
 	  <spacer/>
-        <numentry name='right_gap' label='Right gap:' unit='pixels' min='-99' max='999' width='3'>For the overrided auto-move in the auto-resize and the display settings.</numentry>
+        <numentry name='right_gap' label='Right gap:' unit='pixels' min='-99' max='999' width='3'>For the overridden auto-move in the auto-resize and the display settings.</numentry>
       </hbox>
     </frame>
     <frame label='Drag and drop'>
@@ -399,7 +399,7 @@ xterm -e wget $1</entry>
     </frame>
 	<frame label='etc'>
 		<toggle name='fast_font_calc' label='Fast width calculating'>
-			If this option is on, in Small Icons mode, calculation of width of strings will be fast and irresponsible.
+			If this is on, string width calculations will be faster but less accurate in Small Icons mode.
 		</toggle>
 	</frame>
   </section>
