@@ -247,7 +247,7 @@ static void draw_noimage(GdkWindow *window, GdkRectangle *rect)
 	GdkRectangle dr;
 
 	cr = gdk_cairo_create(window);
-	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 
 	dr.x      = rect->x + rect->width / 6;
 	dr.width  = rect->width / 6 * 4;
@@ -262,7 +262,7 @@ static void draw_noimage(GdkWindow *window, GdkRectangle *rect)
 	cairo_pattern_add_color_stop_rgb(linpat, 0, 0.1, 0.1, 0.2);
 	cairo_pattern_add_color_stop_rgb(linpat, 1, 0.4, 0.4, 0.6);
 
-	cairo_set_line_width(cr, 1.1);
+	cairo_set_line_width(cr, 2.0);
 
 	cairo_set_source(cr, linpat);
 	cairo_stroke(cr);
@@ -283,7 +283,7 @@ static void draw_label_bg(GdkWindow *window,
 
 	cr = gdk_cairo_create(window);
 	gdk_cairo_set_source_color(cr, colour);
-	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 
 	drect.x      = rect->x;
 	drect.width  = rect->width;

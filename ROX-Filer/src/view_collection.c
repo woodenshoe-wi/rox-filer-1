@@ -302,32 +302,30 @@ static gboolean transparent_expose(GtkWidget *widget,
 	int i, n_rects;
 	static const float p = 65535.0;
 
-	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	gdk_cairo_region(cr, event->region);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 
 	if (view->filer_window->directory->error)
 	{
-		cairo_paint(cr);
-
-		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 		cairo_set_source_rgba(cr, 0.9, .0, .0, .7);
 		cairo_paint(cr);
 	}
 	else if (o_use_background_colour.int_value ||
 			o_display_colour_types.int_value)
 	{
-		cairo_paint(cr);
-
-		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 		set_bg_src(cr);
 		cairo_paint(cr);
 	}
 	else if (o_view_alpha.int_value != 0)
+	{
+		cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 		cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
+	}
 
 	if (!fg)
 		goto end;
 
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 	cairo_new_path(cr);
 	cairo_set_line_width(cr, 1.0);
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
@@ -337,7 +335,6 @@ static gboolean transparent_expose(GtkWidget *widget,
 			fg->blue / p,
 			//(100 - o_view_alpha.int_value) / 100.0);
 			1);
-	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
 	gdk_region_get_rectangles(event->region, &rects, &n_rects);
 	for (i = 0; i < n_rects; i++)
@@ -425,15 +422,12 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	int mid = rect->y + rect->height / 2;
 
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_GOOD);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 
-	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	cairo_move_to(cr, right, mid - size);
 	cairo_line_to(cr, right, mid + size);
 	cairo_line_to(cr, right - size, mid);
 	cairo_line_to(cr, right, mid - size);
-	cairo_fill_preserve(cr);
-
-	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
 	static const float p = 65535.0;
 	if (!set_bg_src(cr))
