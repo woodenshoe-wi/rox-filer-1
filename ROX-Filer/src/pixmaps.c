@@ -1118,7 +1118,7 @@ MaskedPixmap *masked_pixmap_new(GdkPixbuf *src)
 
 	mp->huge_width = gdk_pixbuf_get_width(src);
 	mp->huge_height = gdk_pixbuf_get_height(src);
-	if (mp->huge_width < thumb_size && mp->huge_height < thumb_size)
+	if (mp->huge_width <= thumb_size && mp->huge_height <= thumb_size)
 	{
 		g_object_ref(src);
 		mp->src_pixbuf = src;
