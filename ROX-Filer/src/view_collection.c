@@ -64,9 +64,6 @@ struct _Template {
 	GdkRectangle	image;
 };
 
-/* GC for drawing colour filenames */
-static GdkGC	*type_gc = NULL;
-
 /* Static prototypes */
 static void view_collection_finialize(GObject *object);
 static void view_collection_class_init(gpointer gclass, gpointer data);
@@ -92,14 +89,13 @@ static gboolean test_point(Collection *collection,
 				CollectionItem *item,
 				int width, int height,
 				gpointer user_data);
-static void draw_string(GtkWidget *widget,
-		PangoLayout *layout,
-		GdkRectangle *area,	/* Area available on screen */
-		int 	width,		/* Width of the full string */
-		int 	height,		/* height of the full string */
-		GtkStateType selection_state,
-		gboolean box,
-		gboolean link);
+static void draw_string(cairo_t *cr,
+		PangoLayout  *layout,
+		GdkRectangle *area,  /* Area available on screen */
+		int          width,  /* Width of the full string */
+		int          height, /* height of the full string */
+		GdkColor     *fg,
+		GdkColor     *bg);
 static void view_collection_iface_init(gpointer giface, gpointer iface_data);
 static gint coll_motion_notify(GtkWidget *widget,
 			       GdkEventMotion *event,
@@ -410,14 +406,13 @@ static void view_collection_init(GTypeInstance *object, gpointer gclass)
 			GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
 }
 
-static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
+static void draw_dir_mark(cairo_t *cr,
+		GtkWidget *widget, GdkRectangle *rect, GdkColor *colour)
 {
-	GdkWindow *window = widget->window;
-	cairo_t *cr = gdk_cairo_create(window);
-	int size = MIN(MAX(MAX(
-					rect->width, rect->height) / 7,
-				small_height * 3/4),
-			small_height);
+	int size = MAX(rect->width, rect->height);
+	size = MIN(
+			MAX(size / 7, small_height * 2/3),
+			MIN(small_height, size /2));
 	int right = rect->x + rect->width;
 	int mid = rect->y + rect->height / 2;
 
@@ -429,9 +424,9 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_line_to(cr, right - size, mid);
 	cairo_line_to(cr, right, mid - size);
 
-	static const float p = 65535.0;
 	if (!set_bg_src(cr))
 	{
+		static const float p = 65535.0;
 		GdkColor base;
 		base = widget->style->base[GTK_STATE_NORMAL];
 		cairo_set_source_rgba(cr,
@@ -444,9 +439,7 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 
 	size -= 1.4;
 
-	GdkColor colour = widget->style->fg[GTK_STATE_NORMAL];
-	colour = *type_get_colour(item, &colour);
-	gdk_cairo_set_source_color(cr, &colour);
+	gdk_cairo_set_source_color(cr, colour);
 	cairo_set_line_width(cr, 0.9);
 	cairo_move_to(cr, right, mid + size);
 	cairo_line_to(cr, right - size, mid);
@@ -457,8 +450,6 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_line_to(cr, right - size, mid);
 	cairo_line_to(cr, right, mid - size);
 	cairo_stroke(cr);
-
-	cairo_destroy(cr);
 }
 static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
 {
@@ -563,13 +554,14 @@ static void draw_item(GtkWidget *widget,
 	ViewCollection *vc = (ViewCollection *) user_data;
 	FilerWindow    *fw = vc->filer_window;
 	CollectionItem *colitem = &vc->collection->items[idx];
-	gboolean       selected = colitem->selected;
 	DirItem        *item = (DirItem *) colitem->data;
 	ViewData       *view = (ViewData *) colitem->view_data;
-	GtkStateType   selection_state;
-	GdkColor       *colour;
+	GdkColor       *select_colour = NULL;
+	GdkColor       *fg = &widget->style->fg[GTK_STATE_NORMAL];
 	Template       template;
-	PangoLayout    *layout;
+
+	cairo_t *cr;
+	static GdkColor red = {0, 0xffff, 0, 0};
 
 	g_return_if_fail(view != NULL);
 
@@ -656,21 +648,12 @@ static void draw_item(GtkWidget *widget,
 
 end_image:
 
-	if (selected)
-		selection_state = fw->selection_state;
-	else
-		selection_state = GTK_STATE_NORMAL;
+	cr = gdk_cairo_create(widget->window);
 
-	colour = &widget->style->base[selection_state];
+	if (colitem->selected)
+		select_colour = &widget->style->base[fw->selection_state];
 
 	fill_template(area, colitem, vc, &template);
-
-	/* Set up GC for coloured file types */
-	if (!type_gc)
-		type_gc = gdk_gc_new(widget->window);
-
-	gdk_gc_set_foreground(type_gc, type_get_colour(item,
-					&widget->style->text[GTK_STATE_NORMAL]));
 
 	if (cursor)
 		draw_cursor(widget, area, vc->collection);
@@ -695,42 +678,51 @@ end_image:
 	}
 
 	draw_huge_icon(widget->window, widget->style, &template.icon, item,
-			sendi, selected, colour);
+			sendi, colitem->selected, select_colour);
 
-	if (view->thumb && ((DirItem *) colitem->data)->base_type == TYPE_DIRECTORY &&
-			(template.icon.width > small_width ||
-			 template.icon.height > small_height)
-			)
-		draw_dir_mark(widget, &template.icon, colitem->data);
+	//	g_clear_object(&(view->thumb));
 
-//	g_clear_object(&(view->thumb));
+	if (item->base_type == TYPE_DIRECTORY)
+	{
+		gboolean link = fw->right_link
+			? strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
+					item->leafname) ? FALSE : TRUE
+			: FALSE;
 
-	layout = make_layout(fw, item);
+		if (link || (view->thumb &&
+				(template.icon.width > small_width ||
+				 template.icon.height > small_height))
+				)
+			draw_dir_mark(cr, widget, &template.icon,
+					link ?
+					&red :
+					type_get_colour(item, fg));
+	}
 
-	gboolean link = fw->right_link
-		? strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
-				item->leafname) ? FALSE : TRUE
-		: FALSE;
+	if (!view->leafname)
+		view->leafname = make_layout(fw, item);
 
-	draw_string(widget, layout,
+	fg = colitem->selected ?
+		&widget->style->text[fw->selection_state] :
+		type_get_colour(item, fg);
+
+	draw_string(cr, view->leafname,
 			&template.leafname,
 			view->name_width,
 			view->name_height,
-			selection_state,
-			TRUE,
-			link);
+			fg,
+			select_colour);
 
 	if (fw->details_type != DETAILS_NONE &&
 		view->details && item->base_type != TYPE_UNKNOWN)
-		draw_string(widget, view->details,
+		draw_string(cr, view->details,
 				&template.details,
 				template.details.width,
 				0,
-				selection_state,
-				TRUE,
-				FALSE);
+				fg,
+				select_colour);
 
-	g_object_unref(G_OBJECT(layout));
+	cairo_destroy(cr);
 }
 
 /* A template contains the locations of the three rectangles (for the icon,
@@ -1010,57 +1002,54 @@ static gboolean test_point(Collection *collection,
 }
 
 /* 'box' renders a background box if the string is also selected */
-static void draw_string(GtkWidget *widget,
-		PangoLayout *layout,
-		GdkRectangle *area,	/* Area available on screen */
-		int 	width,		/* Width of the full string */
-		int 	height,		/* height of the full string */
-		GtkStateType selection_state,
-		gboolean box,
-		gboolean link)
+static void draw_string(cairo_t *cr,
+		PangoLayout  *layout,
+		GdkRectangle *area,  /* Area available on screen */
+		int          width,  /* Width of the full string */
+		int          height, /* height of the full string */
+		GdkColor     *fg,
+		GdkColor     *bg)
 {
-	if (width > area->width || height > area->height)
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+
+	if (width > area->width || height > area->height || bg)
 	{
-		gdk_gc_set_clip_origin(type_gc, 0, 0);
-		gdk_gc_set_clip_rectangle(type_gc, area);
+		cairo_rectangle(cr, area->x, area->y, area->width, area->height);
+		cairo_clip(cr);
 	}
 
-	if (selection_state != GTK_STATE_NORMAL && box)
-		gdk_draw_layout_with_colors(widget->window, type_gc, area->x, area->y, layout,
-			&widget->style->text[selection_state], &widget->style->base[selection_state]);
-	else
-		gdk_draw_layout(widget->window, type_gc, area->x, area->y, layout);
-
-	if (width > area->width || height > area->height || link)
+	if (bg)
 	{
-		static GdkGC *red_gc = NULL;
+		gdk_cairo_set_source_color(cr, bg);
+		cairo_paint(cr);
+	}
 
-		if (!red_gc)
-		{
-			gboolean success;
-			GdkColor red = {0, 0xffff, 0, 0};
+	gdk_cairo_set_source_color(cr, fg);
 
-			red_gc = gdk_gc_new(widget->window);
-			gdk_colormap_alloc_colors(
-					gtk_widget_get_colormap(widget),
-					&red, 1, FALSE, TRUE, &success);
-			gdk_gc_set_foreground(red_gc, &red);
-		}
+	cairo_move_to(cr, area->x, area->y);
+	pango_cairo_show_layout(cr, layout);
+
+	if (width > area->width || height > area->height)
+	{
+		GdkColor red = {0, 0xffff, 0, 0};
+		gdk_cairo_set_source_color(cr, &red);
+		cairo_set_line_width(cr, 1.0);
+
+		gint right = area->x + area->width;
+		gint bottom = area->y + area->height;
+
 		if (width > area->width)
-			gdk_draw_rectangle(widget->window, red_gc, TRUE,
-				area->x + area->width - 1, area->y,
-				1, area->height);
+		{
+			cairo_move_to(cr, right - .5, area->y + 1);
+			cairo_line_to(cr, right - .5, bottom - 1);
+		}
 		if (height > area->height)
-			gdk_draw_rectangle(widget->window, red_gc, TRUE,
-				area->x + area->width - small_width, area->y + area->height - 1,
-				small_width, 1);
+		{
+			cairo_move_to(cr, right - small_width, bottom - .5);
+			cairo_line_to(cr, right - 1,           bottom - .5);
+		}
 
-		if (link)
-			gdk_draw_rectangle(widget->window, red_gc, TRUE,
-				area->x, area->y + area->height - 3,
-				area->width, 3);
-
-		gdk_gc_set_clip_rectangle(type_gc, NULL);
+		cairo_stroke(cr);
 	}
 }
 
@@ -1232,6 +1221,9 @@ static void display_free_colitem(Collection *collection,
 	if (!view)
 		return;
 
+	if (view->leafname)
+		g_object_unref(G_OBJECT(view->leafname));
+
 	if (view->details)
 		g_object_unref(G_OBJECT(view->details));
 
@@ -1267,7 +1259,7 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		h = o_max_length.int_value == 0 ? view->name_height :
 			MIN(view->name_height,
 				((o_max_length.int_value - 1) / MAX(o_large_width.int_value, 1) + 1)
-					* fw_font_height / PANGO_SCALE
+					* fw_font_height
 			);
 
 		if (style == HUGE_ICONS)
@@ -1376,6 +1368,8 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 	int		width = MIN_ITEM_WIDTH;
 	int		height = small_height;
 	int		n = col->number_of_items;
+
+	if (filer_window->under_init) return;
 
 	if (n == 0 && filer_window->display_style != SMALL_ICONS)
 		height = ICON_HEIGHT;
