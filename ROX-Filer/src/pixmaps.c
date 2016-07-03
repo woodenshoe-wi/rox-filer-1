@@ -1116,10 +1116,19 @@ MaskedPixmap *masked_pixmap_new(GdkPixbuf *src)
 
 	mp = g_object_new(masked_pixmap_get_type(), NULL);
 
-	g_object_ref(src);
-	mp->src_pixbuf = src;
 	mp->huge_width = gdk_pixbuf_get_width(src);
 	mp->huge_height = gdk_pixbuf_get_height(src);
+	if (mp->huge_width <= thumb_size && mp->huge_height <= thumb_size)
+	{
+		g_object_ref(src);
+		mp->src_pixbuf = src;
+	}
+	else
+	{
+		mp->src_pixbuf = scale_pixbuf(src, thumb_size, thumb_size);
+		mp->huge_width = gdk_pixbuf_get_width(mp->src_pixbuf);
+		mp->huge_height = gdk_pixbuf_get_height(mp->src_pixbuf);
+	}
 
 	mp->pixbuf = normal_pixbuf;
 	mp->width = gdk_pixbuf_get_width(normal_pixbuf);
