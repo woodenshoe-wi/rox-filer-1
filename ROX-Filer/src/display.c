@@ -1107,12 +1107,6 @@ void display_update_view(FilerWindow *fw,
 
 	view->recent = item->flags & ITEM_FLAG_RECENT;
 
-	if (view->leafname)
-	{
-		g_object_unref(G_OBJECT(view->leafname));
-		view->leafname = NULL;
-	}
-
 	basic &= !(item->flags & ITEM_FLAG_RECENT);
 	basic &= (fw->display_style == SMALL_ICONS ||
 				(fw->details_type != DETAILS_NONE &&
@@ -1138,12 +1132,14 @@ void display_update_view(FilerWindow *fw,
 
 	if (!basic)
 	{
-		view->leafname = make_layout(fw, item);
+		PangoLayout *leafname = make_layout(fw, item);
 
-		pango_layout_get_size(view->leafname, &w, &h);
+		pango_layout_get_size(leafname, &w, &h);
 
 		view->name_width = w / PANGO_SCALE;
 		view->name_height = h / PANGO_SCALE;
+
+		g_object_unref(G_OBJECT(leafname));
 	}
 
 }

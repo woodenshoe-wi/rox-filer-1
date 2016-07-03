@@ -699,19 +699,21 @@ end_image:
 					type_get_colour(item, fg));
 	}
 
-	if (!view->leafname)
-		view->leafname = make_layout(fw, item);
 
 	fg = colitem->selected ?
 		&widget->style->text[fw->selection_state] :
 		type_get_colour(item, fg);
 
-	draw_string(cr, view->leafname,
+	PangoLayout *leafname = make_layout(fw, item);
+
+	draw_string(cr, leafname,
 			&template.leafname,
 			view->name_width,
 			view->name_height,
 			fg,
 			select_colour);
+
+	g_object_unref(G_OBJECT(leafname));
 
 	if (fw->details_type != DETAILS_NONE &&
 		view->details && item->base_type != TYPE_UNKNOWN)
@@ -1220,9 +1222,6 @@ static void display_free_colitem(Collection *collection,
 
 	if (!view)
 		return;
-
-	if (view->leafname)
-		g_object_unref(G_OBJECT(view->leafname));
 
 	if (view->details)
 		g_object_unref(G_OBJECT(view->details));
