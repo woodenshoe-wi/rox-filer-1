@@ -1018,10 +1018,13 @@ static void draw_string(cairo_t *cr,
 		GdkColor     *fg,
 		GdkColor     *bg)
 {
+	gboolean saved = FALSE;
 	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 
 	if (width > area->width || height > area->height || bg)
 	{
+		cairo_save(cr);
+		saved = TRUE;
 		cairo_rectangle(cr, area->x, area->y, area->width, area->height);
 		cairo_clip(cr);
 	}
@@ -1036,6 +1039,9 @@ static void draw_string(cairo_t *cr,
 
 	cairo_move_to(cr, area->x, area->y);
 	pango_cairo_show_layout(cr, layout);
+
+	if (saved)
+		cairo_restore(cr);
 
 	if (width > area->width || height > area->height)
 	{
