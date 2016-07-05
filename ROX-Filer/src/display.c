@@ -771,12 +771,13 @@ void display_change_size(FilerWindow *filer_window, gboolean bigger)
 			   FALSE);
 }
 
-ViewData *display_create_viewdata(FilerWindow *filer_window, DirItem *item)
+ViewData *display_create_viewdata(
+		FilerWindow *filer_window, DirItem *item, gboolean clear)
 {
 	ViewData *view = g_new0(ViewData, 1);
 	view->base_type = TYPE_UNKNOWN;
 
-	display_update_view(filer_window, item, view, TRUE);
+	display_update_view(filer_window, item, view, TRUE, clear);
 
 	return view;
 }
@@ -1077,9 +1078,10 @@ static void make_details_layout(
  * this information.
  */
 void display_update_view(FilerWindow *fw,
-			 DirItem *item,
-			 ViewData *view,
-			 gboolean update_name_layout)
+			DirItem *item,
+			ViewData *view,
+			gboolean update_name_layout,
+			gboolean clear)
 {
 	int	w, h;
 	gboolean basic = o_fast_font_calc.int_value;
@@ -1106,6 +1108,13 @@ void display_update_view(FilerWindow *fw,
 		return;
 
 	view->recent = item->flags & ITEM_FLAG_RECENT;
+
+	if (clear)
+	{
+		view->name_width = 0;
+		view->name_height = 0;
+		return;
+	}
 
 	basic &= !(item->flags & ITEM_FLAG_RECENT);
 	basic &= (fw->display_style == SMALL_ICONS ||

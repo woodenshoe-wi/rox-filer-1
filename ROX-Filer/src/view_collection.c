@@ -118,7 +118,7 @@ static void lost_selection(Collection  *collection,
 static void selection_changed(Collection *collection,
 			      gint time,
 			      gpointer user_data);
-static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
+static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		int *width, int *height);
 static void make_iter(ViewCollection *view_collection, ViewIter *iter,
 		      IterFlags flags);
@@ -653,6 +653,14 @@ end_image:
 	if (colitem->selected)
 		select_colour = &widget->style->base[fw->selection_state];
 
+	PangoLayout *leafname = make_layout(fw, item);
+	if (view->name_width == 0)
+	{
+		int w, h;
+		pango_layout_get_size(leafname, &w, &h);
+		view->name_width = w / PANGO_SCALE;
+		view->name_height = h / PANGO_SCALE;
+	}
 	fill_template(area, colitem, vc, &template);
 
 	if (cursor)
@@ -703,8 +711,6 @@ end_image:
 	fg = colitem->selected ?
 		&widget->style->text[fw->selection_state] :
 		type_get_colour(item, fg);
-
-	PangoLayout *leafname = make_layout(fw, item);
 
 	draw_string(cr, leafname,
 			&template.leafname,
@@ -1244,47 +1250,71 @@ static void style_set(Collection 	*collection,
 }
 
 /* Return the size needed for this item */
-static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
+//if reached max size then return true;
+static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		int *width, int *height)
 {
-	DisplayStyle	style = filer_window->display_style;
-	ViewData	*view = (ViewData *) colitem->view_data;
-	gfloat scale = filer_window->icon_scale;
+	DisplayStyle style = filer_window->display_style;
+	ViewData     *view = (ViewData *) colitem->view_data;
+	gfloat       scale = filer_window->icon_scale;
 
-	int pix_width = 0, pix_height = 0, h;
+	int pix_size = 0, h;
+	gboolean max_h = FALSE;
+	gboolean max_w = FALSE;
 
-	if (style != SMALL_ICONS)
+	if (style == SMALL_ICONS)
+		max_h = TRUE;
+	else
 	{
-		h = o_max_length.int_value == 0 ? view->name_height :
-			MIN(view->name_height,
-				((o_max_length.int_value - 1) / MAX(o_large_width.int_value, 1) + 1)
-					* fw_font_height
-			);
+		h = view->name_height;
+		if (o_max_length.int_value != 0)
+		{
+			int mh =
+				((o_max_length.int_value - 1) /
+				 MAX(o_large_width.int_value, 1) + 1) * fw_font_height;
+
+			if (h >= mh)
+			{
+				max_h = TRUE;
+				h = mh;
+			}
+		}
 
 		if (style == HUGE_ICONS)
-		{
-			pix_width = pix_height = huge_size * scale;
-		}
+			pix_size = huge_size * scale;
+		else
+			pix_size = ICON_WIDTH;
+
+		if (filer_window->details_type == DETAILS_NONE)
+			max_w = TRUE;
 	}
+
 
 	if (filer_window->details_type == DETAILS_NONE)
 	{
 		if (style == SMALL_ICONS)
 		{
-			*width = small_width + 12 +
-				MIN(view->name_width, o_small_width.int_value);
-			*height = MAX(view->name_height, small_height);
-		}
-		else if (style == HUGE_ICONS)
-		{
-			*width = MAX(pix_width, view->name_width);
-			*height = MAX(h + pix_height,
-					huge_size * filer_window->icon_scale * 3 / 4);
+			*width = view->name_width;
+			if (*width >= o_small_width.int_value)
+			{
+				max_w = TRUE;
+				*width = o_small_width.int_value;
+			}
+			*width += small_width + 12;
+			*height = small_height;
 		}
 		else
 		{
-			*width = MAX(ICON_WIDTH, view->name_width);
-			*height = h + ICON_HEIGHT;
+			if (max_h)
+				*width = MAX(pix_size, o_large_width.int_value);
+			else
+				*width = MAX(pix_size, view->name_width);
+
+			if (style == HUGE_ICONS)
+				*height = MAX(h + pix_size,
+						huge_size * scale * 3 / 4);
+			else
+				*height = h + ICON_HEIGHT;
 		}
 	}
 	else
@@ -1307,8 +1337,8 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 
 			if (style == HUGE_ICONS)
 			{
-				*width = MAX(pix_width, MAX(w, ow));
-				*height = pix_height + h + view->details_height;
+				*width = MAX(pix_size, MAX(w, ow));
+				*height = pix_size + h + view->details_height;
 			}
 			else
 			{
@@ -1321,6 +1351,8 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 	/* margin */
 	*width += 2;
 	*height += 2;
+
+	return max_h && max_w ? scale : .0;
 }
 
 static void update_item(ViewCollection *view_collection, int i)
@@ -1338,18 +1370,23 @@ static void update_item(ViewCollection *view_collection, int i)
 	display_update_view(filer_window,
 			(DirItem *) colitem->data,
 			(ViewData *) colitem->view_data,
-			FALSE);
+			FALSE,
+			collection->reached_scale != .0);
 
-	calc_size(filer_window, colitem, &w, &h);
-
-	if (w > old_w || h > old_h)
+	if (collection->reached_scale == .0)
 	{
-		collection_set_item_size(collection,
-					 MAX(old_w, w),
-					 MAX(old_h, h));
+		collection->reached_scale =
+			calc_size(filer_window, colitem, &w, &h);
 
-		//only lager
-		filer_window->may_resize = TRUE;
+		if (w > old_w || h > old_h)
+		{
+			collection_set_item_size(collection,
+						 MAX(old_w, w),
+						 MAX(old_h, h));
+
+			//only lager
+			filer_window->may_resize = TRUE;
+		}
 	}
 
 	if (!filer_window->req_sort) //will redraw soon
@@ -1369,6 +1406,12 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 	int		n = col->number_of_items;
 
 	if (filer_window->under_init) return;
+
+	if (flags & VIEW_UPDATE_NAME ||
+			col->reached_scale != filer_window->icon_scale)
+		col->reached_scale = .0;
+
+	gboolean dont_set_size = col->reached_scale != .0;
 
 	if (n == 0 && filer_window->display_style != SMALL_ICONS)
 		height = ICON_HEIGHT;
@@ -1394,16 +1437,21 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 			display_update_view(filer_window,
 					(DirItem *) ci->data,
 					(ViewData *) ci->view_data,
-					(flags & VIEW_UPDATE_NAME) != 0);
+					(flags & VIEW_UPDATE_NAME) != 0,
+					col->reached_scale != .0);
 
-		calc_size(filer_window, ci, &w, &h);
-		if (w > width)
-			width = w;
-		if (h > height)
-			height = h;
+		if (col->reached_scale == .0)
+		{
+			col->reached_scale = calc_size(filer_window, ci, &w, &h);
+			if (w > width)
+				width = w;
+			if (h > height)
+				height = h;
+		}
 	}
 
-	collection_set_item_size(col, width, height);
+	if (!dont_set_size)
+		collection_set_item_size(col, width, height);
 
 	reset_thumb_func(view_collection);
 
@@ -1459,11 +1507,16 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 			continue;
 
 		reti = collection_insert(collection, item,
-					display_create_viewdata(filer_window, item));
+					display_create_viewdata(filer_window, item,
+						collection->reached_scale != 0));
 
-		calc_size(filer_window, &collection->items[reti], &w, &h);
-		mw = MAX(mw, w);
-		mh = MAX(mh, h);
+		if (collection->reached_scale == .0)
+		{
+			collection->reached_scale =
+				calc_size(filer_window, &collection->items[reti], &w, &h);
+			mw = MAX(mw, w);
+			mh = MAX(mh, h);
+		}
 	}
 	if (mw > old_w || mh > old_h)
 		collection_set_item_size(collection,

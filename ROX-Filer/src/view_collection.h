@@ -25,7 +25,7 @@ struct _ViewCollection {
 	int	cursor_base;		/* Cursor when minibuffer opened */
 
 	GQueue		*thumbs_queue;
-	gint		thumb_func;
+	guint		thumb_func;
 };
 
 #endif /* __VIEW_COLLECTION_H__ */
