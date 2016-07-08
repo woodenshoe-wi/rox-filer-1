@@ -532,10 +532,13 @@ static void update_display(Directory *dir,
 	gboolean init = filer_window->under_init;
 
 	//g_print("[a%d]%s", action, action == 1 ? "\n" : "");
+	//static gint64 start_time;
 
 	switch (action)
 	{
 		case DIR_ADD:
+			//start_time = g_get_real_time();
+			//
 			view_add_items(view, items);
 			filer_window->req_sort = FALSE;
 
@@ -557,6 +560,8 @@ static void update_display(Directory *dir,
 			toolbar_update_info(filer_window);
 			break;
 		case DIR_END_SCAN:
+			//g_print("end time : %li\n", g_get_real_time() - start_time);
+
 			if (filer_window->req_sort)
 			{
 				filer_window->req_sort = FALSE;

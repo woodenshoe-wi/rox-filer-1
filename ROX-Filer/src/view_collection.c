@@ -661,6 +661,9 @@ end_image:
 		view->name_width = w / PANGO_SCALE;
 		view->name_height = h / PANGO_SCALE;
 	}
+	if (!view->details && fw->details_type != DETAILS_NONE)
+		make_details_layout(fw, item, view);
+
 	fill_template(area, colitem, vc, &template);
 
 	if (cursor)
@@ -821,12 +824,12 @@ static void huge_template(
 
 		template->leafname.width = MIN(max_text_width, view->name_width);
 		template->leafname.height = MIN(view->name_height,
-				area->height - ih - view->details_height - 1);
+				area->height - ih - view->details_height - 2);
 
 		template->icon.x = area->x + (col_width - iw) / 2;
 		template->icon.y = area->y +
 			(area->height - view->details_height -
-			 template->leafname.height - ih);
+			 template->leafname.height - ih - 1);
 
 		template->leafname.x = area->x + MAX((col_width - view->name_width) / 2, 3);
 		template->leafname.y = template->icon.y + ih;
@@ -841,14 +844,14 @@ static void huge_template(
 	{
 		template->leafname.width = view->name_width;
 		template->leafname.height = MIN(view->name_height,
-				area->height - ih - 1);
+				area->height - ih - 2);
 
 		template->leafname.x = area->x +
-			MAX((col_width - template->leafname.width) >> 1, 3);
+			MAX((col_width - template->leafname.width) >> 1, 2);
 		template->icon.x = area->x + ((col_width - iw) >> 1);
 
 		template->icon.y = area->y +
-			(area->height - template->leafname.height - ih) / 2 + 1;
+			(area->height - template->leafname.height - ih - 2) / 2 + 1;
 		template->leafname.y = template->icon.y + ih;
 	}
 
@@ -926,8 +929,8 @@ static void large_template(
 		template->leafname.width = view->name_width;
 		template->leafname.height = MIN(view->name_height, area->height - ICON_HEIGHT - 2);
 
-		tx = area->x + MAX((col_width - template->leafname.width) >> 1, 3);
-		ty = area->y + ICON_HEIGHT + 2;
+		tx = area->x + MAX((col_width - template->leafname.width) >> 1, 2);
+		ty = area->y + ICON_HEIGHT + 1;
 
 		template->leafname.x = tx;
 		template->leafname.y = ty;
@@ -1261,6 +1264,7 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		int *width, int *height)
 {
 	DisplayStyle style = filer_window->display_style;
+	DetailsType  type  = filer_window->details_type;
 	ViewData     *view = (ViewData *) colitem->view_data;
 	gfloat       scale = filer_window->icon_scale;
 
@@ -1286,17 +1290,14 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 			}
 		}
 
-		if (style == HUGE_ICONS)
-			pix_size = huge_size * scale;
-		else
-			pix_size = ICON_WIDTH;
+		pix_size = style == HUGE_ICONS ?
+			huge_size * scale : ICON_WIDTH;
 
-		if (filer_window->details_type == DETAILS_NONE)
+		if (type == DETAILS_NONE)
 			max_w = TRUE;
 	}
 
-
-	if (filer_window->details_type == DETAILS_NONE)
+	if (type == DETAILS_NONE)
 	{
 		if (style == SMALL_ICONS)
 		{
@@ -1306,49 +1307,77 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 				max_w = TRUE;
 				*width = o_small_width.int_value;
 			}
-			*width += small_width + 12;
+			*width += small_width * 1.2;
 			*height = small_height;
 		}
 		else
 		{
 			if (max_h)
+			{
 				*width = MAX(pix_size, o_large_width.int_value);
+				if (style == HUGE_ICONS)
+					*width = MAX(*width, huge_size);
+			}
 			else
 				*width = MAX(pix_size, view->name_width);
 
-			if (style == HUGE_ICONS)
-				*height = MAX(h + pix_size,
-						huge_size * scale * 3 / 4);
-			else
-				*height = h + ICON_HEIGHT;
+			*height = style == HUGE_ICONS ?
+				MAX(h + pix_size, pix_size * 3 / 4) :
+				h + ICON_HEIGHT;
 		}
 	}
 	else
 	{
-		int w = view->details_width;
+		int dw = view->details_width;
 
 		if (style == SMALL_ICONS)
 		{
-			int	text_height;
+			*width = small_width * 1.2 + dw;
+			if (view->name_width >= o_small_width.int_value)
+			{
+				if (type != DETAILS_TYPE)
+					max_w = TRUE;
 
-			*width = small_width + MIN(view->name_width, o_small_width.int_value) + 12 + w;
-			text_height = MAX(view->name_height,
-					  view->details_height);
-			*height = MAX(text_height, small_height);
+				*width += o_small_width.int_value;
+			}
+			else
+				*width += view->name_width;
+
+			*height = MAX(view->name_height, view->details_height);
+			*height = MAX(*height, small_height);
 		}
 		else
 		{
 			int ow = o_max_length.int_value == 0 ? view->name_width :
 					MIN(view->name_width, o_max_length.int_value);
 
+			if (type == DETAILS_SIZE)
+				ow = MAX(ow, monospace_width * 6);
+
+			//g_print("mono width %d, dw %d\n", monospace_width, dw);
+
 			if (style == HUGE_ICONS)
 			{
-				*width = MAX(pix_size, MAX(w, ow));
+				if (type != DETAILS_TYPE && max_h)
+				{
+					max_w = TRUE;
+					*width = MAX(pix_size,
+								MAX(dw,
+									MAX(huge_size,
+										o_large_width.int_value)));
+				}
+				else
+					*width = MAX(pix_size, MAX(dw, ow));
+
 				*height = pix_size + h + view->details_height;
 			}
 			else
 			{
-				*width = ICON_WIDTH + 12 + MAX(w, ow);
+				if (type != DETAILS_TYPE && o_max_length.int_value != 0 &&
+					(ow >= o_max_length.int_value || dw > o_max_length.int_value))
+					max_h = max_w = TRUE;
+
+				*width = ICON_WIDTH + 2 + MAX(dw, ow);
 				*height = ICON_HEIGHT;
 			}
 		}

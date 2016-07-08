@@ -593,15 +593,15 @@ static void toolbar_details_clicked(GtkWidget *widget,
 					action = DETAILS_SIZE;
 					break;
 				case DETAILS_SIZE:
+					action = DETAILS_TIMES;
+					break;
+				case DETAILS_TIMES:
 					action = DETAILS_PERMISSIONS;
 					break;
 				case DETAILS_PERMISSIONS:
 					action = DETAILS_TYPE;
 					break;
 				case DETAILS_TYPE:
-					action = DETAILS_TIMES;
-					break;
-				case DETAILS_TIMES:
 					action = DETAILS_NONE;
 					break;
 				default:

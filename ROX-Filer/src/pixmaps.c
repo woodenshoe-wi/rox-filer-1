@@ -916,6 +916,12 @@ static MaskedPixmap *image_from_desktop_file(const char *path)
 
 	icon = get_value_from_desktop_file(path,
 					"Desktop Entry", "Icon", &error);
+
+//	GKeyFile *key_file = g_key_file_new();
+//	if (g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, &error))
+//		icon = g_key_file_get_string(key_file, "Desktop Entry", "Icon", &error);
+//	g_key_file_unref(key_file);
+
 	if (error)
 	{
 		g_warning("Failed to parse .desktop file '%s':\n%s",

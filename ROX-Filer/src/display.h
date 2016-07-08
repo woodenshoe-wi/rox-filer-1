@@ -45,6 +45,7 @@ extern Option o_view_alpha;
 extern Option o_use_background_colour;
 extern Option o_background_colour;
 extern int huge_size;
+extern int monospace_width;
 
 /* Prototypes */
 void display_init(void);
@@ -91,6 +92,8 @@ void display_update_view(
 			gboolean update_name_layout,
 			gboolean clear);
 PangoLayout *make_layout(FilerWindow *fw, DirItem *item);
+void make_details_layout(FilerWindow *fw, DirItem *item, ViewData *view);
+
 void display_update_views(FilerWindow *filer_window);
 void draw_small_icon(GdkWindow *window,
 					GtkStyle *style,

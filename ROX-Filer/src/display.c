@@ -81,6 +81,7 @@ Option o_background_colour;
 static Option o_wrap_by_char;
 static Option o_huge_size;
 int huge_size = HUGE_SIZE;
+int monospace_width = 1;
 
 /* Static prototypes */
 static void options_changed(void);
@@ -932,7 +933,7 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 			if (filer_window->display_style == SMALL_ICONS)
 				return g_strdup("1234M");
 			else
-				return g_strdup("1234 bytes");
+				return g_strdup("1234 B");
 		}
 
 		if (item->base_type != TYPE_DIRECTORY)
@@ -1024,7 +1025,7 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 	return ret;
 }
 
-static void make_details_layout(
+void make_details_layout(
 		FilerWindow *fw, DirItem *item, ViewData *view)
 {
 	static PangoFontDescription *monospace = NULL;
@@ -1033,8 +1034,15 @@ static void make_details_layout(
 
 	if (view->details) return;
 
-	if (!monospace)
+	if (!monospace) {
 		monospace = pango_font_description_from_string("monospace");
+		PangoLayout *layout =
+			gtk_widget_create_pango_layout(fw->window, " ");
+		pango_layout_set_font_description(layout, monospace);
+		pango_layout_get_size(layout, &monospace_width, NULL);
+		monospace_width /= PANGO_SCALE;
+		g_object_unref(layout);
+	}
 
 	str = getdetails(fw, item);
 	if (str)
@@ -1088,14 +1096,6 @@ void display_update_view(FilerWindow *fw,
 
 	view->base_type = item->base_type;
 
-	if (view->details)
-	{
-		g_object_unref(G_OBJECT(view->details));
-		view->details = NULL;
-	}
-	if (fw->details_type != DETAILS_NONE)
-		make_details_layout(fw, item, view);
-
 	if (!update_name_layout)
 	{
 		g_clear_object(&view->thumb);
@@ -1109,12 +1109,21 @@ void display_update_view(FilerWindow *fw,
 
 	view->recent = item->flags & ITEM_FLAG_RECENT;
 
+	if (view->details)
+	{
+		g_object_unref(G_OBJECT(view->details));
+		view->details = NULL;
+	}
+
 	if (clear)
 	{
 		view->name_width = 0;
 		view->name_height = 0;
 		return;
 	}
+
+	if (fw->details_type != DETAILS_NONE)
+		make_details_layout(fw, item, view);
 
 	basic &= !(item->flags & ITEM_FLAG_RECENT);
 	basic &= (fw->display_style == SMALL_ICONS ||
