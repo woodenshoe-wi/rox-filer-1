@@ -451,17 +451,18 @@ static void draw_dir_mark(cairo_t *cr,
 	cairo_line_to(cr, right, mid - size);
 	cairo_stroke(cr);
 }
-static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
+static void draw_cursor(GtkWidget *widget,
+		GdkRectangle *rect, Collection *col, GdkColor *colour)
 {
 	cairo_t *cr = gdk_cairo_create(widget->window);
 	GdkRectangle dr = *rect;
 
-	cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
 	cairo_set_line_width(cr, 1.0);
 
-//	double dashes[] = {4.0, 1.0};
-//	cairo_set_dash(cr, dashes, 2, 0);
+	double dashes[] = {3.0, 1.0};
+	cairo_set_dash(cr, dashes, 2, 0);
 
 	dr.x += 1;
 	dr.y += 1;
@@ -469,7 +470,7 @@ static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
 	dr.height = col->item_height - 1;
 
 	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
-		cairo_set_source_rgb(cr, .9, .9, .9);
+		gdk_cairo_set_source_color(cr, colour);
 	else
 		cairo_set_source_rgb(cr, .7, .7, .7);
 
@@ -556,7 +557,7 @@ static void draw_item(GtkWidget *widget,
 	CollectionItem *colitem = &vc->collection->items[idx];
 	DirItem        *item = (DirItem *) colitem->data;
 	ViewData       *view = (ViewData *) colitem->view_data;
-	GdkColor       *select_colour = NULL;
+	GdkColor       *select_colour = NULL, *type_colour;
 	GdkColor       *fg = &widget->style->fg[GTK_STATE_NORMAL];
 	Template       template;
 
@@ -649,6 +650,7 @@ static void draw_item(GtkWidget *widget,
 end_image:
 
 	cr = gdk_cairo_create(widget->window);
+	type_colour = type_get_colour(item, fg);
 
 	if (colitem->selected)
 		select_colour = &widget->style->base[fw->selection_state];
@@ -667,7 +669,7 @@ end_image:
 	fill_template(area, colitem, vc, &template);
 
 	if (cursor)
-		draw_cursor(widget, area, vc->collection);
+		draw_cursor(widget, area, vc->collection, type_colour);
 
 	GdkPixbuf *sendi = view->thumb;
 
@@ -705,15 +707,12 @@ end_image:
 				 template.icon.height > small_height))
 				)
 			draw_dir_mark(cr, widget, &template.icon,
-					link ?
-					&red :
-					type_get_colour(item, fg));
+					link ? &red : type_colour);
 	}
 
 
 	fg = colitem->selected ?
-		&widget->style->text[fw->selection_state] :
-		type_get_colour(item, fg);
+		&widget->style->text[fw->selection_state] : type_colour;
 
 	draw_string(cr, leafname,
 			&template.leafname,
