@@ -81,6 +81,7 @@ Option o_background_colour;
 static Option o_wrap_by_char;
 static Option o_huge_size;
 int huge_size = HUGE_SIZE;
+int monospace_width = 1;
 
 /* Static prototypes */
 static void options_changed(void);
@@ -170,7 +171,7 @@ void draw_emblem_on_icon(GdkWindow *window, GtkStyle   *style,
 	g_object_unref(pixbuf);
 }
 
-static void draw_mini_emblem_on_icon(GdkWindow *window,
+static void draw_mini_emblem_on_icon(cairo_t *cr,
 		GtkStyle *style, const char *stock_id,
 		int *x, int y, int areah, GdkColor *colour)
 {
@@ -233,10 +234,8 @@ static void draw_mini_emblem_on_icon(GdkWindow *window,
 		dx = gdk_pixbuf_get_width(scaled);
 	}
 
-	cairo_t *cr = gdk_cairo_create(window);
 	gdk_cairo_set_source_pixbuf(cr, scaled, *x - 1, y + dy + 1);
 	cairo_paint(cr);
-	cairo_destroy(cr);
 
 	*x += dx * 2 / 3;
 }
@@ -271,19 +270,16 @@ static void draw_noimage(GdkWindow *window, GdkRectangle *rect)
 	cairo_destroy(cr);
 }
 
-static void draw_label_bg(GdkWindow *window,
+static void draw_label_bg(cairo_t *cr,
 			GdkRectangle *rect,
 			GdkColor *colour)
 {
-	cairo_t *cr;
 	GdkRectangle drect;
 	int b, h;
 
 	if (!colour) return;
 
-	cr = gdk_cairo_create(window);
 	gdk_cairo_set_source_color(cr, colour);
-	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 
 	drect.x      = rect->x;
 	drect.width  = rect->width;
@@ -301,8 +297,6 @@ static void draw_label_bg(GdkWindow *window,
 	gdk_cairo_rectangle(cr, &drect);
 
 	cairo_fill(cr);
-
-	cairo_destroy(cr);
 }
 
 /* Draw this icon (including any symlink or mount symbol) inside the
@@ -348,17 +342,17 @@ void draw_huge_icon(
 	image_x = area->x + ((area->width - width) >> 1);
 	image_y = area->y + MAX(0, (area->height - height) / 2);
 
-	draw_label_bg(window, area,
+	cairo_t *cr = gdk_cairo_create(window);
+
+	draw_label_bg(cr, area,
 			selected && item->label ? colour : item->label);
 
 	 pixbuf = selected
 			? create_spotlight_pixbuf(scaled, colour)
 			: scaled;
 
-	cairo_t *cr = gdk_cairo_create(window);
 	gdk_cairo_set_source_pixbuf(cr, pixbuf, image_x, image_y);
 	cairo_paint(cr);
-	cairo_destroy(cr);
 
 	if (scale != 1.0)
 		g_object_unref(scaled);
@@ -376,17 +370,17 @@ void draw_huge_icon(
 			const char *mp = item->flags & ITEM_FLAG_MOUNTED
 						? ROX_STOCK_MOUNTED
 						: ROX_STOCK_MOUNT;
-			draw_mini_emblem_on_icon(window, style, mp,
+			draw_mini_emblem_on_icon(cr, style, mp,
 						&image_x, area->y, area->height, NULL);
 		}
 		if (item->flags & ITEM_FLAG_SYMLINK)
 		{
-			draw_mini_emblem_on_icon(window, style, ROX_STOCK_SYMLINK,
+			draw_mini_emblem_on_icon(cr, style, ROX_STOCK_SYMLINK,
 						&image_x, area->y, area->height, NULL);
 		}
 		if ((item->flags & ITEM_FLAG_HAS_XATTR) && o_xattr_show.int_value)
 		{
-			draw_mini_emblem_on_icon(window, style, ROX_STOCK_XATTR,
+			draw_mini_emblem_on_icon(cr, style, ROX_STOCK_XATTR,
 						&image_x, area->y, area->height, item->label);
 		}
 	}
@@ -436,6 +430,8 @@ void draw_huge_icon(
 						&image_x, emb_y + height / 19, item->label);
 		}
 	}
+
+	cairo_destroy(cr);
 }
 
 /* The sort functions aren't called from outside, but they are
@@ -776,20 +772,13 @@ void display_change_size(FilerWindow *filer_window, gboolean bigger)
 			   FALSE);
 }
 
-ViewData *display_create_viewdata(FilerWindow *filer_window, DirItem *item)
+ViewData *display_create_viewdata(
+		FilerWindow *filer_window, DirItem *item, gboolean clear)
 {
-	ViewData *view;
-
-	view = g_new(ViewData, 1);
-
-	view->details = NULL;
-	view->image = NULL;
-	view->thumb = NULL;
-	view->may_thumb = FALSE;
+	ViewData *view = g_new0(ViewData, 1);
 	view->base_type = TYPE_UNKNOWN;
-	view->recent = FALSE;
 
-	display_update_view(filer_window, item, view, TRUE);
+	display_update_view(filer_window, item, view, TRUE, clear);
 
 	return view;
 }
@@ -944,7 +933,7 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 			if (filer_window->display_style == SMALL_ICONS)
 				return g_strdup("1234M");
 			else
-				return g_strdup("1234 bytes");
+				return g_strdup("1234 B");
 		}
 
 		if (item->base_type != TYPE_DIRECTORY)
@@ -1035,69 +1024,77 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 
 	return ret;
 }
+
+void make_details_layout(
+		FilerWindow *fw, DirItem *item, ViewData *view)
+{
+	static PangoFontDescription *monospace = NULL;
+	char *str;
+	int w, h;
+
+	if (view->details) return;
+
+	if (!monospace) {
+		monospace = pango_font_description_from_string("monospace");
+		PangoLayout *layout =
+			gtk_widget_create_pango_layout(fw->window, " ");
+		pango_layout_set_font_description(layout, monospace);
+		pango_layout_get_size(layout, &monospace_width, NULL);
+		monospace_width /= PANGO_SCALE;
+		g_object_unref(layout);
+	}
+
+	str = getdetails(fw, item);
+	if (str)
+	{
+		PangoAttrList *details_list;
+		int perm_offset = -1;
+
+		view->details = gtk_widget_create_pango_layout(
+				fw->window, str);
+		g_free(str);
+
+		pango_layout_set_font_description(view->details, monospace);
+		pango_layout_get_size(view->details, &w, &h);
+		view->details_width  = w / PANGO_SCALE;
+		view->details_height = h / PANGO_SCALE;
+
+		if (fw->details_type == DETAILS_PERMISSIONS)
+			perm_offset = 0;
+		if (perm_offset > -1)
+		{
+			PangoAttribute *attr;
+
+			attr = pango_attr_underline_new(PANGO_UNDERLINE_SINGLE);
+
+			perm_offset += 4 * applicable(item->uid, item->gid);
+			attr->start_index = perm_offset;
+			attr->end_index   = perm_offset + 3;
+
+			details_list = pango_attr_list_new();
+			pango_attr_list_insert(details_list, attr);
+			pango_layout_set_attributes(view->details,
+					details_list);
+
+			pango_attr_list_unref(details_list);
+		}
+	}
+}
+
 /* Each displayed item has a ViewData structure with some cached information
  * to help quickly draw the item (eg, the PangoLayout). This function updates
  * this information.
  */
-void display_update_view(FilerWindow *filer_window,
-			 DirItem *item,
-			 ViewData *view,
-			 gboolean update_name_layout)
+void display_update_view(FilerWindow *fw,
+			DirItem *item,
+			ViewData *view,
+			gboolean update_name_layout,
+			gboolean clear)
 {
 	int	w, h;
-	char	*str;
-	static PangoFontDescription *monospace = NULL;
 	gboolean basic = o_fast_font_calc.int_value;
 
 	view->base_type = item->base_type;
-
-	if (filer_window->details_type != DETAILS_NONE)
-	{
-		if (!monospace)
-			monospace = pango_font_description_from_string("monospace");
-
-		if (view->details)
-		{
-			g_object_unref(G_OBJECT(view->details));
-			view->details = NULL;
-		}
-
-		str = getdetails(filer_window, item);
-		if (str)
-		{
-			PangoAttrList	*details_list;
-			int	perm_offset = -1;
-
-			view->details = gtk_widget_create_pango_layout(
-					filer_window->window, str);
-			g_free(str);
-
-			pango_layout_set_font_description(view->details, monospace);
-			pango_layout_get_size(view->details, &w, &h);
-			view->details_width = w / PANGO_SCALE;
-			view->details_height = h / PANGO_SCALE;
-
-			if (filer_window->details_type == DETAILS_PERMISSIONS)
-				perm_offset = 0;
-			if (perm_offset > -1)
-			{
-				PangoAttribute	*attr;
-
-				attr = pango_attr_underline_new(PANGO_UNDERLINE_SINGLE);
-
-				perm_offset += 4 * applicable(item->uid, item->gid);
-				attr->start_index = perm_offset;
-				attr->end_index = perm_offset + 3;
-
-				details_list = pango_attr_list_new();
-				pango_attr_list_insert(details_list, attr);
-				pango_layout_set_attributes(view->details,
-						details_list);
-
-				pango_attr_list_unref(details_list);
-			}
-		}
-	}
 
 	if (!update_name_layout)
 	{
@@ -1112,14 +1109,29 @@ void display_update_view(FilerWindow *filer_window,
 
 	view->recent = item->flags & ITEM_FLAG_RECENT;
 
+	if (view->details)
+	{
+		g_object_unref(G_OBJECT(view->details));
+		view->details = NULL;
+	}
+
+	if (clear)
+	{
+		view->name_width = 0;
+		view->name_height = 0;
+		return;
+	}
+
+	if (fw->details_type != DETAILS_NONE)
+		make_details_layout(fw, item, view);
+
 	basic &= !(item->flags & ITEM_FLAG_RECENT);
-	basic &= (filer_window->display_style == SMALL_ICONS ||
-				(filer_window->details_type != DETAILS_NONE &&
-				 filer_window->display_style != HUGE_ICONS));
+	basic &= (fw->display_style == SMALL_ICONS ||
+				(fw->details_type != DETAILS_NONE &&
+				 fw->display_style != HUGE_ICONS));
 
 	if (basic)
 	{
-		h = fw_font_height;
 		w = 0;
 		gchar *name = item->leafname;
 
@@ -1131,18 +1143,22 @@ void display_update_view(FilerWindow *filer_window,
 				basic = FALSE;
 				break;
 			}
+
+		view->name_width = w;
+		view->name_height = fw_font_height;
 	}
 
 	if (!basic)
 	{
-		PangoLayout *layout = make_layout(filer_window, item);
+		PangoLayout *leafname = make_layout(fw, item);
 
-		pango_layout_get_size(layout, &w, &h);
+		pango_layout_get_size(leafname, &w, &h);
 
-		g_object_unref(G_OBJECT(layout));
+		view->name_width = w / PANGO_SCALE;
+		view->name_height = h / PANGO_SCALE;
+
+		g_object_unref(G_OBJECT(leafname));
 	}
 
-	view->name_width = w / PANGO_SCALE;
-	view->name_height = h / PANGO_SCALE;
 }
 

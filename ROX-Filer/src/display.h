@@ -45,6 +45,7 @@ extern Option o_view_alpha;
 extern Option o_use_background_colour;
 extern Option o_background_colour;
 extern int huge_size;
+extern int monospace_width;
 
 /* Prototypes */
 void display_init(void);
@@ -80,12 +81,19 @@ void draw_large_icon(GdkWindow *window,
 gboolean display_is_truncated(FilerWindow *filer_window, int i);
 void display_change_size(FilerWindow *filer_window, gboolean bigger);
 
-ViewData *display_create_viewdata(FilerWindow *filer_window, DirItem *item);
-void display_update_view(FilerWindow *filer_window,
-			 DirItem *item,
-			 ViewData *view,
-			 gboolean update_name_layout);
+ViewData *display_create_viewdata(
+			FilerWindow *filer_window,
+			DirItem *item,
+			gboolean clear);
+void display_update_view(
+			FilerWindow *filer_window,
+			DirItem *item,
+			ViewData *view,
+			gboolean update_name_layout,
+			gboolean clear);
 PangoLayout *make_layout(FilerWindow *fw, DirItem *item);
+void make_details_layout(FilerWindow *fw, DirItem *item, ViewData *view);
+
 void display_update_views(FilerWindow *filer_window);
 void draw_small_icon(GdkWindow *window,
 					GtkStyle *style,

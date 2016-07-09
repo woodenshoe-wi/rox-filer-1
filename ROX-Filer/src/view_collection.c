@@ -64,9 +64,6 @@ struct _Template {
 	GdkRectangle	image;
 };
 
-/* GC for drawing colour filenames */
-static GdkGC	*type_gc = NULL;
-
 /* Static prototypes */
 static void view_collection_finialize(GObject *object);
 static void view_collection_class_init(gpointer gclass, gpointer data);
@@ -92,14 +89,13 @@ static gboolean test_point(Collection *collection,
 				CollectionItem *item,
 				int width, int height,
 				gpointer user_data);
-static void draw_string(GtkWidget *widget,
-		PangoLayout *layout,
-		GdkRectangle *area,	/* Area available on screen */
-		int 	width,		/* Width of the full string */
-		int 	height,		/* height of the full string */
-		GtkStateType selection_state,
-		gboolean box,
-		gboolean link);
+static void draw_string(cairo_t *cr,
+		PangoLayout  *layout,
+		GdkRectangle *area,  /* Area available on screen */
+		int          width,  /* Width of the full string */
+		int          height, /* height of the full string */
+		GdkColor     *fg,
+		GdkColor     *bg);
 static void view_collection_iface_init(gpointer giface, gpointer iface_data);
 static gint coll_motion_notify(GtkWidget *widget,
 			       GdkEventMotion *event,
@@ -122,7 +118,7 @@ static void lost_selection(Collection  *collection,
 static void selection_changed(Collection *collection,
 			      gint time,
 			      gpointer user_data);
-static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
+static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		int *width, int *height);
 static void make_iter(ViewCollection *view_collection, ViewIter *iter,
 		      IterFlags flags);
@@ -410,14 +406,13 @@ static void view_collection_init(GTypeInstance *object, gpointer gclass)
 			GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
 }
 
-static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
+static void draw_dir_mark(cairo_t *cr,
+		GtkWidget *widget, GdkRectangle *rect, GdkColor *colour)
 {
-	GdkWindow *window = widget->window;
-	cairo_t *cr = gdk_cairo_create(window);
-	int size = MIN(MAX(MAX(
-					rect->width, rect->height) / 7,
-				small_height * 3/4),
-			small_height);
+	int size = MAX(rect->width, rect->height);
+	size = MIN(
+			MAX(size / 7, small_height * 2/3),
+			MIN(small_height, size /2));
 	int right = rect->x + rect->width;
 	int mid = rect->y + rect->height / 2;
 
@@ -429,9 +424,9 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_line_to(cr, right - size, mid);
 	cairo_line_to(cr, right, mid - size);
 
-	static const float p = 65535.0;
 	if (!set_bg_src(cr))
 	{
+		static const float p = 65535.0;
 		GdkColor base;
 		base = widget->style->base[GTK_STATE_NORMAL];
 		cairo_set_source_rgba(cr,
@@ -444,9 +439,7 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 
 	size -= 1.4;
 
-	GdkColor colour = widget->style->fg[GTK_STATE_NORMAL];
-	colour = *type_get_colour(item, &colour);
-	gdk_cairo_set_source_color(cr, &colour);
+	gdk_cairo_set_source_color(cr, colour);
 	cairo_set_line_width(cr, 0.9);
 	cairo_move_to(cr, right, mid + size);
 	cairo_line_to(cr, right - size, mid);
@@ -457,20 +450,19 @@ static void draw_dir_mark(GtkWidget *widget, GdkRectangle *rect, DirItem *item)
 	cairo_line_to(cr, right - size, mid);
 	cairo_line_to(cr, right, mid - size);
 	cairo_stroke(cr);
-
-	cairo_destroy(cr);
 }
-static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
+static void draw_cursor(GtkWidget *widget,
+		GdkRectangle *rect, Collection *col, GdkColor *colour)
 {
 	cairo_t *cr = gdk_cairo_create(widget->window);
 	GdkRectangle dr = *rect;
 
-	cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
 	cairo_set_line_width(cr, 1.0);
 
-//	double dashes[] = {4.0, 1.0};
-//	cairo_set_dash(cr, dashes, 2, 0);
+	double dashes[] = {3.0, 1.0};
+	cairo_set_dash(cr, dashes, 2, 0);
 
 	dr.x += 1;
 	dr.y += 1;
@@ -478,7 +470,7 @@ static void draw_cursor(GtkWidget *widget, GdkRectangle *rect, Collection *col)
 	dr.height = col->item_height - 1;
 
 	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
-		cairo_set_source_rgb(cr, .9, .9, .9);
+		gdk_cairo_set_source_color(cr, colour);
 	else
 		cairo_set_source_rgb(cr, .7, .7, .7);
 
@@ -563,13 +555,14 @@ static void draw_item(GtkWidget *widget,
 	ViewCollection *vc = (ViewCollection *) user_data;
 	FilerWindow    *fw = vc->filer_window;
 	CollectionItem *colitem = &vc->collection->items[idx];
-	gboolean       selected = colitem->selected;
 	DirItem        *item = (DirItem *) colitem->data;
 	ViewData       *view = (ViewData *) colitem->view_data;
-	GtkStateType   selection_state;
-	GdkColor       *colour;
+	GdkColor       *select_colour = NULL, *type_colour;
+	GdkColor       *fg = &widget->style->fg[GTK_STATE_NORMAL];
 	Template       template;
-	PangoLayout    *layout;
+
+	cairo_t *cr;
+	static GdkColor red = {0, 0xffff, 0, 0};
 
 	g_return_if_fail(view != NULL);
 
@@ -656,24 +649,27 @@ static void draw_item(GtkWidget *widget,
 
 end_image:
 
-	if (selected)
-		selection_state = fw->selection_state;
-	else
-		selection_state = GTK_STATE_NORMAL;
+	cr = gdk_cairo_create(widget->window);
+	type_colour = type_get_colour(item, fg);
 
-	colour = &widget->style->base[selection_state];
+	if (colitem->selected)
+		select_colour = &widget->style->base[fw->selection_state];
+
+	PangoLayout *leafname = make_layout(fw, item);
+	if (view->name_width == 0)
+	{
+		int w, h;
+		pango_layout_get_size(leafname, &w, &h);
+		view->name_width = w / PANGO_SCALE;
+		view->name_height = h / PANGO_SCALE;
+	}
+	if (!view->details && fw->details_type != DETAILS_NONE)
+		make_details_layout(fw, item, view);
 
 	fill_template(area, colitem, vc, &template);
 
-	/* Set up GC for coloured file types */
-	if (!type_gc)
-		type_gc = gdk_gc_new(widget->window);
-
-	gdk_gc_set_foreground(type_gc, type_get_colour(item,
-					&widget->style->text[GTK_STATE_NORMAL]));
-
 	if (cursor)
-		draw_cursor(widget, area, vc->collection);
+		draw_cursor(widget, area, vc->collection, type_colour);
 
 	GdkPixbuf *sendi = view->thumb;
 
@@ -695,42 +691,48 @@ end_image:
 	}
 
 	draw_huge_icon(widget->window, widget->style, &template.icon, item,
-			sendi, selected, colour);
+			sendi, colitem->selected, select_colour);
 
-	if (view->thumb && ((DirItem *) colitem->data)->base_type == TYPE_DIRECTORY &&
-			(template.icon.width > small_width ||
-			 template.icon.height > small_height)
-			)
-		draw_dir_mark(widget, &template.icon, colitem->data);
+	//	g_clear_object(&(view->thumb));
 
-//	g_clear_object(&(view->thumb));
+	if (item->base_type == TYPE_DIRECTORY)
+	{
+		gboolean link = fw->right_link
+			? strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
+					item->leafname) ? FALSE : TRUE
+			: FALSE;
 
-	layout = make_layout(fw, item);
+		if (link || (view->thumb &&
+				(template.icon.width > small_width ||
+				 template.icon.height > small_height))
+				)
+			draw_dir_mark(cr, widget, &template.icon,
+					link ? &red : type_colour);
+	}
 
-	gboolean link = fw->right_link
-		? strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
-				item->leafname) ? FALSE : TRUE
-		: FALSE;
 
-	draw_string(widget, layout,
+	fg = colitem->selected ?
+		&widget->style->text[fw->selection_state] : type_colour;
+
+	draw_string(cr, leafname,
 			&template.leafname,
 			view->name_width,
 			view->name_height,
-			selection_state,
-			TRUE,
-			link);
+			fg,
+			select_colour);
+
+	g_object_unref(G_OBJECT(leafname));
 
 	if (fw->details_type != DETAILS_NONE &&
 		view->details && item->base_type != TYPE_UNKNOWN)
-		draw_string(widget, view->details,
+		draw_string(cr, view->details,
 				&template.details,
 				template.details.width,
 				0,
-				selection_state,
-				TRUE,
-				FALSE);
+				fg,
+				select_colour);
 
-	g_object_unref(G_OBJECT(layout));
+	cairo_destroy(cr);
 }
 
 /* A template contains the locations of the three rectangles (for the icon,
@@ -821,12 +823,12 @@ static void huge_template(
 
 		template->leafname.width = MIN(max_text_width, view->name_width);
 		template->leafname.height = MIN(view->name_height,
-				area->height - ih - view->details_height - 1);
+				area->height - ih - view->details_height - 2);
 
 		template->icon.x = area->x + (col_width - iw) / 2;
 		template->icon.y = area->y +
 			(area->height - view->details_height -
-			 template->leafname.height - ih);
+			 template->leafname.height - ih - 1);
 
 		template->leafname.x = area->x + MAX((col_width - view->name_width) / 2, 3);
 		template->leafname.y = template->icon.y + ih;
@@ -841,14 +843,14 @@ static void huge_template(
 	{
 		template->leafname.width = view->name_width;
 		template->leafname.height = MIN(view->name_height,
-				area->height - ih - 1);
+				area->height - ih - 2);
 
 		template->leafname.x = area->x +
-			MAX((col_width - template->leafname.width) >> 1, 3);
+			MAX((col_width - template->leafname.width) >> 1, 2);
 		template->icon.x = area->x + ((col_width - iw) >> 1);
 
 		template->icon.y = area->y +
-			(area->height - template->leafname.height - ih) / 2 + 1;
+			(area->height - template->leafname.height - ih - 2) / 2 + 1;
 		template->leafname.y = template->icon.y + ih;
 	}
 
@@ -926,8 +928,8 @@ static void large_template(
 		template->leafname.width = view->name_width;
 		template->leafname.height = MIN(view->name_height, area->height - ICON_HEIGHT - 2);
 
-		tx = area->x + MAX((col_width - template->leafname.width) >> 1, 3);
-		ty = area->y + ICON_HEIGHT + 2;
+		tx = area->x + MAX((col_width - template->leafname.width) >> 1, 2);
+		ty = area->y + ICON_HEIGHT + 1;
 
 		template->leafname.x = tx;
 		template->leafname.y = ty;
@@ -1010,57 +1012,60 @@ static gboolean test_point(Collection *collection,
 }
 
 /* 'box' renders a background box if the string is also selected */
-static void draw_string(GtkWidget *widget,
-		PangoLayout *layout,
-		GdkRectangle *area,	/* Area available on screen */
-		int 	width,		/* Width of the full string */
-		int 	height,		/* height of the full string */
-		GtkStateType selection_state,
-		gboolean box,
-		gboolean link)
+static void draw_string(cairo_t *cr,
+		PangoLayout  *layout,
+		GdkRectangle *area,  /* Area available on screen */
+		int          width,  /* Width of the full string */
+		int          height, /* height of the full string */
+		GdkColor     *fg,
+		GdkColor     *bg)
 {
-	if (width > area->width || height > area->height)
+	gboolean saved = FALSE;
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+
+	if (width > area->width || height > area->height || bg)
 	{
-		gdk_gc_set_clip_origin(type_gc, 0, 0);
-		gdk_gc_set_clip_rectangle(type_gc, area);
+		cairo_save(cr);
+		saved = TRUE;
+		cairo_rectangle(cr, area->x, area->y, area->width, area->height);
+		cairo_clip(cr);
 	}
 
-	if (selection_state != GTK_STATE_NORMAL && box)
-		gdk_draw_layout_with_colors(widget->window, type_gc, area->x, area->y, layout,
-			&widget->style->text[selection_state], &widget->style->base[selection_state]);
-	else
-		gdk_draw_layout(widget->window, type_gc, area->x, area->y, layout);
-
-	if (width > area->width || height > area->height || link)
+	if (bg)
 	{
-		static GdkGC *red_gc = NULL;
+		gdk_cairo_set_source_color(cr, bg);
+		cairo_paint(cr);
+	}
 
-		if (!red_gc)
-		{
-			gboolean success;
-			GdkColor red = {0, 0xffff, 0, 0};
+	gdk_cairo_set_source_color(cr, fg);
 
-			red_gc = gdk_gc_new(widget->window);
-			gdk_colormap_alloc_colors(
-					gtk_widget_get_colormap(widget),
-					&red, 1, FALSE, TRUE, &success);
-			gdk_gc_set_foreground(red_gc, &red);
-		}
+	cairo_move_to(cr, area->x, area->y);
+	pango_cairo_show_layout(cr, layout);
+
+	if (saved)
+		cairo_restore(cr);
+
+	if (width > area->width || height > area->height)
+	{
+		GdkColor red = {0, 0xffff, 0, 0};
+		gdk_cairo_set_source_color(cr, &red);
+		cairo_set_line_width(cr, 1.0);
+
+		gint right = area->x + area->width;
+		gint bottom = area->y + area->height;
+
 		if (width > area->width)
-			gdk_draw_rectangle(widget->window, red_gc, TRUE,
-				area->x + area->width - 1, area->y,
-				1, area->height);
+		{
+			cairo_move_to(cr, right - .5, area->y + 1);
+			cairo_line_to(cr, right - .5, bottom - 1);
+		}
 		if (height > area->height)
-			gdk_draw_rectangle(widget->window, red_gc, TRUE,
-				area->x + area->width - small_width, area->y + area->height - 1,
-				small_width, 1);
+		{
+			cairo_move_to(cr, right - small_width, bottom - .5);
+			cairo_line_to(cr, right - 1,           bottom - .5);
+		}
 
-		if (link)
-			gdk_draw_rectangle(widget->window, red_gc, TRUE,
-				area->x, area->y + area->height - 3,
-				area->width, 3);
-
-		gdk_gc_set_clip_rectangle(type_gc, NULL);
+		cairo_stroke(cr);
 	}
 }
 
@@ -1253,75 +1258,125 @@ static void style_set(Collection 	*collection,
 }
 
 /* Return the size needed for this item */
-static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
+//if reached max size then return true;
+static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		int *width, int *height)
 {
-	DisplayStyle	style = filer_window->display_style;
-	ViewData	*view = (ViewData *) colitem->view_data;
-	gfloat scale = filer_window->icon_scale;
+	DisplayStyle style = filer_window->display_style;
+	DetailsType  type  = filer_window->details_type;
+	ViewData     *view = (ViewData *) colitem->view_data;
+	gfloat       scale = filer_window->icon_scale;
 
-	int pix_width = 0, pix_height = 0, h;
+	int pix_size = 0, h;
+	gboolean max_h = FALSE;
+	gboolean max_w = FALSE;
 
-	if (style != SMALL_ICONS)
+	if (style == SMALL_ICONS)
+		max_h = TRUE;
+	else
 	{
-		h = o_max_length.int_value == 0 ? view->name_height :
-			MIN(view->name_height,
-				((o_max_length.int_value - 1) / MAX(o_large_width.int_value, 1) + 1)
-					* fw_font_height / PANGO_SCALE
-			);
-
-		if (style == HUGE_ICONS)
+		h = view->name_height;
+		if (o_max_length.int_value != 0)
 		{
-			pix_width = pix_height = huge_size * scale;
+			int mh =
+				((o_max_length.int_value - 1) /
+				 MAX(o_large_width.int_value, 1) + 1) * fw_font_height;
+
+			if (h >= mh)
+			{
+				max_h = TRUE;
+				h = mh;
+			}
 		}
+
+		pix_size = style == HUGE_ICONS ?
+			huge_size * scale : ICON_WIDTH;
+
+		if (type == DETAILS_NONE)
+			max_w = TRUE;
 	}
 
-	if (filer_window->details_type == DETAILS_NONE)
+	if (type == DETAILS_NONE)
 	{
 		if (style == SMALL_ICONS)
 		{
-			*width = small_width + 12 +
-				MIN(view->name_width, o_small_width.int_value);
-			*height = MAX(view->name_height, small_height);
-		}
-		else if (style == HUGE_ICONS)
-		{
-			*width = MAX(pix_width, view->name_width);
-			*height = MAX(h + pix_height,
-					huge_size * filer_window->icon_scale * 3 / 4);
+			*width = view->name_width;
+			if (*width >= o_small_width.int_value)
+			{
+				max_w = TRUE;
+				*width = o_small_width.int_value;
+			}
+			*width += small_width * 1.2;
+			*height = small_height;
 		}
 		else
 		{
-			*width = MAX(ICON_WIDTH, view->name_width);
-			*height = h + ICON_HEIGHT;
+			if (max_h)
+			{
+				*width = MAX(pix_size, o_large_width.int_value);
+				if (style == HUGE_ICONS)
+					*width = MAX(*width, huge_size);
+			}
+			else
+				*width = MAX(pix_size, view->name_width);
+
+			*height = style == HUGE_ICONS ?
+				MAX(h + pix_size, pix_size * 3 / 4) :
+				h + ICON_HEIGHT;
 		}
 	}
 	else
 	{
-		int w = view->details_width;
+		int dw = view->details_width;
 
 		if (style == SMALL_ICONS)
 		{
-			int	text_height;
+			*width = small_width * 1.2 + dw;
+			if (view->name_width >= o_small_width.int_value)
+			{
+				if (type != DETAILS_TYPE)
+					max_w = TRUE;
 
-			*width = small_width + MIN(view->name_width, o_small_width.int_value) + 12 + w;
-			text_height = MAX(view->name_height,
-					  view->details_height);
-			*height = MAX(text_height, small_height);
+				*width += o_small_width.int_value;
+			}
+			else
+				*width += view->name_width;
+
+			*height = MAX(view->name_height, view->details_height);
+			*height = MAX(*height, small_height);
 		}
 		else
 		{
 			int ow = o_max_length.int_value == 0 ? view->name_width :
 					MIN(view->name_width, o_max_length.int_value);
 
+			if (type == DETAILS_SIZE)
+				ow = MAX(ow, monospace_width * 6);
+
+			//g_print("mono width %d, dw %d\n", monospace_width, dw);
+
 			if (style == HUGE_ICONS)
 			{
-				*width = MAX(pix_width, MAX(w, ow));
-				*height = pix_height + h + view->details_height;
+				if (type != DETAILS_TYPE && max_h)
+				{
+					max_w = TRUE;
+					*width = MAX(pix_size,
+								MAX(dw,
+									MAX(huge_size,
+										o_large_width.int_value)));
+				}
+				else
+					*width = MAX(pix_size, MAX(dw, ow));
+
+				*height = pix_size + h + view->details_height;
 			}
 			else
 			{
-				*width = ICON_WIDTH + 12 + MAX(w, ow);
+				if (type != DETAILS_TYPE && o_max_length.int_value != 0 &&
+					(ow >= o_max_length.int_value || dw > o_max_length.int_value))
+					max_h = max_w = TRUE;
+
+				*width = ICON_WIDTH + 2 + MAX(dw, ow);
 				*height = ICON_HEIGHT;
 			}
 		}
@@ -1330,6 +1385,8 @@ static void calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 	/* margin */
 	*width += 2;
 	*height += 2;
+
+	return max_h && max_w ? scale : .0;
 }
 
 static void update_item(ViewCollection *view_collection, int i)
@@ -1347,18 +1404,23 @@ static void update_item(ViewCollection *view_collection, int i)
 	display_update_view(filer_window,
 			(DirItem *) colitem->data,
 			(ViewData *) colitem->view_data,
-			FALSE);
+			FALSE,
+			collection->reached_scale != .0);
 
-	calc_size(filer_window, colitem, &w, &h);
-
-	if (w > old_w || h > old_h)
+	if (collection->reached_scale == .0)
 	{
-		collection_set_item_size(collection,
-					 MAX(old_w, w),
-					 MAX(old_h, h));
+		collection->reached_scale =
+			calc_size(filer_window, colitem, &w, &h);
 
-		//only lager
-		filer_window->may_resize = TRUE;
+		if (w > old_w || h > old_h)
+		{
+			collection_set_item_size(collection,
+						 MAX(old_w, w),
+						 MAX(old_h, h));
+
+			//only lager
+			filer_window->may_resize = TRUE;
+		}
 	}
 
 	if (!filer_window->req_sort) //will redraw soon
@@ -1376,6 +1438,14 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 	int		width = MIN_ITEM_WIDTH;
 	int		height = small_height;
 	int		n = col->number_of_items;
+
+	if (filer_window->under_init) return;
+
+	if (flags & VIEW_UPDATE_NAME ||
+			col->reached_scale != filer_window->icon_scale)
+		col->reached_scale = .0;
+
+	gboolean dont_set_size = col->reached_scale != .0;
 
 	if (n == 0 && filer_window->display_style != SMALL_ICONS)
 		height = ICON_HEIGHT;
@@ -1401,16 +1471,21 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 			display_update_view(filer_window,
 					(DirItem *) ci->data,
 					(ViewData *) ci->view_data,
-					(flags & VIEW_UPDATE_NAME) != 0);
+					(flags & VIEW_UPDATE_NAME) != 0,
+					col->reached_scale != .0);
 
-		calc_size(filer_window, ci, &w, &h);
-		if (w > width)
-			width = w;
-		if (h > height)
-			height = h;
+		if (col->reached_scale == .0)
+		{
+			col->reached_scale = calc_size(filer_window, ci, &w, &h);
+			if (w > width)
+				width = w;
+			if (h > height)
+				height = h;
+		}
 	}
 
-	collection_set_item_size(col, width, height);
+	if (!dont_set_size)
+		collection_set_item_size(col, width, height);
 
 	reset_thumb_func(view_collection);
 
@@ -1466,11 +1541,16 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 			continue;
 
 		reti = collection_insert(collection, item,
-					display_create_viewdata(filer_window, item));
+					display_create_viewdata(filer_window, item,
+						collection->reached_scale != 0));
 
-		calc_size(filer_window, &collection->items[reti], &w, &h);
-		mw = MAX(mw, w);
-		mh = MAX(mh, h);
+		if (collection->reached_scale == .0)
+		{
+			collection->reached_scale =
+				calc_size(filer_window, &collection->items[reti], &w, &h);
+			mw = MAX(mw, w);
+			mh = MAX(mh, h);
+		}
 	}
 	if (mw > old_w || mh > old_h)
 		collection_set_item_size(collection,

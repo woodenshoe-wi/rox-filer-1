@@ -283,8 +283,9 @@ static void collection_init(GTypeInstance *instance, gpointer g_class)
 	object->columns = 1;
 	object->vertical_order = FALSE;
 	object->center_wink = TRUE;
-	object->item_width = 64;
-	object->item_height = 64;
+	object->item_width = 1;
+	object->item_height = 1;
+	object->reached_scale = .0;
 	object->old_height = object->old_pos = 0;
 	object->vadj = NULL;
 
@@ -571,6 +572,7 @@ static gint collection_expose(GtkWidget *widget, GdkEventExpose *event)
 				   widget, "collection", 0, 0, -1, -1);
 
 	collection = COLLECTION(widget);
+	if (collection->item_width == 1) return FALSE;
 
 	/* Calculate the ranges to plot */
 	start_row = event->area.y / collection->item_height;
@@ -1248,6 +1250,8 @@ static void collection_item_set_selected(Collection *collection,
 /* Remove all objects from the collection */
 void collection_clear(Collection *collection)
 {
+	collection->reached_scale = .0;
+	collection->item_width = collection->item_height = 1;
 	collection_delete_if(collection, NULL, NULL);
 	collection->center_wink = TRUE;
 	collection->old_height = collection->old_pos = 0;

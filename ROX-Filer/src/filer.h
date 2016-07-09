@@ -6,8 +6,6 @@
 #ifndef _FILER_H
 #define _FILER_H
 
-#include <gtk/gtk.h>
-
 enum {
 	RESIZE_STYLE = 0,
 	RESIZE_ALWAYS = 1,

@@ -532,10 +532,13 @@ static void update_display(Directory *dir,
 	gboolean init = filer_window->under_init;
 
 	//g_print("[a%d]%s", action, action == 1 ? "\n" : "");
+	//static gint64 start_time;
 
 	switch (action)
 	{
 		case DIR_ADD:
+			//start_time = g_get_real_time();
+			//
 			view_add_items(view, items);
 			filer_window->req_sort = FALSE;
 
@@ -557,6 +560,8 @@ static void update_display(Directory *dir,
 			toolbar_update_info(filer_window);
 			break;
 		case DIR_END_SCAN:
+			//g_print("end time : %li\n", g_get_real_time() - start_time);
+
 			if (filer_window->req_sort)
 			{
 				filer_window->req_sort = FALSE;
@@ -2095,48 +2100,61 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 
 static gint set_font(GtkWidget *widget)
 {
-	static GMutex m_font;
-	static PangoFontDescription *tmp;
-
-	g_mutex_lock(&m_font);
-
 	PangoContext *context = gtk_widget_get_pango_context(widget);
-	tmp = pango_context_get_font_description(context);
+	PangoFontDescription *desc = pango_context_get_font_description(context);
 
-	if (!current_font || !pango_font_description_equal(tmp, current_font))
+	if (!current_font || !pango_font_description_equal(desc, current_font))
 	{
 		pango_font_description_free(current_font);
-		current_font = pango_font_description_copy(tmp);
+		current_font = pango_font_description_copy(desc);
 
-		gint i;
-		gchar n[] = {' ', '\0'};
-		PangoLayout *layout =
-			gtk_widget_create_pango_layout(widget, n);
+		PangoFont *font = pango_context_load_font(context, desc);
+
+		static cairo_scaled_font_t *fw_scaled_font = NULL;
+		if (fw_scaled_font)
+			cairo_scaled_font_destroy(fw_scaled_font);
+		fw_scaled_font =
+			pango_cairo_font_get_scaled_font(PANGO_CAIRO_FONT(font));
+		cairo_scaled_font_reference(fw_scaled_font);
+
+		g_object_unref(font);
+
+//		cairo_font_extents_t fe;
+//		cairo_scaled_font_extents(fw_scaled_font, &fe);
 
 		if (o_fast_font_calc.int_value)
-			i = 0x20;
-		else
-			i = 0x7e;
-
-		for (; i <= 0x7e; i++)
 		{
-			n[0] = (gchar) i;
-			pango_layout_set_text(layout, n, -1);
+			gint i = 0x20;
+			gchar n[] = {' ', '\0'};
+			cairo_text_extents_t te;
 
-			pango_layout_get_size(layout,
-					&fw_font_widths[i],
-					&fw_font_height);
+			for (; i <= 0x7e; i++)
+			{
+				n[0] = (gchar) i;
+				cairo_scaled_font_text_extents(fw_scaled_font, n, &te);
+				fw_font_widths[i] = (gint) (te.x_advance + .5);
+//g_print("caito te %s: x %f, y %f, w %f, h %f, xa %f, ya %f\n",
+//n, te.x_bearing, te.y_bearing, te.width, te.height,
+//te.x_advance, te.y_advance);
+			}
 		}
+
+		//font height is diffrent between canro and pango
+		PangoLayout *layout =
+			gtk_widget_create_pango_layout(widget, " ");
+
+		pango_layout_get_size(layout, NULL, &fw_font_height);
+		fw_font_height /= PANGO_SCALE;
 
 		g_object_unref(layout);
 	}
-	g_mutex_unlock(&m_font);
 
-	if (pango_font_description_get_size_is_absolute(tmp))
-		return fw_font_height / PANGO_SCALE;
+	//make sure small_height is not font height but icons height.
+	if (pango_font_description_get_size_is_absolute(desc))
+		return fw_font_height;
 	else
 		/* if same font size then same icon size is good */
-		return pango_font_description_get_size(tmp) * 18 / 10 / PANGO_SCALE;
+		return pango_font_description_get_size(desc) * 18 / 10 / PANGO_SCALE;
 }
 
 /* This adds all the widgets to a new filer window. It is in a separate
