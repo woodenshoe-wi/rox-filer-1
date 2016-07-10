@@ -148,7 +148,7 @@ void type_init(void)
 	inode_unknown = get_mime_type("inode/unknown", TRUE);
 	inode_door = get_mime_type("inode/door", TRUE);
 
-	option_add_string(&o_icon_theme, "icon_theme", "ROX");
+	option_add_string(&o_icon_theme, "icon_theme", "gnome");
 	option_add_int(&o_display_colour_types, "display_colour_types", TRUE);
 	option_register_widget("icon-theme-chooser", build_icon_theme);
 
@@ -1293,7 +1293,7 @@ static void set_icon_theme(void)
 	const char *theme_name = o_icon_theme.value;
 
 	if (!theme_name || !*theme_name)
-		theme_name = "ROX";
+		theme_name = "grome";
 
 	if (!strcmp(theme_name, "ROX"))
 	{
