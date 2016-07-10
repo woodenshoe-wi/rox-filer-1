@@ -455,7 +455,6 @@ static void draw_cursor(GtkWidget *widget,
 		GdkRectangle *rect, Collection *col, GdkColor *colour)
 {
 	cairo_t *cr = gdk_cairo_create(widget->window);
-	GdkRectangle dr = *rect;
 
 	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
@@ -464,17 +463,18 @@ static void draw_cursor(GtkWidget *widget,
 	double dashes[] = {3.0, 1.0};
 	cairo_set_dash(cr, dashes, 2, 0);
 
-	dr.x += 1;
-	dr.y += 1;
-	dr.width = col->item_width - 1;
-	dr.height = col->item_height - 1;
-
 	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
 		gdk_cairo_set_source_color(cr, colour);
 	else
 		cairo_set_source_rgb(cr, .7, .7, .7);
 
-	gdk_cairo_rectangle(cr, &dr);
+	cairo_move_to(cr, rect->x + .5, rect->y + .5);
+	cairo_rel_line_to(cr, col->item_width - 1, 0);
+	cairo_rel_line_to(cr, 0, col->item_height - 1);
+	cairo_move_to(cr, rect->x + .5, rect->y + .5);
+	cairo_rel_line_to(cr, 0, col->item_height - 1);
+	cairo_rel_line_to(cr, col->item_width - 1, 0);
+
 	cairo_stroke(cr);
 
 	cairo_destroy(cr);
