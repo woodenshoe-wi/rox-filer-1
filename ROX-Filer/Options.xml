@@ -401,6 +401,9 @@ xterm -e wget $1</entry>
 		<toggle name='fast_font_calc' label='Fast width calculating'>
 			If this is on, string width calculations will be faster but less accurate in Small Icons mode.
 		</toggle>
+		<toggle name='purge_dir_cache' label='Purge Dir Cache'>
+			Not check this if you haven't problem with memory.
+		</toggle>
 	</frame>
   </section>
 </options>
