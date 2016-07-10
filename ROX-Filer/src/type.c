@@ -403,7 +403,13 @@ inline static void init_rox_theme(void)
 
 inline static void init_gnome_theme(void)
 {
-	init_aux_theme(&gnome_theme, "gnome");
+	gchar *name;
+	g_object_get(gtk_settings_get_default(),
+			"gtk-icon-theme-name", &name, NULL);
+
+	init_aux_theme(&gnome_theme, name ? name : "gnome");
+
+
 }
 
 /* We don't want ROX to override configured theme so try all possibilities
