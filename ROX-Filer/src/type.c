@@ -1293,7 +1293,7 @@ static void set_icon_theme(void)
 	const char *theme_name = o_icon_theme.value;
 
 	if (!theme_name || !*theme_name)
-		theme_name = "grome";
+		theme_name = "gnome";
 
 	if (!strcmp(theme_name, "ROX"))
 	{
