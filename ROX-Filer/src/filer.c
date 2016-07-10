@@ -538,7 +538,7 @@ static void update_display(Directory *dir,
 	{
 		case DIR_ADD:
 			//start_time = g_get_real_time();
-			//
+
 			view_add_items(view, items);
 			filer_window->req_sort = FALSE;
 
