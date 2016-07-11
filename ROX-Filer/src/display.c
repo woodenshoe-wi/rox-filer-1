@@ -1103,17 +1103,17 @@ void display_update_view(FilerWindow *fw,
 		view->may_thumb = FALSE;
 	}
 
-	if (!update_name_layout &&
-			view->recent == (item->flags & ITEM_FLAG_RECENT))
-		return;
-
-	view->recent = item->flags & ITEM_FLAG_RECENT;
-
 	if (view->details)
 	{
 		g_object_unref(G_OBJECT(view->details));
 		view->details = NULL;
 	}
+
+	if (!update_name_layout &&
+			view->recent == (item->flags & ITEM_FLAG_RECENT))
+		return;
+
+	view->recent = item->flags & ITEM_FLAG_RECENT;
 
 	if (clear)
 	{
