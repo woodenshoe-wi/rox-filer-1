@@ -66,6 +66,7 @@
 #include "pixmaps.h"
 #include "type.h"
 #include "main.h"
+#include "options.h"
 
 #ifdef USE_NOTIFY
 static GHashTable *notify_fd_to_dir = NULL;
@@ -89,6 +90,8 @@ static int in_callback = 0;
 GFSCache *dir_cache = NULL;
 
 static GMutex m_dir;
+
+static Option o_purge_dir_cache;
 
 /* Static prototypes */
 static void update(Directory *dir, gchar *pathname, gpointer data);
@@ -118,6 +121,8 @@ static void dnotify_handler(int sig, siginfo_t *si, void *data);
 
 void dir_init(void)
 {
+	option_add_int(&o_purge_dir_cache, "purge_dir_cache", FALSE);
+
 	dir_cache = g_fscache_new((GFSLoadFunc) dir_new,
 				(GFSUpdateFunc) update, NULL);
 
@@ -279,12 +284,8 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 # endif
 #endif
 
-//test code
-//#define PURGE_DIR_CACHE
-#ifdef PURGE_DIR_CACHE
-			if (!dir->users)
+			if (o_purge_dir_cache.int_value && !dir->users)
 				g_fscache_remove(dir_cache, dir->pathname);
-#endif
 
 			return;
 		}
@@ -1038,7 +1039,7 @@ static void dir_finialize(GObject *object)
 
 	g_return_if_fail(dir->users == NULL);
 
-	g_print("[ dir finalize ]\n");
+	//g_print("[ dir finalize ]\n");
 
 	free_recheck_list(dir);
 	g_queue_free(dir->examine_list);

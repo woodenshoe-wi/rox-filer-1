@@ -1103,17 +1103,23 @@ void display_update_view(FilerWindow *fw,
 		view->may_thumb = FALSE;
 	}
 
-	if (!update_name_layout &&
-			view->recent == (item->flags & ITEM_FLAG_RECENT))
-		return;
-
-	view->recent = item->flags & ITEM_FLAG_RECENT;
-
 	if (view->details)
 	{
 		g_object_unref(G_OBJECT(view->details));
 		view->details = NULL;
 	}
+
+	if (!clear &&
+		fw->details_type != DETAILS_NONE &&
+		view->base_type != TYPE_UNKNOWN
+		)
+		make_details_layout(fw, item, view);
+
+	if (!update_name_layout &&
+			view->recent == (item->flags & ITEM_FLAG_RECENT))
+		return;
+
+	view->recent = item->flags & ITEM_FLAG_RECENT;
 
 	if (clear)
 	{
@@ -1121,9 +1127,6 @@ void display_update_view(FilerWindow *fw,
 		view->name_height = 0;
 		return;
 	}
-
-	if (fw->details_type != DETAILS_NONE)
-		make_details_layout(fw, item, view);
 
 	basic &= !(item->flags & ITEM_FLAG_RECENT);
 	basic &= (fw->display_style == SMALL_ICONS ||
