@@ -877,7 +877,7 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 		MIME_type	*type = item->mime_type;
 
 		if (!scanned)
-			return g_strdup("application/octet-stream");
+			return g_strdup("unknown/");
 
 		buf = g_strdup_printf("%s/%s",
 				      type->media_type, type->subtype);
@@ -905,13 +905,13 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 #ifdef S_ISVTX
 					"-"
 #endif
-					" 12345678 12345678");
+					"\n12345678 12345678");
 			else
 				return g_strdup("---,---,---/--"
 #ifdef S_ISVTX
 					"-"
 #endif
-					"\n 12345678 12345678");
+					" 12345678 12345678");
 		}
 
 		if (vertical)
@@ -931,9 +931,9 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 		if (!scanned)
 		{
 			if (filer_window->display_style == SMALL_ICONS)
-				return g_strdup("1234M");
+				return g_strdup("1234b");
 			else
-				return g_strdup("1234 B");
+				return g_strdup("1234 b");
 		}
 
 		if (item->base_type != TYPE_DIRECTORY)
@@ -1109,10 +1109,7 @@ void display_update_view(FilerWindow *fw,
 		view->details = NULL;
 	}
 
-	if (!clear &&
-		fw->details_type != DETAILS_NONE &&
-		view->base_type != TYPE_UNKNOWN
-		)
+	if (!clear && fw->details_type != DETAILS_NONE)
 		make_details_layout(fw, item, view);
 
 	if (!update_name_layout &&
