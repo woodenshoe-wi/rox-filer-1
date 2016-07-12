@@ -1109,6 +1109,12 @@ void display_update_view(FilerWindow *fw,
 		view->details = NULL;
 	}
 
+	if (!clear &&
+		fw->details_type != DETAILS_NONE &&
+		view->base_type != TYPE_UNKNOWN
+		)
+		make_details_layout(fw, item, view);
+
 	if (!update_name_layout &&
 			view->recent == (item->flags & ITEM_FLAG_RECENT))
 		return;
@@ -1121,9 +1127,6 @@ void display_update_view(FilerWindow *fw,
 		view->name_height = 0;
 		return;
 	}
-
-	if (fw->details_type != DETAILS_NONE)
-		make_details_layout(fw, item, view);
 
 	basic &= !(item->flags & ITEM_FLAG_RECENT);
 	basic &= (fw->display_style == SMALL_ICONS ||

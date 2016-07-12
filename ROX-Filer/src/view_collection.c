@@ -663,7 +663,9 @@ end_image:
 		view->name_width = w / PANGO_SCALE;
 		view->name_height = h / PANGO_SCALE;
 	}
-	if (!view->details && fw->details_type != DETAILS_NONE)
+	if (!view->details &&
+			fw->details_type != DETAILS_NONE &&
+			view->base_type != TYPE_UNKNOWN)
 		make_details_layout(fw, item, view);
 
 	fill_template(area, colitem, vc, &template);
@@ -695,7 +697,7 @@ end_image:
 
 	//	g_clear_object(&(view->thumb));
 
-	if (item->base_type == TYPE_DIRECTORY)
+	if (view->base_type == TYPE_DIRECTORY)
 	{
 		gboolean link = fw->right_link
 			? strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
@@ -724,7 +726,7 @@ end_image:
 	g_object_unref(G_OBJECT(leafname));
 
 	if (fw->details_type != DETAILS_NONE &&
-		view->details && item->base_type != TYPE_UNKNOWN)
+		view->details && view->base_type != TYPE_UNKNOWN)
 		draw_string(cr, view->details,
 				&template.details,
 				template.details.width,
@@ -833,7 +835,7 @@ static void huge_template(
 		template->leafname.x = area->x + MAX((col_width - view->name_width) / 2, 3);
 		template->leafname.y = template->icon.y + ih;
 
-		if (((DirItem *) colitem->data)->base_type == TYPE_UNKNOWN)
+		if (view->base_type == TYPE_UNKNOWN)
 			return;		/* Not scanned yet */
 
 		template->details.x = area->x + (col_width - view->details_width) / 2;
@@ -915,7 +917,7 @@ static void large_template(
 		template->leafname.width = MIN(max_text_width, view->name_width);
 		template->leafname.height = view->name_height;
 
-		if (((DirItem *) colitem->data)->base_type == TYPE_UNKNOWN)
+		if (view->base_type == TYPE_UNKNOWN)
 			return;		/* Not scanned yet */
 
 		template->details.x = tx;
@@ -974,7 +976,7 @@ static void small_full_template(GdkRectangle *area, CollectionItem *colitem,
 
 	small_template(&temparea, colitem, view_collection, template);
 
-	if (((DirItem *) colitem->data)->base_type == TYPE_UNKNOWN)
+	if (view->base_type == TYPE_UNKNOWN)
 		return;		/* Not scanned yet */
 
 	template->icon.x = area->x + 2;
