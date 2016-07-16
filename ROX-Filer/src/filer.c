@@ -2030,6 +2030,7 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 
 	if (filer_window->view)
 	{
+		dnd_motion_ungrab();
 		/* Destroy the old view */
 		gtk_widget_destroy(GTK_WIDGET(filer_window->view));
 		filer_window->view = NULL;

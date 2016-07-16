@@ -673,7 +673,8 @@ static gint view_details_key_press(GtkWidget *widget, GdkEventKey *event)
 static gboolean view_details_button_press(GtkWidget *widget,
 					  GdkEventButton *bev)
 {
-	FilerWindow *filer_window = ((ViewDetails *) widget)->filer_window;
+	ViewDetails *view_details = (ViewDetails *) widget;
+	FilerWindow *filer_window = view_details->filer_window;
 	GtkTreeView *tree = (GtkTreeView *) widget;
 
 	if (bev->window != gtk_tree_view_get_bin_window(tree))
@@ -682,6 +683,19 @@ static gboolean view_details_button_press(GtkWidget *widget,
 
 	if (dnd_motion_press(widget, bev))
 		filer_perform_action(filer_window, bev);
+	else {
+		/* rocker gesture */
+		if (motion_state == MOTION_READY_FOR_DND)
+			dnd_motion_disable();
+
+		filer_set_autoscroll(filer_window, FALSE);
+		set_lasso(view_details,
+			  view_details->drag_box_x[0],
+			  view_details->drag_box_y[0]);
+		view_details->lasso_box = FALSE;
+
+		change_to_parent(filer_window);
+	}
 
 	return TRUE;
 }
