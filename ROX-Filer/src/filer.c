@@ -1010,12 +1010,13 @@ static gboolean may_rescan(FilerWindow *filer_window, gboolean warning)
 		gtk_widget_destroy(filer_window->window);
 		return FALSE;
 	}
-	if (dir == filer_window->directory)
-		g_object_unref(dir);
-	else
+
+	g_object_unref(dir);
+	if (dir != filer_window->directory)
 	{
 		detach(filer_window);
-		filer_window->directory = dir;
+		filer_window->directory =
+			g_fscache_lookup(dir_cache, filer_window->real_path);
 		attach(filer_window);
 	}
 
@@ -1726,20 +1727,9 @@ void filer_change_to(FilerWindow *fw,
 		return;
 	}
 
-	filer_cut_links(fw, 0);
-
 	fw->under_init = TRUE;
 	fw->first_scan = TRUE;
 	fw->req_sort = FALSE;
-
-	if (o_unique_filer_windows.int_value && !spring_in_progress)
-	{
-		FilerWindow *fwd;
-
-		fwd = find_filer_window(sym_path, fw);
-		if (fwd)
-			gtk_widget_destroy(fwd->window);
-	}
 
 	from_dup = from && *from ? g_strdup(from) : NULL;
 
@@ -1773,6 +1763,16 @@ void filer_change_to(FilerWindow *fw,
 				    fw->sym_path);
 
 	attach(fw);
+
+	filer_cut_links(fw, 0);
+	if (o_unique_filer_windows.int_value && !spring_in_progress)
+	{
+		FilerWindow *fwd;
+
+		fwd = find_filer_window(sym_path, fw);
+		if (fwd)
+			gtk_widget_destroy(fwd->window);
+	}
 
 	fw->under_init = FALSE;
 	display_set_actual_size(fw, force_resize);
@@ -2693,6 +2693,7 @@ void filer_detach_rescan(FilerWindow *filer_window)
 	Directory *dir = filer_window->directory;
 
 	g_object_ref(dir);
+	//if there were no other users this dir wills drop from cache
 	detach(filer_window);
 	filer_window->directory = dir;
 	attach(filer_window);
