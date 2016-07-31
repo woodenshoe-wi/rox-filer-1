@@ -1111,6 +1111,12 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 	gtk_tree_view_column_set_sort_column_id(column, COL_LEAF);
 	gtk_tree_view_column_set_resizable(column, TRUE);
 	gtk_tree_view_column_set_reorderable(column, TRUE);
+
+	gtk_tree_view_column_set_max_width(column,
+			(o_filer_width_limit.int_value == 0 ?
+			 o_filer_size_limit.int_value :
+			 o_filer_width_limit.int_value) * monitor_width / 100);
+
 	ADD_TEXT_COLUMN(_("_Type"), COL_TYPE);
 	gtk_tree_view_column_set_sort_column_id(column, COL_TYPE);
 	gtk_tree_view_column_set_resizable(column, TRUE);
