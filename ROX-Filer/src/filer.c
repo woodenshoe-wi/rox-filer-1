@@ -200,6 +200,7 @@ Option o_filer_size_limit;
 Option o_filer_width_limit;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
+static Option o_disable_pointer_warp;
 static Option o_create_sub_dir_thumbs;
 static Option o_thumb_processes_num;
 Option o_window_link;
@@ -224,6 +225,7 @@ void filer_init(void)
 	option_add_int(&o_right_gap, "right_gap", 0);
 	option_add_int(&o_bottom_gap, "bottom_gap", 0);
 	option_add_int(&o_auto_move, "auto_move", TRUE);
+	option_add_int(&o_disable_pointer_warp, "disable_pointer_warp", FALSE);
 	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
 	option_add_int(&o_create_sub_dir_thumbs, "create_sub_dir_thumbs", TRUE);
 	option_add_int(&o_thumb_processes_num, "thumb_processes_num", 6);
@@ -388,7 +390,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 
 		if (dx != 0 || dy != 0)
 		{
-			if (gtk_window_is_active(GTK_WINDOW(window)))
+			if (gtk_window_is_active(GTK_WINDOW(window)) && !o_disable_pointer_warp.int_value)
 			{
 				gdk_window_get_pointer(gdk_window, &px, &py, NULL);
 				XWarpPointer(gdk_x11_drawable_get_xdisplay(gdk_window),
@@ -415,7 +417,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 	filer_window->last_width = w;
 	filer_window->last_height = h;
 
-	if (gtk_window_is_active(GTK_WINDOW(window)))
+	if (gtk_window_is_active(GTK_WINDOW(window)) && !o_disable_pointer_warp.int_value)
 	{
 		GdkEvent *event = gtk_get_current_event();
 		if (event)
