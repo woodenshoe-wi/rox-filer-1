@@ -320,7 +320,8 @@ static gboolean transparent_expose(GtkWidget *widget,
 			cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
 		}
 
-		if (view->collection->number_of_items == 0)
+		if (view->collection->number_of_items == 0 &&
+				o_view_alpha.int_value != 0)
 		{
 			cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 			cairo_paint_with_alpha(cr, 0.4);
