@@ -354,7 +354,7 @@ void draw_huge_icon(
 	gdk_cairo_set_source_pixbuf(cr, pixbuf, image_x, image_y);
 	cairo_paint(cr);
 
-	if (scale != 1.0)
+	if (scale != 1.0 && width > 0 && height > 0)
 		g_object_unref(scaled);
 
 	if (selected)
