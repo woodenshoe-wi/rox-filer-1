@@ -130,6 +130,7 @@ struct _FilerWindow
 	gboolean	under_init;
 	gboolean	first_scan;
 	gboolean	new_win_first_scan;
+	gboolean	update;
 	gboolean	req_sort;
 	gboolean	may_resize;
 	gboolean	presented;
