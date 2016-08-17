@@ -333,7 +333,7 @@ void draw_huge_icon(
 		height = gdk_pixbuf_get_height(image) * scale;;
 	}
 
-	if (scale != 1.0)
+	if (scale != 1.0 && width > 0 && height > 0)
 		scaled = gdk_pixbuf_scale_simple(image,
 					width, height, GDK_INTERP_BILINEAR);
 	else
