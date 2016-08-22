@@ -306,16 +306,26 @@ static gboolean transparent_expose(GtkWidget *widget,
 		cairo_set_source_rgba(cr, 0.9, .0, .0, .7);
 		cairo_paint(cr);
 	}
-	else if (o_use_background_colour.int_value ||
+	else
+	{
+		if (o_use_background_colour.int_value ||
 			o_display_colour_types.int_value)
-	{
-		set_bg_src(cr);
-		cairo_paint(cr);
-	}
-	else if (o_view_alpha.int_value != 0)
-	{
-		cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
-		cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
+		{
+			set_bg_src(cr);
+			cairo_paint(cr);
+		}
+		else if (o_view_alpha.int_value != 0)
+		{
+			cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+			cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
+		}
+
+		if (view->collection->number_of_items == 0 &&
+				o_view_alpha.int_value != 0)
+		{
+			cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+			cairo_paint_with_alpha(cr, 0.4);
+		}
 	}
 
 	if (!fg)
@@ -616,7 +626,7 @@ static void draw_item(GtkWidget *widget,
 		if (
 				fw->display_style != HUGE_ICONS ||
 				fw->scanning ||
-				vc->collection->vadj->value == 0)
+				(vc->collection->vadj->value == 0 && !fw->update))
 		{
 			g_queue_push_head(vc->thumbs_queue, GUINT_TO_POINTER(idx));
 

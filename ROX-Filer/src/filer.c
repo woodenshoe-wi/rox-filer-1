@@ -1731,6 +1731,7 @@ void filer_change_to(FilerWindow *fw,
 
 	fw->under_init = TRUE;
 	fw->first_scan = TRUE;
+	fw->update = FALSE;
 	fw->req_sort = FALSE;
 
 	from_dup = from && *from ? g_strdup(from) : NULL;
@@ -1886,6 +1887,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->under_init = TRUE;
 	filer_window->first_scan = TRUE;
 	filer_window->new_win_first_scan = TRUE;
+	filer_window->update = FALSE;
 	filer_window->req_sort = FALSE;
 	filer_window->may_resize = FALSE;
 	filer_window->presented = FALSE;
@@ -2896,8 +2898,17 @@ static gboolean filer_next_thumb_real(GObject *window)
 
 	if (g_queue_is_empty(filer_window->thumb_queue))
 	{
-		filer_cancel_thumbnails(filer_window);
 		filer_window->trying_thumbs--;
+		if (filer_window->trying_thumbs == 0)
+		{
+			if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+			{
+				filer_window->update = TRUE;
+				view_style_changed(filer_window->view, VIEW_UPDATE_VIEWDATA);
+			}
+
+			filer_cancel_thumbnails(filer_window);
+		}
 		g_object_unref(window);
 		return FALSE;
 	}
