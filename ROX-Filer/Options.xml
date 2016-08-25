@@ -166,7 +166,7 @@ indicator'>If this is on then files which have one or more extended attributes s
 	<spacer/>
 	<hbox>
 		<numentry name='purge_time' label='Purge Time for Memory Cache:' unit='sec' min='0' max='999999' width='6'>
-			Purge Time for Memory cache. If you had SSD, 0 is recommended</numentry>
+			Purge Time for Memory cache. If you have an SSD, 0 is recommended</numentry>
 	</hbox>
 
       </frame>
