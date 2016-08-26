@@ -1052,7 +1052,6 @@ static void filer_lost_primary(GtkWidget *window,
 }
 
 /* Someone wants us to send them the selection */
-/*
 static void selection_get(GtkWidget *widget, 
 		GtkSelectionData *selection_data,
 		guint    info,
@@ -1100,7 +1099,6 @@ static void selection_get(GtkWidget *widget,
 	g_string_free(reply, TRUE);
 	g_string_free(header, TRUE);
 }
-*/
 
 /* Selection has been changed -- try to grab the primary selection
  * if we don't have it. Also called when clicking on an insensitive selection
@@ -2326,8 +2324,8 @@ static void filer_add_signals(FilerWindow *filer_window)
 	g_signal_connect(filer_window->window, "selection_clear_event",
 			G_CALLBACK(filer_lost_primary), filer_window);
 
-//	g_signal_connect(filer_window->window, "selection_get",
-//			G_CALLBACK(selection_get), filer_window);
+	g_signal_connect(filer_window->window, "selection_get",
+			G_CALLBACK(selection_get), filer_window);
 
 	gtk_selection_add_targets(GTK_WIDGET(filer_window->window),
 			GDK_SELECTION_PRIMARY,
