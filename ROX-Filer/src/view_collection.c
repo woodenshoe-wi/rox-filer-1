@@ -2106,6 +2106,7 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 
 	int vw = MAX(w * MAX(cols, 1), min_x);
 	int vh = MIN(max_y, h * rows + space);
+	gboolean notauto = FALSE;
 
 	if (turn && (vw != max_x || vh != max_y) &&
 		GTK_WIDGET(view_collection)->allocation.width  == vw &&
@@ -2113,6 +2114,7 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 	{
 		vw = max_x;
 		vh = max_y;
+		notauto = TRUE;
 	}
 
 	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
@@ -2122,7 +2124,7 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 		exspace += req.height;
 	}
 
-	filer_window_set_size(filer_window, vw, vh + exspace);
+	filer_window_set_size(filer_window, vw, vh + exspace, notauto);
 }
 
 static gboolean view_collection_cursor_visible(ViewIface *view)

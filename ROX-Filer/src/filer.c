@@ -287,7 +287,7 @@ static gboolean if_deleted(gpointer item, gpointer removed)
 /* Resize the filer window to w x h pixels, plus border (not clamped).
  * If triggered by a key event, warp the pointer (for SloppyFocus users).
  */
-void filer_window_set_size(FilerWindow *filer_window, int w, int h)
+void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean notauto)
 {
 	g_return_if_fail(filer_window != NULL);
 
@@ -414,8 +414,13 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 		gtk_window_resize(GTK_WINDOW(window), w, h);
 
 	filer_window->configured = 0;
-	filer_window->last_width = w;
-	filer_window->last_height = h;
+	if (notauto)
+		filer_window->last_width = filer_window->last_height = -1;
+	else
+	{
+		filer_window->last_width = w;
+		filer_window->last_height = h;
+	}
 
 	if (gtk_window_is_active(GTK_WINDOW(window)) && !o_disable_pointer_warp.int_value)
 	{

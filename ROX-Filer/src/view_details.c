@@ -1745,6 +1745,7 @@ static void view_details_autosize(ViewIface *view, gboolean turn)
 
 	int vw = MIN(view_details->desired_size.width, max_width);
 	int vh = MIN(h, max_height);
+	gboolean notauto = FALSE;
 
 	if (turn && (vw != max_width || vh != max_height) &&
 		GTK_WIDGET(view_details)->allocation.width  == vw &&
@@ -1752,9 +1753,10 @@ static void view_details_autosize(ViewIface *view, gboolean turn)
 	{
 		vw = max_width;
 		vh = max_height;
+		notauto = TRUE;
 	}
 
-	filer_window_set_size(filer_window, vw, vh);
+	filer_window_set_size(filer_window, vw, vh, notauto);
 }
 
 static gboolean view_details_cursor_visible(ViewIface *view)
