@@ -344,11 +344,11 @@ void view_thaw(ViewIface *obj)
  * space is
  * If allow_shrink is
  */
-void view_autosize(ViewIface *obj)
+void view_autosize(ViewIface *obj, gboolean turn)
 {
 	g_return_if_fail(VIEW_IS_IFACE(obj));
 
-	VIEW_IFACE_GET_CLASS(obj)->autosize(obj);
+	VIEW_IFACE_GET_CLASS(obj)->autosize(obj, turn);
 }
 
 /* Return TRUE if the cursor is shown. Note that the cursor may be visible

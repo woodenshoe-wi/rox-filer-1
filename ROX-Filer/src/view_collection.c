@@ -149,7 +149,7 @@ static gboolean view_collection_get_selected(ViewIface *view, ViewIter *iter);
 static void view_collection_select_only(ViewIface *view, ViewIter *iter);
 static void view_collection_set_frozen(ViewIface *view, gboolean frozen);
 static void view_collection_wink_item(ViewIface *view, ViewIter *iter);
-static void view_collection_autosize(ViewIface *view);
+static void view_collection_autosize(ViewIface *view, gboolean turn);
 static gboolean view_collection_cursor_visible(ViewIface *view);
 static void view_collection_set_base(ViewIface *view, ViewIter *iter);
 static void view_collection_start_lasso_box(ViewIface *view,
@@ -1983,7 +1983,7 @@ static void view_collection_wink_item(ViewIface *view, ViewIter *iter)
 		collection->winks_left = 1;
 }
 
-static void view_collection_autosize(ViewIface *view)
+static void view_collection_autosize(ViewIface *view, gboolean turn)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	FilerWindow	*filer_window = view_collection->filer_window;
@@ -2104,6 +2104,17 @@ static void view_collection_autosize(ViewIface *view)
 
 	rows = MAX((n + cols - 1) / cols, 1);
 
+	int vw = MAX(w * MAX(cols, 1), min_x);
+	int vh = MIN(max_y, h * rows + space);
+
+	if (turn && (vw != max_x || vh != max_y) &&
+		GTK_WIDGET(view_collection)->allocation.width  == vw &&
+		GTK_WIDGET(view_collection)->allocation.height == vh)
+	{
+		vw = max_x;
+		vh = max_y;
+	}
+
 	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
 	{
 		GtkRequisition req;
@@ -2111,9 +2122,7 @@ static void view_collection_autosize(ViewIface *view)
 		exspace += req.height;
 	}
 
-	filer_window_set_size(filer_window,
-			MAX(w * MAX(cols, 1), min_x),
-			MIN(max_y, h * rows + space) + exspace);
+	filer_window_set_size(filer_window, vw, vh + exspace);
 }
 
 static gboolean view_collection_cursor_visible(ViewIface *view)
