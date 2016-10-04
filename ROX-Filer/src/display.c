@@ -624,7 +624,7 @@ void display_set_layout(FilerWindow *fw,
 			o_filer_auto_resize.int_value == RESIZE_ALWAYS ||
 			(o_filer_auto_resize.int_value == RESIZE_STYLE && wanted_changed)
 			)
-		view_autosize(fw->view);
+		view_autosize(fw->view, FALSE);
 
 	if (fw->toolbar_size_text)
 	{
@@ -853,7 +853,7 @@ static void options_changed(void)
 			view_style_changed(filer_window->view, flags);
 
 			if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
-				view_autosize(filer_window->view);
+				view_autosize(filer_window->view, FALSE);
 		}
 	}
 }

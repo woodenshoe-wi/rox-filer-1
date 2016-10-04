@@ -96,7 +96,7 @@ static gboolean view_details_get_selected(ViewIface *view, ViewIter *iter);
 static void view_details_select_only(ViewIface *view, ViewIter *iter);
 static void view_details_set_frozen(ViewIface *view, gboolean frozen);
 static void view_details_wink_item(ViewIface *view, ViewIter *iter);
-static void view_details_autosize(ViewIface *view);
+static void view_details_autosize(ViewIface *view, gboolean turn);
 static gboolean view_details_cursor_visible(ViewIface *view);
 static void view_details_set_base(ViewIface *view, ViewIter *iter);
 static void view_details_start_lasso_box(ViewIface *view,
@@ -1726,7 +1726,7 @@ static void view_details_wink_item(ViewIface *view, ViewIter *iter)
 	gtk_tree_path_free(path);
 }
 
-static void view_details_autosize(ViewIface *view)
+static void view_details_autosize(ViewIface *view, gboolean turn)
 {
 	ViewDetails *view_details = (ViewDetails *) view;
 	FilerWindow *filer_window = view_details->filer_window;
@@ -1740,11 +1740,23 @@ static void view_details_autosize(ViewIface *view)
 	gtk_widget_queue_resize(GTK_WIDGET(view));
 	gtk_widget_size_request(GTK_WIDGET(view), &req);
 
-	h = MAX(view_details->desired_size.height, small_height);
+	h = MAX(view_details->desired_size.height, small_height * 3);
 
-	filer_window_set_size(filer_window,
-			MIN(view_details->desired_size.width, max_width),
-			MIN(h, max_height));
+
+	int vw = MIN(view_details->desired_size.width, max_width);
+	int vh = MIN(h, max_height);
+	gboolean notauto = FALSE;
+
+	if (turn && (vw != max_width || vh != max_height) &&
+		GTK_WIDGET(view_details)->allocation.width  == vw &&
+		GTK_WIDGET(view_details)->allocation.height == vh)
+	{
+		vw = max_width;
+		vh = max_height;
+		notauto = TRUE;
+	}
+
+	filer_window_set_size(filer_window, vw, vh, notauto);
 }
 
 static gboolean view_details_cursor_visible(ViewIface *view)

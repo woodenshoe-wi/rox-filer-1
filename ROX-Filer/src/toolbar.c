@@ -732,7 +732,7 @@ static gint bar_pressed(GtkWidget *widget,
 			filer_window->name_scale = 1.0;
 			view_style_changed(filer_window->view, VIEW_UPDATE_NAME);
 		}
-		view_autosize(filer_window->view);
+		view_autosize(filer_window->view, FALSE);
 		view_cursor_to_iter(filer_window->view, NULL);
 		break;
 	case 3:

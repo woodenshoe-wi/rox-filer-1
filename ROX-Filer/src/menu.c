@@ -1996,7 +1996,7 @@ static void resize(gpointer data, guint action, GtkWidget *widget)
 {
 	g_return_if_fail(window_with_focus != NULL);
 
-	view_autosize(window_with_focus->view);
+	view_autosize(window_with_focus->view, TRUE);
 }
 
 static void new_window(gpointer data, guint action, GtkWidget *widget)

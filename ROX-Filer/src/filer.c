@@ -287,7 +287,7 @@ static gboolean if_deleted(gpointer item, gpointer removed)
 /* Resize the filer window to w x h pixels, plus border (not clamped).
  * If triggered by a key event, warp the pointer (for SloppyFocus users).
  */
-void filer_window_set_size(FilerWindow *filer_window, int w, int h)
+void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean notauto)
 {
 	g_return_if_fail(filer_window != NULL);
 
@@ -414,8 +414,13 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 		gtk_window_resize(GTK_WINDOW(window), w, h);
 
 	filer_window->configured = 0;
-	filer_window->last_width = w;
-	filer_window->last_height = h;
+	if (notauto)
+		filer_window->last_width = filer_window->last_height = -1;
+	else
+	{
+		filer_window->last_width = w;
+		filer_window->last_height = h;
+	}
 
 	if (gtk_window_is_active(GTK_WINDOW(window)) && !o_disable_pointer_warp.int_value)
 	{
@@ -521,7 +526,7 @@ static void check_and_resize(FilerWindow *fw) {
 		h == fw->last_height))
 	{
 		view_style_changed(fw->view, 0);
-		view_autosize(fw->view);
+		view_autosize(fw->view, FALSE);
 	}
 }
 
@@ -2083,7 +2088,7 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 		attach(filer_window);
 
 		if (o_filer_auto_resize.int_value != RESIZE_NEVER)
-			view_autosize(filer_window->view);
+			view_autosize(filer_window->view, FALSE);
 	}
 
 	if (selected)
@@ -2507,7 +2512,7 @@ void filer_check_mounted(const char *real_path)
 			{
 				if (filer_update_dir(filer_window, FALSE) &&
 				    resize)
-					view_autosize(filer_window->view);
+					view_autosize(filer_window->view, FALSE);
 			}
 		}
 	}
@@ -3428,7 +3433,7 @@ void filer_perform_action(FilerWindow *fw, GdkEventButton *event)
 			view_start_lasso_box(view, event);
 			break;
 		case ACT_RESIZE:
-			view_autosize(fw->view);
+			view_autosize(fw->view, TRUE);
 			break;
 		default:
 			g_warning("Unsupported action : %d\n", action);
