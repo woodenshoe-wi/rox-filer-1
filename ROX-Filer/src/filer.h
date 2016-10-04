@@ -135,6 +135,11 @@ struct _FilerWindow
 	gboolean	may_resize;
 	gboolean	presented;
 
+	gint		resize_drag_width; //window width
+	gfloat		name_scale_start;
+	gfloat		name_scale; /* temporary scale */
+
+
 	/* for checking user resize */
 	gint	configured;
 	gint	last_width;

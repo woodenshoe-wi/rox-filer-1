@@ -1889,6 +1889,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->req_sort = FALSE;
 	filer_window->may_resize = FALSE;
 	filer_window->presented = FALSE;
+	filer_window->resize_drag_width = 0;
 
 	filer_window->message = NULL;
 	filer_window->minibuffer = NULL;
@@ -2268,6 +2269,26 @@ static gboolean configure_cb(
 {
 	fw->configured = 1;
 
+	if (fw->resize_drag_width)
+	{
+		gint cw;
+		gdk_window_get_geometry(
+				fw->window->window, NULL, NULL,
+				&cw,
+				NULL, NULL);
+		fw->name_scale = cw * fw->name_scale_start / fw->resize_drag_width;
+		if (fw->name_scale > 1.0)
+		{
+			fw->name_scale -= 0.03;
+			if (fw->name_scale < 1.0)
+				fw->name_scale = 1.0;
+		}
+		else
+			fw->name_scale -= 0.03;
+
+		view_style_changed(fw->view, VIEW_UPDATE_NAME);
+	}
+
 	if (fw->right_link)
 		filer_link(fw, fw->right_link);
 
@@ -2280,6 +2301,8 @@ static gboolean focus_in_cb(
 		GdkEvent *event,
 		FilerWindow *fw)
 {
+	fw->resize_drag_width = 0;
+
 	if (!fw->presented)
 	{
 		fw->presented = TRUE;
@@ -4290,6 +4313,7 @@ void filer_copy_settings(FilerWindow *src, FilerWindow *dest)
 	dest->show_thumbs          = src->show_thumbs;
 	dest->view_type            = src->view_type;
 	dest->icon_scale           = src->icon_scale;
+	dest->name_scale           = src->name_scale;
 
 	dest->filter_directories   = src->filter_directories;
 	filer_set_filter(dest, src->filter, src->filter_string);
@@ -4304,6 +4328,7 @@ void filer_clear_settings(FilerWindow *fw)
 	fw->show_thumbs          = o_display_show_thumbs.int_value;
 	fw->view_type            = o_filer_view_type.int_value;
 	fw->icon_scale           = 1.0;
+	fw->name_scale           = 1.0;
 
 	fw->filter_directories   = FALSE;
 	filer_set_filter(fw, FILER_SHOW_ALL, NULL);

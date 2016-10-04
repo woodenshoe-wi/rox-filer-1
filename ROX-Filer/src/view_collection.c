@@ -1301,10 +1301,10 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		if (style == SMALL_ICONS)
 		{
 			*width = view->name_width;
-			if (*width >= o_small_width.int_value)
+			if (*width >= o_small_width.int_value * filer_window->name_scale)
 			{
 				max_w = TRUE;
-				*width = o_small_width.int_value;
+				*width = o_small_width.int_value * filer_window->name_scale;
 			}
 			*width += small_width * 1.2;
 			*height = small_height;
@@ -1313,7 +1313,8 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		{
 			if (max_h)
 			{
-				*width = MAX(pix_size, o_large_width.int_value);
+				*width = MAX(pix_size,
+						o_large_width.int_value * filer_window->name_scale);
 				if (style == HUGE_ICONS)
 					*width = MAX(*width, huge_size);
 			}
@@ -1332,12 +1333,12 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		if (style == SMALL_ICONS)
 		{
 			*width = small_width * 1.2 + dw;
-			if (view->name_width >= o_small_width.int_value)
+			if (view->name_width >= o_small_width.int_value * filer_window->name_scale)
 			{
 				if (type != DETAILS_TYPE)
 					max_w = TRUE;
 
-				*width += o_small_width.int_value;
+				*width += o_small_width.int_value * filer_window->name_scale;
 			}
 			else
 				*width += view->name_width;
@@ -1363,7 +1364,8 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 					*width = MAX(pix_size,
 								MAX(dw,
 									MAX(huge_size,
-										o_large_width.int_value)));
+										o_large_width.int_value *
+										filer_window->name_scale)));
 				}
 				else
 					*width = MAX(pix_size, MAX(dw, ow));

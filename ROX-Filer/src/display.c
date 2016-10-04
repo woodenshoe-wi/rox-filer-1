@@ -1001,13 +1001,15 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 	}
 
 	if (style == HUGE_ICONS)
-		wrap_width = MAX(huge_size, o_large_width.int_value) * PANGO_SCALE;
+		wrap_width = MAX(huge_size,
+				o_large_width.int_value * fw->name_scale) * PANGO_SCALE;
+
 		/* Since this function is heavy, this is skepped.
 		wrap_width = HUGE_WRAP * filer_window->icon_scale * PANGO_SCALE;
 		*/
 
 	if (fw->details_type == DETAILS_NONE && style == LARGE_ICONS)
-		wrap_width = o_large_width.int_value * PANGO_SCALE;
+		wrap_width = o_large_width.int_value * fw->name_scale * PANGO_SCALE;
 
 	if (wrap_width != -1)
 	{
