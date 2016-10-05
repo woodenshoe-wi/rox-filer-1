@@ -119,7 +119,7 @@ static void selection_changed(Collection *collection,
 			      gint time,
 			      gpointer user_data);
 static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
-		int *width, int *height);
+		int *width, int *height, gint number_of_items);
 static void make_iter(ViewCollection *view_collection, ViewIter *iter,
 		      IterFlags flags);
 static void make_item_iter(ViewCollection *vc, ViewIter *iter, int i);
@@ -1260,133 +1260,126 @@ static void style_set(Collection 	*collection,
 /* Return the size needed for this item */
 //if reached max size then return true;
 static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
-		int *width, int *height)
+		int *mwidth, int *mheight, gint number_of_items)
 {
 	DisplayStyle style = filer_window->display_style;
 	DetailsType  type  = filer_window->details_type;
 	ViewData     *view = (ViewData *) colitem->view_data;
 	gfloat       scale = filer_window->icon_scale;
 
-	int pix_size = 0, h;
+	int w, h;
 	gboolean max_h = FALSE;
 	gboolean max_w = FALSE;
 
-	if (style == SMALL_ICONS)
+	static const int MARGIN = 2;
+
+	int nw = view->name_width;
+
+	if (style == SMALL_ICONS) {
 		max_h = TRUE;
-	else
-	{
-		h = view->name_height;
-		if (o_max_length.int_value != 0)
-		{
-			int mh =
-				((o_max_length.int_value - 1) /
-				 MAX(o_large_width.int_value, 1) + 1) * fw_font_height;
-
-			if (h >= mh)
-			{
-				max_h = TRUE;
-				h = mh;
-			}
-		}
-
-		pix_size = style == HUGE_ICONS ?
-			huge_size * scale : ICON_WIDTH;
 
 		if (type == DETAILS_NONE)
-			max_w = TRUE;
-	}
-
-	if (type == DETAILS_NONE)
-	{
-		if (style == SMALL_ICONS)
 		{
-			*width = view->name_width;
-			if (*width >= o_small_width.int_value * filer_window->name_scale)
+			w = nw;
+			if (w >= o_small_width.int_value * filer_window->name_scale)
 			{
 				max_w = TRUE;
-				*width = o_small_width.int_value * filer_window->name_scale;
+				w = o_small_width.int_value * filer_window->name_scale;
 			}
-			*width += small_width * 1.2;
-			*height = small_height;
+			w += small_width * 1.2;
+			h = small_height;
 		}
 		else
 		{
-			if (max_h)
-			{
-				*width = MAX(pix_size,
-						o_large_width.int_value * filer_window->name_scale);
-				if (style == HUGE_ICONS)
-					*width = MAX(*width, huge_size);
-			}
-			else
-				*width = MAX(pix_size, view->name_width);
-
-			*height = style == HUGE_ICONS ?
-				MAX(h + pix_size, pix_size * 3 / 4) :
-				h + ICON_HEIGHT;
-		}
-	}
-	else
-	{
-		int dw = view->details_width;
-
-		if (style == SMALL_ICONS)
-		{
-			*width = small_width * 1.2 + dw;
-			if (view->name_width >= o_small_width.int_value * filer_window->name_scale)
+			w = small_width * 1.2 + view->details_width;
+			if (nw >= o_small_width.int_value * filer_window->name_scale)
 			{
 				if (type != DETAILS_TYPE)
 					max_w = TRUE;
 
-				*width += o_small_width.int_value * filer_window->name_scale;
+				w += o_small_width.int_value * filer_window->name_scale;
 			}
 			else
-				*width += view->name_width;
+				w += nw;
 
-			*height = MAX(view->name_height, view->details_height);
-			*height = MAX(*height, small_height);
+			h = MAX(view->name_height, view->details_height);
+			h = MAX(h, small_height);
+		}
+	}
+	else
+	{//large or huge
+		int pix_size = 0;
+		int dw = view->details_width;
+		int nh = view->name_height;
+
+		if (o_max_length.int_value)
+			nw = MIN(nw, o_max_length.int_value);
+
+		if (type == DETAILS_NONE || style == HUGE_ICONS)
+		{
+			pix_size = style == HUGE_ICONS ?
+				huge_size * scale : ICON_WIDTH;
+			int ha = style == HUGE_ICONS ? pix_size : ICON_HEIGHT;
+			nw = MAX(pix_size, nw);
+
+			if (type != DETAILS_NONE)
+			{
+				ha += view->details_height;
+				nw = MAX(dw, nw);
+				if (type == DETAILS_SIZE)
+					nw = MAX(nw, monospace_width * 6);
+			}
+
+			if (type != DETAILS_TYPE && o_max_length.int_value)
+			{
+				int mnh =
+					((o_max_length.int_value - 1) /
+					 MAX(o_large_width.int_value, 1) + 1) * fw_font_height;
+
+				if (nh >= mnh)
+				{
+					max_h = TRUE;
+					nh = mnh;
+				}
+			}
+			h = nh + ha;
+
+			if (max_h && type != DETAILS_TYPE)
+			{
+				w = MAX(pix_size,
+						o_large_width.int_value * filer_window->name_scale);
+
+				if (style == HUGE_ICONS)
+					w = MAX(w, huge_size);
+
+				if (type != DETAILS_NONE)
+					w = MAX(dw, huge_size);
+
+				if (w < nw + number_of_items * o_large_width.int_value / 3000)
+					max_w = TRUE;
+				else
+					w = nw;
+			}
+			else
+				w = nw;
 		}
 		else
 		{
-			int ow = o_max_length.int_value == 0 ? view->name_width :
-					MIN(view->name_width, o_max_length.int_value);
-
-			if (type == DETAILS_SIZE)
-				ow = MAX(ow, monospace_width * 6);
-
 			//g_print("mono width %d, dw %d\n", monospace_width, dw);
+			if (type != DETAILS_TYPE && o_max_length.int_value &&
+				(nw >= o_max_length.int_value || dw > o_max_length.int_value))
+				max_h = max_w = TRUE;
 
-			if (style == HUGE_ICONS)
-			{
-				if (type != DETAILS_TYPE && max_h)
-				{
-					max_w = TRUE;
-					*width = MAX(pix_size,
-								MAX(dw,
-									MAX(huge_size,
-										o_large_width.int_value *
-										filer_window->name_scale)));
-				}
-				else
-					*width = MAX(pix_size, MAX(dw, ow));
-
-				*height = pix_size + h + view->details_height;
-			}
-			else
-			{
-				if (type != DETAILS_TYPE && o_max_length.int_value != 0 &&
-					(ow >= o_max_length.int_value || dw > o_max_length.int_value))
-					max_h = max_w = TRUE;
-
-				*width = ICON_WIDTH + 2 + MAX(dw, ow);
-				*height = ICON_HEIGHT;
-			}
+			w = ICON_WIDTH + 2 + MAX(dw, nw);
+			h = ICON_HEIGHT;
 		}
 	}
 
-	/* margin */
-	*width += 2;
-	*height += 2;
+	w += MARGIN;
+	h += MARGIN;
+
+	*mwidth = MAX(*mwidth, w);
+	*mheight = MAX(*mheight, h);
 
 	return max_h && max_w ? scale : .0;
 }
@@ -1396,7 +1389,7 @@ static void update_item(ViewCollection *view_collection, int i)
 	Collection *collection = view_collection->collection;
 	int	old_w = collection->item_width;
 	int	old_h = collection->item_height;
-	int	w, h;
+	int	w = old_w, h = old_h;
 	CollectionItem *colitem;
 	FilerWindow *filer_window = view_collection->filer_window;
 
@@ -1412,7 +1405,8 @@ static void update_item(ViewCollection *view_collection, int i)
 	if (collection->reached_scale == .0)
 	{
 		collection->reached_scale =
-			calc_size(filer_window, colitem, &w, &h);
+			calc_size(filer_window, colitem, &w, &h,
+					collection->number_of_items);
 
 		if (w > old_w || h > old_h)
 		{
@@ -1467,7 +1461,6 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 	for (i = 0; i < n; i++)
 	{
 		CollectionItem *ci = &col->items[i];
-		int	w, h;
 
 		if (flags & (VIEW_UPDATE_VIEWDATA | VIEW_UPDATE_NAME))
 			display_update_view(filer_window,
@@ -1477,13 +1470,8 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 					col->reached_scale != .0);
 
 		if (col->reached_scale == .0)
-		{
-			col->reached_scale = calc_size(filer_window, ci, &w, &h);
-			if (w > width)
-				width = w;
-			if (h > height)
-				height = h;
-		}
+			col->reached_scale = calc_size(filer_window, ci, &width, &height,
+					col->number_of_items);
 	}
 
 	if (!dont_set_size)
@@ -1532,9 +1520,10 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 	int old_num, i, reti;
 	int old_w = collection->item_width;
 	int old_h = collection->item_height;
-	int w, h, mw = 0, mh = 0;
+	int mw = old_w, mh = old_h;
 
 	old_num = collection->number_of_items;
+	gint total = collection->number_of_items + items->len;
 	for (i = 0; i < items->len; i++)
 	{
 		DirItem *item = (DirItem *) items->pdata[i];
@@ -1547,12 +1536,8 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 						collection->reached_scale != 0));
 
 		if (collection->reached_scale == .0)
-		{
 			collection->reached_scale =
-				calc_size(filer_window, &collection->items[reti], &w, &h);
-			mw = MAX(mw, w);
-			mh = MAX(mh, h);
-		}
+				calc_size(filer_window, &collection->items[reti], &mw, &mh, total);
 	}
 	if (mw > old_w || mh > old_h)
 		collection_set_item_size(collection,

@@ -2284,12 +2284,12 @@ static gboolean configure_cb(
 		fw->name_scale = cw * fw->name_scale_start / fw->resize_drag_width;
 		if (fw->name_scale > 1.0)
 		{
-			fw->name_scale -= 0.03;
+			fw->name_scale -= 0.09; //margin
 			if (fw->name_scale < 1.0)
 				fw->name_scale = 1.0;
 		}
 		else
-			fw->name_scale -= 0.03;
+			fw->name_scale -= 0.09; //margin
 
 		view_style_changed(fw->view, VIEW_UPDATE_NAME);
 	}
