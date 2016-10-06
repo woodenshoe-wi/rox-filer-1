@@ -320,11 +320,53 @@ static gboolean transparent_expose(GtkWidget *widget,
 			cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
 		}
 
-		if (view->collection->number_of_items == 0 &&
-				o_view_alpha.int_value != 0)
+		if (view->collection->number_of_items == 0)
 		{
-			cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
-			cairo_paint_with_alpha(cr, 0.4);
+			//static const int size = ICON_HEIGHT / 2;
+			static const int size = ICON_HEIGHT / 3 + 1;
+
+			cairo_surface_t *cs = cairo_image_surface_create(
+					CAIRO_FORMAT_ARGB32, size, size);
+
+			cairo_t *scr = cairo_create(cs);
+
+			cairo_set_operator(scr, CAIRO_OPERATOR_SOURCE);
+			cairo_set_source(scr, cairo_get_source(cr));
+			if (o_view_alpha.int_value)
+				cairo_paint_with_alpha(scr, 0.4);
+			else
+				cairo_paint(scr);
+
+			cairo_set_source_rgba(scr, 1.0, 1.0, 1.0, 0.4);
+			cairo_set_operator(scr, CAIRO_OPERATOR_DIFFERENCE);
+
+			//cairo_rectangle(scr, 0, 0, size / 2, size / 2);
+			//cairo_rectangle(scr, size / 2, size / 2, size / 2, size / 2);
+			//cairo_fill(scr);
+			cairo_set_line_width(scr, 1.0);
+			static const double center = size * 2/3;
+			static const double edge = size / 6;
+			static const double end = size;
+			cairo_move_to(scr, center, center);
+			cairo_line_to(scr, 0     , edge  );
+			cairo_move_to(scr, center, center);
+			cairo_line_to(scr, edge  , 0     );
+			cairo_move_to(scr, center, center);
+			cairo_line_to(scr, end   , end   );
+			cairo_stroke(scr);
+
+			cairo_pattern_t *cp = cairo_pattern_create_for_surface(cs);
+
+			cairo_pattern_set_extend(cp, CAIRO_EXTEND_REFLECT);
+			//cairo_pattern_set_extend(cp, CAIRO_EXTEND_REPEAT);
+
+			cairo_set_source(cr, cp);
+			cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+			cairo_paint(cr);
+
+			cairo_pattern_destroy(cp);
+			cairo_destroy(scr);
+			cairo_surface_destroy(cs);
 		}
 	}
 
