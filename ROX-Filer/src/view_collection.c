@@ -333,7 +333,7 @@ static gboolean transparent_expose(GtkWidget *widget,
 			cairo_set_operator(scr, CAIRO_OPERATOR_SOURCE);
 			cairo_set_source(scr, cairo_get_source(cr));
 			if (o_view_alpha.int_value)
-				cairo_paint_with_alpha(scr, 0.4);
+				cairo_paint_with_alpha(scr, 0.6);
 			else
 				cairo_paint(scr);
 
@@ -343,7 +343,7 @@ static gboolean transparent_expose(GtkWidget *widget,
 			//cairo_rectangle(scr, 0, 0, size / 2, size / 2);
 			//cairo_rectangle(scr, size / 2, size / 2, size / 2, size / 2);
 			//cairo_fill(scr);
-			cairo_set_line_width(scr, 0.4);
+			cairo_set_line_width(scr, 0.6);
 			static const double center = size * 2/3;
 			static const double edge = size / 6;
 			static const double end = size;
