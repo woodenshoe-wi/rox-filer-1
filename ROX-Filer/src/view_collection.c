@@ -2027,6 +2027,8 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 	int		t = 0, tn;
 	int		space = 0, exspace = 0;
 
+	if (filer_window->directory->error) return;
+
 	/* Get the extra height required for the toolbar and minibuffer,
 	 * if visible.
 	 */
