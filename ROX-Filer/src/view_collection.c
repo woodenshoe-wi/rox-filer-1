@@ -1187,10 +1187,28 @@ static void view_collection_extend_tip(ViewIface *view, ViewIter *iter,
 	}
 }
 
+static gboolean colldragenable = FALSE;
+static gdouble colldragx = -1;
+static gdouble colldragy = -1;
 static gint coll_motion_notify(GtkWidget *widget,
 			       GdkEventMotion *event,
 			       ViewCollection *view_collection)
 {
+	if (view_collection->collection->number_of_items == 0)
+	{
+		if (colldragenable && motion_state == MOTION_DISABLED)
+		{
+			gint x, y;
+			gtk_window_get_position(GTK_WINDOW(view_collection->filer_window->window), &x, &y);
+			gtk_window_move(GTK_WINDOW(view_collection->filer_window->window),
+					x + event->x_root - colldragx,
+					y + event->y_root - colldragy);
+		}
+
+		colldragx = event->x_root;
+		colldragy = event->y_root;
+	}
+
 	return filer_motion_notify(view_collection->filer_window, event);
 }
 
@@ -1234,6 +1252,11 @@ static gint coll_button_press(GtkWidget *widget,
 			      GdkEventButton *event,
 			      ViewCollection *view_collection)
 {
+	if (event->type == GDK_BUTTON_PRESS)
+		colldragenable = TRUE;
+	else
+		colldragenable = FALSE;
+
 	collection_set_cursor_item(view_collection->collection, -1, TRUE);
 
 	if (dnd_motion_press(widget, event))
