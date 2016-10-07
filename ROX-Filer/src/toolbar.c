@@ -773,7 +773,16 @@ static gint bar_scrolled(
 		GdkEventScroll *event,
 		FilerWindow *fw)
 {
-	filer_dir_link_next(fw, event->direction, FALSE);
+//	if (fw->right_link && event->state & GDK_MOD1_MASK)
+//		filer_dir_link_next(fw->right_link, event->direction, FALSE);
+//
+	if (fw->right_link && event->state & GDK_SHIFT_MASK)
+		filer_send_event_to_view(fw->right_link, (GdkEvent *) event);
+	else if (event->state & GDK_CONTROL_MASK)
+		filer_send_event_to_view(fw, (GdkEvent *) event);
+	else
+		filer_dir_link_next(fw, event->direction, FALSE);
+
 	return TRUE;
 }
 

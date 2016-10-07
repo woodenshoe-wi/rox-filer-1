@@ -4712,3 +4712,13 @@ void filer_set_unmount_action(const char *path, UnmountPrompt action)
             GINT_TO_POINTER(action));
     save_learnt_mounts();
 }
+
+void filer_send_event_to_view(FilerWindow *fw, GdkEvent * event)
+{
+	((GdkEventAny *) event)->send_event = TRUE;
+	if (fw->view_type == VIEW_TYPE_COLLECTION)
+		gtk_widget_event(GTK_WIDGET(
+			VIEW_COLLECTION(fw->view)->collection), event);
+	else
+		gtk_widget_event(GTK_WIDGET(fw->view), event);
+}

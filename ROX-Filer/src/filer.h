@@ -217,6 +217,7 @@ void filer_copy_settings(FilerWindow *src, FilerWindow *dest);
 void filer_link(FilerWindow *left, FilerWindow *right);
 void filer_cut_links(FilerWindow *fw, gint side);
 void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean bottom);
+void filer_send_event_to_view(FilerWindow *fw, GdkEvent *event);
 
 UnmountPrompt filer_get_unmount_action(const char *path);
 void filer_set_unmount_action(const char *path, UnmountPrompt action);
