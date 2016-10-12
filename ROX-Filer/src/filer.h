@@ -135,6 +135,11 @@ struct _FilerWindow
 	gboolean	may_resize;
 	gboolean	presented;
 
+	gint		resize_drag_width; //window width
+	gfloat		name_scale_start;
+	gfloat		name_scale; /* temporary scale */
+
+
 	/* for checking user resize */
 	gint	configured;
 	gint	last_width;
@@ -186,7 +191,7 @@ void filer_add_tip_details(FilerWindow *filer_window,
 			   GString *tip, DirItem *item);
 void filer_selection_changed(FilerWindow *filer_window, gint time);
 void filer_lost_selection(FilerWindow *filer_window, guint time);
-void filer_window_set_size(FilerWindow *filer_window, int w, int h);
+void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean ntauto);
 gboolean filer_window_delete(GtkWidget *window,
 			     GdkEvent *unused,
 			     FilerWindow *filer_window);
@@ -212,6 +217,7 @@ void filer_copy_settings(FilerWindow *src, FilerWindow *dest);
 void filer_link(FilerWindow *left, FilerWindow *right);
 void filer_cut_links(FilerWindow *fw, gint side);
 void filer_dir_link_next(FilerWindow *fw, GdkScrollDirection dir, gboolean bottom);
+void filer_send_event_to_view(FilerWindow *fw, GdkEvent *event);
 
 UnmountPrompt filer_get_unmount_action(const char *path);
 void filer_set_unmount_action(const char *path, UnmountPrompt action);

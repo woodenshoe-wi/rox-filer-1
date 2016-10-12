@@ -83,7 +83,7 @@ struct _ViewIfaceClass {
 	void (*set_frozen)(ViewIface *obj, gboolean frozen);
 	void (*select_only)(ViewIface *obj, ViewIter *iter);
 	void (*wink_item)(ViewIface *obj, ViewIter *iter);
-	void (*autosize)(ViewIface *obj);
+	void (*autosize)(ViewIface *obj, gboolean turn);
 	gboolean (*cursor_visible)(ViewIface *obj);
 	void (*set_base)(ViewIface *obj, ViewIter *iter);
 	void (*start_lasso_box)(ViewIface *obj, GdkEventButton *event);
@@ -141,7 +141,7 @@ void view_select_if(ViewIface *obj,
 		    gpointer data);
 
 void view_wink_item(ViewIface *obj, ViewIter *iter);
-void view_autosize(ViewIface *obj);
+void view_autosize(ViewIface *obj, gboolean turn);
 gboolean view_cursor_visible(ViewIface *obj);
 void view_set_base(ViewIface *obj, ViewIter *iter);
 void view_start_lasso_box(ViewIface *obj, GdkEventButton *event);

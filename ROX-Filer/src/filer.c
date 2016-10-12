@@ -287,7 +287,7 @@ static gboolean if_deleted(gpointer item, gpointer removed)
 /* Resize the filer window to w x h pixels, plus border (not clamped).
  * If triggered by a key event, warp the pointer (for SloppyFocus users).
  */
-void filer_window_set_size(FilerWindow *filer_window, int w, int h)
+void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean notauto)
 {
 	g_return_if_fail(filer_window != NULL);
 
@@ -414,8 +414,13 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h)
 		gtk_window_resize(GTK_WINDOW(window), w, h);
 
 	filer_window->configured = 0;
-	filer_window->last_width = w;
-	filer_window->last_height = h;
+	if (notauto)
+		filer_window->last_width = filer_window->last_height = -1;
+	else
+	{
+		filer_window->last_width = w;
+		filer_window->last_height = h;
+	}
 
 	if (gtk_window_is_active(GTK_WINDOW(window)) && !o_disable_pointer_warp.int_value)
 	{
@@ -521,7 +526,7 @@ static void check_and_resize(FilerWindow *fw) {
 		h == fw->last_height))
 	{
 		view_style_changed(fw->view, 0);
-		view_autosize(fw->view);
+		view_autosize(fw->view, FALSE);
 	}
 }
 
@@ -1889,6 +1894,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->req_sort = FALSE;
 	filer_window->may_resize = FALSE;
 	filer_window->presented = FALSE;
+	filer_window->resize_drag_width = 0;
 
 	filer_window->message = NULL;
 	filer_window->minibuffer = NULL;
@@ -2082,7 +2088,7 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 		attach(filer_window);
 
 		if (o_filer_auto_resize.int_value != RESIZE_NEVER)
-			view_autosize(filer_window->view);
+			view_autosize(filer_window->view, FALSE);
 	}
 
 	if (selected)
@@ -2268,6 +2274,26 @@ static gboolean configure_cb(
 {
 	fw->configured = 1;
 
+	if (fw->resize_drag_width)
+	{
+		gint cw;
+		gdk_window_get_geometry(
+				fw->window->window, NULL, NULL,
+				&cw,
+				NULL, NULL);
+		fw->name_scale = cw * fw->name_scale_start / fw->resize_drag_width;
+		if (fw->name_scale > 1.0)
+		{
+			fw->name_scale -= 0.06; //margin
+			if (fw->name_scale < 1.0)
+				fw->name_scale = 1.0;
+		}
+		else
+			fw->name_scale -= 0.06; //margin
+
+		view_style_changed(fw->view, VIEW_UPDATE_NAME);
+	}
+
 	if (fw->right_link)
 		filer_link(fw, fw->right_link);
 
@@ -2280,6 +2306,8 @@ static gboolean focus_in_cb(
 		GdkEvent *event,
 		FilerWindow *fw)
 {
+	fw->resize_drag_width = 0;
+
 	if (!fw->presented)
 	{
 		fw->presented = TRUE;
@@ -2484,7 +2512,7 @@ void filer_check_mounted(const char *real_path)
 			{
 				if (filer_update_dir(filer_window, FALSE) &&
 				    resize)
-					view_autosize(filer_window->view);
+					view_autosize(filer_window->view, FALSE);
 			}
 		}
 	}
@@ -3405,7 +3433,7 @@ void filer_perform_action(FilerWindow *fw, GdkEventButton *event)
 			view_start_lasso_box(view, event);
 			break;
 		case ACT_RESIZE:
-			view_autosize(fw->view);
+			view_autosize(fw->view, TRUE);
 			break;
 		default:
 			g_warning("Unsupported action : %d\n", action);
@@ -4290,6 +4318,7 @@ void filer_copy_settings(FilerWindow *src, FilerWindow *dest)
 	dest->show_thumbs          = src->show_thumbs;
 	dest->view_type            = src->view_type;
 	dest->icon_scale           = src->icon_scale;
+	dest->name_scale           = src->name_scale;
 
 	dest->filter_directories   = src->filter_directories;
 	filer_set_filter(dest, src->filter, src->filter_string);
@@ -4304,6 +4333,7 @@ void filer_clear_settings(FilerWindow *fw)
 	fw->show_thumbs          = o_display_show_thumbs.int_value;
 	fw->view_type            = o_filer_view_type.int_value;
 	fw->icon_scale           = 1.0;
+	fw->name_scale           = 1.0;
 
 	fw->filter_directories   = FALSE;
 	filer_set_filter(fw, FILER_SHOW_ALL, NULL);
@@ -4681,4 +4711,14 @@ void filer_set_unmount_action(const char *path, UnmountPrompt action)
     g_hash_table_insert(unmount_prompt_actions, g_strdup(path),
             GINT_TO_POINTER(action));
     save_learnt_mounts();
+}
+
+void filer_send_event_to_view(FilerWindow *fw, GdkEvent * event)
+{
+	((GdkEventAny *) event)->send_event = TRUE;
+	if (fw->view_type == VIEW_TYPE_COLLECTION)
+		gtk_widget_event(GTK_WIDGET(
+			VIEW_COLLECTION(fw->view)->collection), event);
+	else
+		gtk_widget_event(GTK_WIDGET(fw->view), event);
 }

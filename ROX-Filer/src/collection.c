@@ -31,6 +31,7 @@
 #include "global.h"
 
 #include "collection.h"
+#include "filer.h"
 
 #define MIN_WIDTH 80
 #define MIN_HEIGHT 60
@@ -866,6 +867,21 @@ static gint collection_scroll_event(GtkWidget *widget, GdkEventScroll *event)
 	g_return_val_if_fail(widget != NULL, FALSE);
 	g_return_val_if_fail(IS_COLLECTION(widget), FALSE);
 	g_return_val_if_fail(event != NULL, FALSE);
+
+	if (!event->send_event && event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK))
+	{
+		FilerWindow *fw =
+			g_object_get_data(
+					G_OBJECT(gtk_widget_get_toplevel(widget)),
+					"filer_window");
+
+		if (event->state & GDK_CONTROL_MASK)
+			filer_dir_link_next(fw, event->direction, FALSE);
+		else if (fw->right_link)//shift
+			filer_send_event_to_view(fw->right_link, (GdkEvent *) event);
+
+		return FALSE;
+	}
 
 	int diff = 0;
 

@@ -727,7 +727,12 @@ static gint bar_pressed(GtkWidget *widget,
 		break;
 	case 2:
 		filer_cut_links(filer_window, 0);
-		view_autosize(filer_window->view);
+		if (filer_window->name_scale != 1.0)
+		{
+			filer_window->name_scale = 1.0;
+			view_style_changed(filer_window->view, VIEW_UPDATE_NAME);
+		}
+		view_autosize(filer_window->view, FALSE);
 		view_cursor_to_iter(filer_window->view, NULL);
 		break;
 	case 3:
@@ -741,8 +746,20 @@ static gint bar_pressed(GtkWidget *widget,
 			change_to_parent(filer_window);
 		}
 		else
+		{
+			if (filer_window->view_type == VIEW_TYPE_COLLECTION)
+			{
+				gdk_window_get_geometry(
+						filer_window->window->window, NULL, NULL,
+						&filer_window->resize_drag_width,
+						NULL, NULL);
+
+				filer_window->name_scale_start = filer_window->name_scale;
+			}
 			gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
 					event->button, event->x_root, event->y_root, event->time);
+		}
+
 		break;
 
 	default:
@@ -756,7 +773,16 @@ static gint bar_scrolled(
 		GdkEventScroll *event,
 		FilerWindow *fw)
 {
-	filer_dir_link_next(fw, event->direction, FALSE);
+//	if (fw->right_link && event->state & GDK_MOD1_MASK)
+//		filer_dir_link_next(fw->right_link, event->direction, FALSE);
+//
+	if (fw->right_link && event->state & GDK_SHIFT_MASK)
+		filer_send_event_to_view(fw->right_link, (GdkEvent *) event);
+	else if (event->state & GDK_CONTROL_MASK)
+		filer_send_event_to_view(fw, (GdkEvent *) event);
+	else
+		filer_dir_link_next(fw, event->direction, FALSE);
+
 	return TRUE;
 }
 

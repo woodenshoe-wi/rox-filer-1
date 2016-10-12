@@ -624,7 +624,7 @@ void display_set_layout(FilerWindow *fw,
 			o_filer_auto_resize.int_value == RESIZE_ALWAYS ||
 			(o_filer_auto_resize.int_value == RESIZE_STYLE && wanted_changed)
 			)
-		view_autosize(fw->view);
+		view_autosize(fw->view, FALSE);
 
 	if (fw->toolbar_size_text)
 	{
@@ -853,7 +853,7 @@ static void options_changed(void)
 			view_style_changed(filer_window->view, flags);
 
 			if (o_filer_auto_resize.int_value == RESIZE_ALWAYS)
-				view_autosize(filer_window->view);
+				view_autosize(filer_window->view, FALSE);
 		}
 	}
 }
@@ -1001,13 +1001,15 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 	}
 
 	if (style == HUGE_ICONS)
-		wrap_width = MAX(huge_size, o_large_width.int_value) * PANGO_SCALE;
+		wrap_width = MAX(huge_size,
+				o_large_width.int_value * fw->name_scale) * PANGO_SCALE;
+
 		/* Since this function is heavy, this is skepped.
 		wrap_width = HUGE_WRAP * filer_window->icon_scale * PANGO_SCALE;
 		*/
 
 	if (fw->details_type == DETAILS_NONE && style == LARGE_ICONS)
-		wrap_width = o_large_width.int_value * PANGO_SCALE;
+		wrap_width = o_large_width.int_value * fw->name_scale * PANGO_SCALE;
 
 	if (wrap_width != -1)
 	{
