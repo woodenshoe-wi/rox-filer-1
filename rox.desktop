@@ -5,3 +5,4 @@ Icon=rox
 Terminal=false
 Type=Application
 Categories=System;Utility;Core;FileManager;
+MimeType=inode/directory;
