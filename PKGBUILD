@@ -15,7 +15,8 @@ provides=('rox')
 license=('GPL')
 url="http://rox.sourceforge.net/desktop/"
 depends=('sh' 'libsm' 'gtk2')
-makedepends=('librsvg' 'python2' 'libxslt' 'git')
+#makedepends=('librsvg' 'python2' 'libxslt' 'git')
+makedepends=('python2' 'libxslt' 'git')
 source=("git://github.com/jun7/rox-filer.git#branch=$branch")
 #md5sums=('0eebf05a67f7932367750ebf9faf215d'
 md5sums=('SKIP')
