@@ -2321,8 +2321,8 @@ static gboolean focus_in_cb(
 	gdk_window_get_frame_extents(
 			fw->window->window, &rfrect);
 	if (
-			rfrect.x + 33 < lfrect.x + lfrect.width ||
-			rfrect.x - 33 > lfrect.x + lfrect.width)
+			rfrect.x + (fw_font_height / 2) < lfrect.x + lfrect.width ||
+			rfrect.x - (fw_font_height / 2) > lfrect.x + lfrect.width)
 		filer_cut_links(fw, -1);
 
 	return FALSE;
