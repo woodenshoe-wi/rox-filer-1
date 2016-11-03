@@ -885,7 +885,7 @@ static void huge_template(
 		template->leafname.y = template->icon.y + ih;
 
 		template->details.x = area->x + (col_width - view->details_width) / 2;
-		template->details.y = area->y + area->height - view->details_height;
+		template->details.y = area->y + area->height - view->details_height - 1;
 	}
 	else
 	{
