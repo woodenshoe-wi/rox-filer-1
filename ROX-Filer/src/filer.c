@@ -1894,7 +1894,6 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->req_sort = FALSE;
 	filer_window->may_resize = FALSE;
 	filer_window->presented = FALSE;
-	filer_window->resize_drag_width = 0;
 
 	filer_window->message = NULL;
 	filer_window->minibuffer = NULL;
@@ -1927,6 +1926,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->left_link = NULL;
 	filer_window->right_link_idle = 0;
 	filer_window->pointer_idle = 0;
+	filer_window->resize_drag_width = 0;
 
 	tidy_sympath(filer_window->sym_path);
 
