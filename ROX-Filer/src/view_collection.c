@@ -320,7 +320,8 @@ static gboolean transparent_expose(GtkWidget *widget,
 			cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
 		}
 
-		if (view->collection->number_of_items == 0)
+		if (view->collection->number_of_items == 0 &&
+				!view->filer_window->first_scan)
 		{
 			//static const int size = ICON_HEIGHT / 2;
 			static const int size = ICON_HEIGHT / 3 + 1;
