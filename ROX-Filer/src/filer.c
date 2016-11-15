@@ -513,7 +513,7 @@ static void filer_set_pointer(FilerWindow *fw)
 		fw->pointer_idle = g_idle_add(_set_pointer, fw);
 }
 
-static void check_and_resize(FilerWindow *fw) {
+void filer_autosize(FilerWindow *fw) {
 	fw->may_resize = FALSE;
 	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS &&
 			!fw->new_win_first_scan)
@@ -605,7 +605,7 @@ static void update_display(Directory *dir,
 			null_g_free(&filer_window->auto_select);
 
 			if (!init && filer_window->may_resize)
-				check_and_resize(filer_window);
+				filer_autosize(filer_window);
 
 			if (filer_window->first_scan)
 			{
@@ -2443,12 +2443,12 @@ static gboolean _delay_check_resize(gpointer na)
 	{
 		FilerWindow *fw = (FilerWindow *) next->data;
 		if (na || fw->may_resize) {
-			check_and_resize(fw);
+			filer_autosize(fw);
 		}
 	}
 	return FALSE;
 }
-void filer_check_resize(gboolean all)
+void filer_resize_all(gboolean all)
 {
 	if (all_filer_windows) //for first time
 		g_timeout_add(DIR_NOTIFY_TIME * 2,
@@ -2873,7 +2873,7 @@ void filer_cancel_thumbnails(FilerWindow *filer_window)
 	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
 	{
 		gtk_widget_hide(filer_window->thumb_bar);
-		check_and_resize(filer_window);
+		filer_autosize(filer_window);
 	}
 
 	g_queue_free_full(filer_window->thumb_queue, g_free);
@@ -2974,7 +2974,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 	if (!GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
 	{
 		gtk_widget_show_all(filer_window->thumb_bar);
-		check_and_resize(filer_window);
+		filer_autosize(filer_window);
 	}
 
 	total = filer_window->max_thumbs;

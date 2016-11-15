@@ -1135,9 +1135,9 @@ static void option_notify(void)
 			toolbar_update_toolbar(filer_window);
 		}
 
-		filer_check_resize(TRUE);
+		filer_resize_all(TRUE);
 	} else if (o_toolbar_min_width.has_changed)
-		filer_check_resize(TRUE);
+		filer_resize_all(TRUE);
 }
 
 static void update_tools(Option *option)

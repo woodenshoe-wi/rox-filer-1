@@ -2049,7 +2049,7 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 	int		max_x, max_y, min_x = 0;
 	const float	r = 1.6;
 	int		t = 0, tn;
-	int		space = 0, exspace = 0;
+	int		space = 0, exh = 0;
 
 	if (filer_window->directory->error && filer_window->presented) return;
 
@@ -2060,14 +2060,6 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 		t = filer_window->toolbar->allocation.height;
 	if (filer_window->message)
 		t += filer_window->message->allocation.height;
-	if (GTK_WIDGET_VISIBLE(filer_window->minibuffer_area))
-	{
-		GtkRequisition req;
-
-		gtk_widget_size_request(filer_window->minibuffer_area, &req);
-		space = req.height + 2;
-		t += space;
-	}
 
 	n = collection->number_of_items;
 	if (n == 0)
@@ -2095,7 +2087,8 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 	 * Also, don't add space if the minibuffer is open.
 	 */
 	if (space == 0)
-		space = filer_window->display_style == SMALL_ICONS ? h : 1;
+		space = filer_window->display_style == SMALL_ICONS ?
+			h / (o_filer_auto_resize.int_value != RESIZE_ALWAYS ? 1 : 4) : 1;
 
 	tn = t + space;
 	t = tn + 44 /* window decoration and charm. when small then wide */;
@@ -2163,6 +2156,20 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 	int vh = MIN(max_y, h * rows + space);
 	gboolean notauto = FALSE;
 
+	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	{
+		GtkRequisition req;
+		gtk_widget_size_request(filer_window->thumb_bar, &req);
+		exh += req.height;
+	}
+
+	if (GTK_WIDGET_VISIBLE(filer_window->minibuffer_area))
+	{
+		GtkRequisition req;
+		gtk_widget_size_request(filer_window->minibuffer_area, &req);
+		exh += req.height;
+	}
+
 	if (turn && (vw != max_x || vh != max_y) &&
 		GTK_WIDGET(view_collection)->allocation.width  == vw &&
 		GTK_WIDGET(view_collection)->allocation.height == vh)
@@ -2172,14 +2179,8 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 		notauto = TRUE;
 	}
 
-	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
-	{
-		GtkRequisition req;
-		gtk_widget_size_request(filer_window->thumb_bar, &req);
-		exspace += req.height;
-	}
 
-	filer_window_set_size(filer_window, vw, vh + exspace, notauto);
+	filer_window_set_size(filer_window, vw, vh + exh, notauto);
 }
 
 static gboolean view_collection_cursor_visible(ViewIface *view)

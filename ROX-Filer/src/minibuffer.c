@@ -240,6 +240,8 @@ void minibuffer_show(FilerWindow *filer_window, MiniType mini_type, guint keyval
 	gtk_widget_show_all(filer_window->minibuffer_area);
 
 	gtk_widget_grab_focus(filer_window->minibuffer);
+
+	filer_autosize(filer_window);
 }
 
 void minibuffer_hide(FilerWindow *filer_window)
@@ -267,6 +269,8 @@ void minibuffer_hide(FilerWindow *filer_window)
 
 	if (filer_window->regexp)
 		minibuffer_show(filer_window, MINI_TEMP_FILTER, 0);
+
+	filer_autosize(filer_window);
 }
 
 /* Insert this leafname at the cursor (replacing the selection, if any).

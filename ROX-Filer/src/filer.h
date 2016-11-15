@@ -164,7 +164,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 		const gchar *wm_class, gboolean winlnk);
 gboolean filer_update_dir(FilerWindow *filer_window, gboolean warning);
 void filer_update_all(void);
-void filer_check_resize(gboolean all);
+void filer_resize_all(gboolean all);
+void filer_autosize(FilerWindow *fw);
 DirItem *filer_selected_item(FilerWindow *filer_window);
 void change_to_parent(FilerWindow *filer_window);
 void full_refresh(void);

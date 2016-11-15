@@ -444,7 +444,7 @@ static void message_from_child(gpointer 	  data,
 	else if (gui_side->show_info == FALSE)
 		gtk_widget_destroy(GTK_WIDGET(gui_side->abox));
 
-	filer_check_resize(FALSE);
+	filer_resize_all(FALSE);
 }
 
 /* Scans src_dir, calling cb(item, dest_path) for each item */
