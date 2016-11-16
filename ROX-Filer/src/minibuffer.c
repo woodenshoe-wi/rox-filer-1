@@ -269,8 +269,8 @@ void minibuffer_hide(FilerWindow *filer_window)
 
 	if (filer_window->regexp)
 		minibuffer_show(filer_window, MINI_TEMP_FILTER, 0);
-
-	filer_autosize(filer_window);
+	else
+		filer_autosize(filer_window);
 }
 
 /* Insert this leafname at the cursor (replacing the selection, if any).
