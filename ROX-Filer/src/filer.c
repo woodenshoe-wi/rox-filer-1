@@ -514,6 +514,8 @@ static void filer_set_pointer(FilerWindow *fw)
 }
 
 void filer_autosize(FilerWindow *fw) {
+	if (!fw->directory) return;
+
 	fw->may_resize = FALSE;
 	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS &&
 			!fw->new_win_first_scan)
