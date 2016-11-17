@@ -1835,7 +1835,7 @@ void collection_move_cursor(Collection *collection, int drow, int dcol, int even
 
 	if (item == -1)
 	{
-		if (drow > 0 || dcol > 0)
+		if (drow >= 0 && dcol >= 0)
 		{
 			row = first;
 			col = 0;
