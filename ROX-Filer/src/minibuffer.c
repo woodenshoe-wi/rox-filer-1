@@ -906,7 +906,6 @@ static gboolean errout_cb(GIOChannel *ch, GIOCondition cond, gpointer udata)
 	return _out_cb(ch, cond, udata, o_mini_errout.value);
 }
 
-
 /* Either execute the command or make it the default run action */
 static void shell_return_pressed(FilerWindow *filer_window)
 {
