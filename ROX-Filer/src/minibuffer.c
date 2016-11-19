@@ -77,11 +77,18 @@ static void view_select_if_reg(ViewIface *obj, const gchar *pattern);
  ****************************************************************/
 
 static Option o_filer_beep_fail, o_filer_beep_multi;
+static Option o_mini_stdout, o_mini_errout;
 
 void minibuffer_init(void)
 {
 	option_add_int(&o_filer_beep_fail, "filer_beep_fail", 1);
 	option_add_int(&o_filer_beep_multi, "filer_beep_multi", 1);
+
+	//todo: which category?
+	option_add_string(&o_mini_stdout, "mini_stdout",
+			"notify-send -a rox -u normal -t 3000 \"$1\"");
+	option_add_string(&o_mini_errout, "mini_errout",
+			"notify-send -a rox -u critical -t 9000 \"$1\"");
 }
 
 /* Creates the minibuffer widgets, setting the appropriate fields
@@ -862,6 +869,44 @@ static void run_child(gpointer unused)
 	close_on_exec(STDOUT_FILENO, FALSE);
 }
 
+static gboolean _out_cb(GIOChannel *ch, GIOCondition cond, gchar *path, char *handler)
+{
+	if (cond == G_IO_HUP)
+	{
+		g_io_channel_unref(ch);
+		g_free(path);
+		return FALSE;
+	}
+
+	if (strlen(handler) == 0) return TRUE;
+
+	char *str;
+	g_io_channel_read_line(ch, &str, NULL, NULL, NULL);
+
+	GPtrArray *argv = g_ptr_array_new();
+	g_ptr_array_add(argv, "sh");
+	g_ptr_array_add(argv, "-c");
+	g_ptr_array_add(argv, handler);
+	g_ptr_array_add(argv, "sh");
+	g_ptr_array_add(argv, str);
+	g_ptr_array_add(argv, NULL);
+	rox_spawn(path, (const gchar **) argv->pdata);
+
+	g_ptr_array_free(argv, TRUE);
+	g_free(str);
+
+	return TRUE;
+}
+static gboolean out_cb(GIOChannel *ch, GIOCondition cond, gpointer udata)
+{
+	return _out_cb(ch, cond, udata, o_mini_stdout.value);
+}
+static gboolean errout_cb(GIOChannel *ch, GIOCondition cond, gpointer udata)
+{
+	return _out_cb(ch, cond, udata, o_mini_errout.value);
+}
+
+
 /* Either execute the command or make it the default run action */
 static void shell_return_pressed(FilerWindow *filer_window)
 {
@@ -871,11 +916,15 @@ static void shell_return_pressed(FilerWindow *filer_window)
 	pid_t		child;
 	DirItem		*item;
 	ViewIter	iter;
+	gint out, errout;
 
 	entry = mini_contents(filer_window);
 
 	if (!entry)
 		goto out;
+
+	int out_f = strlen(o_mini_stdout.value);
+	int errout_f = strlen(o_mini_errout.value);
 
 	add_to_history(entry);
 
@@ -898,16 +947,29 @@ static void shell_return_pressed(FilerWindow *filer_window)
 			(gchar **) argv->pdata, NULL,
 			G_SPAWN_DO_NOT_REAP_CHILD |
 			G_SPAWN_SEARCH_PATH,
-			run_child, NULL,	/* Child setup fn */
+			out_f || errout_f ? NULL : run_child, NULL,	/* Child setup fn */
 			&child,			/* Child PID */
-			NULL, NULL, NULL,	/* Standard pipes */
+			NULL, &out, &errout,	/* Standard pipes */
 			&error))
 	{
 		delayed_error("%s", error ? error->message : "(null)");
 		g_error_free(error);
 	}
 	else
+	{
 		on_child_death(child, (CallbackFn) shell_done, filer_window);
+
+		if (out_f)
+		{
+			GIOChannel *outch = g_io_channel_unix_new(out);
+			g_io_add_watch(outch, G_IO_IN | G_IO_HUP, out_cb, strdup(filer_window->sym_path));
+		}
+		if (errout_f)
+		{
+			GIOChannel *erroutch = g_io_channel_unix_new(errout);
+			g_io_add_watch(erroutch, G_IO_IN | G_IO_HUP, errout_cb, strdup(filer_window->sym_path));
+		}
+	}
 
 	g_ptr_array_free(argv, TRUE);
 
