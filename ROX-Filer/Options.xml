@@ -127,6 +127,16 @@ indicator'>If this is on then files which have one or more extended attributes s
       <frame label='Minibuffer'>
         <toggle name='filer_beep_fail' label='Beep if Tab-completion fails'>When using the `Enter Path...' minibuffer and Tab is pressed, beep if nothing happens (eg, because there are several possibilities and the next letter varies).</toggle>
         <toggle name='filer_beep_multi' label='Beep if there are several matches'>When using the `Enter Path...' minibuffer and Tab is pressed, beep if there is more than one matching file, even though some more letters were added.</toggle>
+
+
+		<entry
+			label='Stdout handler'
+			name='mini_stdout'
+			>This will be run when Mini Shell puts out string to stdout. $1 is the string.</entry>
+		<entry
+			label='Errout handler'
+			name='mini_errout'
+			>This will be run when Mini Shell puts out string to errout. $1 is the string.</entry>
       </frame>
     </section>
     <section title='Thumbnails'>
