@@ -1085,7 +1085,7 @@ gboolean can_set_run_action(DirItem *item)
 {
 	g_return_val_if_fail(item != NULL, FALSE);
 
-	return item->base_type == TYPE_FILE && !EXECUTABLE_FILE(item);
+	return item->base_type == TYPE_FILE; //&& !EXECUTABLE_FILE(item);
 }
 
 /* Parse file type colours and allocate/free them as necessary */

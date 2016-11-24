@@ -45,7 +45,6 @@
 static void write_data(gpointer data, gint fd, GdkInputCondition cond);
 static gboolean follow_symlink(const char *full_path,
 					FilerWindow *fw, OpenFlags flags);
-static gboolean open_file(const guchar *path, MIME_type *type);
 static void open_mountpoint(const guchar *full_path, DirItem *item,
 			    FilerWindow *fw, gboolean edit, OpenFlags flags);
 static gboolean run_desktop(const char *full_path,
@@ -331,6 +330,11 @@ gboolean run_diritem(const guchar *full_path,
 
 			return TRUE;
 		case TYPE_FILE:
+		{
+			MIME_type *type = edit ? text_plain : item->mime_type;
+			if (type_open(full_path, type))
+				return TRUE;
+
 			if (EXECUTABLE_FILE(item) && !edit)
 			{
 				const char *argv[] = {NULL, NULL};
@@ -347,8 +351,20 @@ gboolean run_diritem(const guchar *full_path,
 				return rox_spawn(dir, argv) != 0;
 			}
 
-			return open_file(full_path, edit ? text_plain
-						  : item->mime_type);
+			report_error(
+				_("No run action specified for files of this type (%s/%s) - "
+				"you can set a run action by choosing `Set Run Action' "
+				"from the File menu, or you can just drag the file to an "
+				"application.%s"),
+				type->media_type,
+				type->subtype,
+				type->executable ? _("\n\nNote: If this is a computer program which "
+						   "you want to run, you need to set the execute bit "
+						   "by choosing Permissions from the File menu.")
+						: "");
+
+			return FALSE;
+		}
 		case TYPE_ERROR:
 			delayed_error(_("File doesn't exist, or I can't "
 					  "access it: %s"), full_path);
@@ -600,29 +616,6 @@ static gboolean follow_symlink(const char *full_path,
 	g_free(real);
 
 	return TRUE;
-}
-
-/* Load this file into an appropriate editor */
-static gboolean open_file(const guchar *path, MIME_type *type)
-{
-	g_return_val_if_fail(type != NULL, FALSE);
-
-	if (type_open(path, type))
-		return TRUE;
-
-	report_error(
-		_("No run action specified for files of this type (%s/%s) - "
-		"you can set a run action by choosing `Set Run Action' "
-		"from the File menu, or you can just drag the file to an "
-		"application.%s"),
-		type->media_type,
-		type->subtype,
-		type->executable ? _("\n\nNote: If this is a computer program which "
-				   "you want to run, you need to set the execute bit "
-				   "by choosing Permissions from the File menu.")
-				: "");
-
-	return FALSE;
 }
 
 /* Called like run_diritem, when a mount-point is opened */
