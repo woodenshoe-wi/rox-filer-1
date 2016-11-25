@@ -351,6 +351,9 @@ gboolean run_diritem(const guchar *full_path,
 				return rox_spawn(dir, argv) != 0;
 			}
 
+			if (type_open(full_path, NULL))
+				return TRUE;
+
 			report_error(
 				_("No run action specified for files of this type (%s/%s) - "
 				"you can set a run action by choosing `Set Run Action' "

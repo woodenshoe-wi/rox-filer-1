@@ -340,13 +340,18 @@ char *handler_for(MIME_type *type)
 	char	*open;
 	char	*target;
 
-	type_name = g_strconcat(type->media_type, "_", type->subtype, NULL);
-	open = choices_find_xdg_path_load(type_name, "MIME-types", SITE);
-	g_free(type_name);
+	if (type == NULL)
+		open = choices_find_xdg_path_load("all", "MIME-types", SITE);
+	else
+	{
+		type_name = g_strconcat(type->media_type, "_", type->subtype, NULL);
+		open = choices_find_xdg_path_load(type_name, "MIME-types", SITE);
+		g_free(type_name);
 
-	if (!open)
-		open = choices_find_xdg_path_load(type->media_type,
-						  "MIME-types", SITE);
+		if (!open)
+			open = choices_find_xdg_path_load(type->media_type,
+							  "MIME-types", SITE);
+	}
 
 	if (!open)
 		return NULL;
