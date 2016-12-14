@@ -119,16 +119,6 @@ typedef enum {
 	MENU_LINK_ABS_SYM,
 } MenuActionType;
 
-#undef N_
-#define N_(x) x
-static GtkItemFactoryEntry menu_def[] = {
-{N_("Copy"),		NULL, menuitem_response, MENU_COPY, 	NULL},
-{N_("Move"),		NULL, menuitem_response, MENU_MOVE, 	NULL},
-{N_("Link (relative)"),          NULL, menuitem_response, MENU_LINK_REL,     NULL},
-{N_("Link (absolute)"),          NULL, menuitem_response, MENU_LINK_ABS,     NULL},
-{N_("Link (relative, sym path)"), NULL, menuitem_response, MENU_LINK_REL_SYM, NULL},
-{N_("Link (absolute, sym path)"), NULL, menuitem_response, MENU_LINK_ABS_SYM, NULL},
-};
 static GtkWidget *dnd_menu = NULL;
 
 /* Possible values for drop_dest_type (can also be NULL).
@@ -1100,12 +1090,14 @@ static void prompt_action(GList *paths, gchar *dest)
 
 	if (!dnd_menu)
 	{
-		GtkItemFactory	*item_factory;
-
-		item_factory = menu_create(menu_def,
-				sizeof(menu_def) / sizeof(*menu_def),
-				"<dnd>", NULL);
-		dnd_menu = gtk_item_factory_get_widget(item_factory, "<dnd>");
+		dnd_menu = menu_start("<dnd>", NULL);
+#define adi menu_add_item
+		adi("Copy"                     , menuitem_response, MENU_COPY        );
+		adi("Move"                     , menuitem_response, MENU_MOVE        );
+		adi("Link (relative)"          , menuitem_response, MENU_LINK_REL    );
+		adi("Link (absolute)"          , menuitem_response, MENU_LINK_ABS    );
+		adi("Link (relative, sym path)", menuitem_response, MENU_LINK_REL_SYM);
+		adi("Link (absolute, sym path)", menuitem_response, MENU_LINK_ABS_SYM);
 	}
 
 	/* Shade 'Set Icon' if there are multiple files */

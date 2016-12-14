@@ -20,8 +20,16 @@ extern GtkAccelGroup	*filer_keys;
 
 void menu_init(void);
 
-GtkItemFactory *menu_create(GtkItemFactoryEntry *def, int n_entries,
-			    const gchar *name, GtkAccelGroup *keys);
+typedef void (*MenuCB)();
+typedef void (*MenuCB1)(
+		gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+GtkWidget *menu_add_item(gchar *label, MenuCB cb, guint action);
+GtkWidget *menu_add_stock(
+		gchar *label, MenuCB cb, guint action, const gchar *stock_id);
+void menu_add_separator(void);
+GtkWidget *menu_start(gchar *label, GtkWidget *parent);
+
 void menu_set_items_shaded(GtkWidget *menu, gboolean shaded, int from, int n);
 void position_menu(GtkMenu *menu, gint *x, gint *y,
 		   gboolean  *push_in, gpointer data);

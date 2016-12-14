@@ -57,7 +57,8 @@
 
 static gboolean have_primary = FALSE;	/* We own the PRIMARY selection? */
 
-GtkWidget		*icon_menu;		/* The popup icon menu */
+GtkWidget *icon_menu = NULL; /* The popup icon menu */
+
 static GtkWidget	*icon_file_menu;	/* The file submenu */
 static GtkWidget	*icon_file_item;	/* 'File' label */
 static GtkWidget	*file_shift_item;	/* 'Shift Open' label */
@@ -123,27 +124,6 @@ enum {
 	ACTION_SET_ICON,
 	ACTION_EDIT,
 	ACTION_LOCATION,
-};
-
-#undef N_
-#define N_(x) x
-static GtkItemFactoryEntry menu_def[] = {
-{N_("ROX-Filer"),		NULL, NULL, 0, "<Branch>"},
-{">" N_("About ROX-Filer..."),	NULL, menu_rox_help, HELP_ABOUT, "<StockItem>", GTK_STOCK_DIALOG_INFO},
-{">" N_("Show Help Files"),	NULL, menu_rox_help, HELP_DIR, "<StockItem>", GTK_STOCK_HELP},
-{">" N_("Manual"),		NULL, menu_rox_help, HELP_MANUAL, NULL},
-{">",				NULL, NULL, 0, "<Separator>"},
-{">" N_("Options..."),		NULL, menu_show_options, 0, "<StockItem>", GTK_STOCK_PREFERENCES},
-{">" N_("Home Directory"),	NULL, open_home, 0, "<StockItem>", GTK_STOCK_HOME},
-{N_("File"),			NULL, NULL, 0, "<Branch>"},
-{">" N_("Shift Open"),   	NULL, file_op, ACTION_SHIFT, NULL},
-{">" N_("Properties"),    	NULL, file_op, ACTION_PROPERTIES, "<StockItem>", GTK_STOCK_PROPERTIES},
-{">" N_("Set Run Action..."),	NULL, file_op, ACTION_RUN_ACTION, "<StockItem>", GTK_STOCK_EXECUTE},
-{">" N_("Set Icon..."),		NULL, file_op, ACTION_SET_ICON, NULL},
-{N_("Edit Item"),  		NULL, file_op, ACTION_EDIT, "<StockItem>", GTK_STOCK_PROPERTIES},
-{N_("Show Location"),  		NULL, file_op, ACTION_LOCATION, "<StockItem>", GTK_STOCK_JUMP_TO},
-{N_("Remove Item(s)"),		NULL, remove_items, 0, "<StockItem>", GTK_STOCK_REMOVE},
-{"",				NULL, NULL, 0, "<Separator>"},
 };
 
 /****************************************************************
@@ -1400,19 +1380,35 @@ static void icon_wink(Icon *icon)
 static void create_menu(void)
 {
 	GList		*items;
-	guchar		*tmp;
-	GtkItemFactory	*item_factory;
 
 	g_return_if_fail(icon_menu == NULL);
 
-	item_factory = menu_create(menu_def,
-				sizeof(menu_def) / sizeof(*menu_def),
-				 "<icon>", NULL);
+	icon_menu = menu_start("<icon>", NULL);
+	menu_start("ROX-Filer", icon_menu);
 
-	tmp = g_strconcat("<icon>/", _("File"), NULL);
-	icon_menu = gtk_item_factory_get_widget(item_factory, "<icon>");
-	icon_file_menu = gtk_item_factory_get_widget(item_factory, tmp);
-	g_free(tmp);
+#define adi menu_add_item
+#define ads menu_add_stock
+
+	ads("About ROX-Filer...", menu_rox_help, HELP_ABOUT , GTK_STOCK_DIALOG_INFO);
+	ads("Show Help Files"   , menu_rox_help, HELP_DIR   , GTK_STOCK_HELP);
+	adi("Manual"            , menu_rox_help, HELP_MANUAL);
+	menu_add_separator();
+	ads("Options..."    , menu_show_options, 0, GTK_STOCK_PREFERENCES);
+	ads("Home Directory", open_home        , 0, GTK_STOCK_HOME       );
+
+	icon_file_menu = menu_start("File", icon_menu);
+
+	adi("Shift Open"       , file_op, ACTION_SHIFT     );
+	ads("Properties"       , file_op, ACTION_PROPERTIES, GTK_STOCK_PROPERTIES);
+	ads("Set Run Action...", file_op, ACTION_RUN_ACTION, GTK_STOCK_EXECUTE   );
+	adi("Set Icon..."      , file_op, ACTION_SET_ICON  );
+
+	menu_start(NULL, icon_menu);
+
+	ads("Edit Item"     , file_op     , ACTION_EDIT    , GTK_STOCK_PROPERTIES);
+	ads("Show Location" , file_op     , ACTION_LOCATION, GTK_STOCK_JUMP_TO   );
+	ads("Remove Item(s)", remove_items, 0              , GTK_STOCK_REMOVE    );
+	menu_add_separator();
 
 	/* File '' label... */
 	items = gtk_container_get_children(GTK_CONTAINER(icon_menu));
@@ -1426,5 +1422,7 @@ static void create_menu(void)
 
 	g_signal_connect(icon_menu, "unmap_event",
 			G_CALLBACK(menu_closed), NULL);
+
+	gtk_widget_show_all(icon_menu);
 }
 

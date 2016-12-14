@@ -35,6 +35,7 @@
 #include <dirent.h>
 
 #include <gtk/gtk.h>
+#include <gdk/gdkkeysyms.h>
 
 #include "global.h"
 
@@ -88,13 +89,11 @@ typedef enum {
 
 typedef void (*ActionFn)(GList *paths,
 			 const char *dest_dir, const char *leaf, int quiet);
-typedef void MenuCallback(GtkWidget *widget, gpointer data);
 
 typedef gboolean (*SaveCb)(GObject *savebox,
 			   const gchar *current, const gchar *new);
 
 GtkAccelGroup	*filer_keys = NULL;
-static gboolean filer_keys_need_init = TRUE;
 
 static GtkWidget *popup_menu = NULL;	/* Currently open menu */
 
@@ -173,7 +172,7 @@ static void resize(gpointer data, guint action, GtkWidget *widget);
 
 #define MENUS_NAME "menus2"
 
-static GtkWidget	*filer_menu;		/* The popup filer menu */
+static GtkWidget	*filer_menu = NULL;		/* The popup filer menu */
 static GtkWidget	*filer_file_item;	/* The File '' label */
 static GtkWidget	*filer_file_menu;	/* The File '' menu */
 static GtkWidget	*file_shift_item;	/* Shift Open label */
@@ -201,196 +200,96 @@ static GtkWidget    *filer_set_type;        /* Set type item */
 static GtkWidget	*filer_xattrs;	/* Extended attributes item */
 #endif
 
-#undef N_
-#define N_(x) x
+//working buffers
+static GtkWidget *current;
+static GtkWidget *cmenu;
 
-static GtkItemFactoryEntry filer_menu_def[] = {
-{N_("Display"),                  NULL,    NULL,     0,                   "<Branch>"},
-{">" N_("Icons View"),           NULL,    view_type,VIEW_TYPE_COLLECTION,NULL},
-{">" N_("Icons, With..."),       NULL,    NULL,     0,                   "<Branch>"},
-{">>" N_("Sizes"),               NULL,    set_with, DETAILS_SIZE,        NULL},
-{">>" N_("Times"),               NULL,    set_with, DETAILS_TIMES,       NULL},
-{">>" N_("Permissions"),         NULL,    set_with, DETAILS_PERMISSIONS, NULL},
-{">>" N_("Types"),               NULL,    set_with, DETAILS_TYPE,        NULL},
-{">" N_("List View"),            NULL,    view_type,VIEW_TYPE_DETAILS,   "<StockItem>", ROX_STOCK_SHOW_DETAILS},
-{">",                            NULL,    NULL,     0,                   "<Separator>"},
-{">" N_("Bigger Icons"),         "equal", change_size,       1,          "<StockItem>", GTK_STOCK_ZOOM_IN},
-{">" N_("Smaller Icons"),        "minus", change_size,      -1,          "<StockItem>", GTK_STOCK_ZOOM_OUT},
-{">" N_("Automatic"),            NULL,    change_size_auto,  0,          "<ToggleItem>"},
-{">",                            NULL,    NULL,              0,          "<Separator>"},
-{">" N_("Sort by Name"),         NULL,    set_sort, SORT_NAME,           "<RadioItem>"},
-{">" N_("Sort by Type"),         NULL,    set_sort, SORT_TYPE,  "/" N_("Display") "/" N_("Sort by Name")},
-{">" N_("Sort by Date (atime)"), NULL,    set_sort, SORT_DATEA, "/" N_("Display") "/" N_("Sort by Name")},
-{">" N_("Sort by Date (ctime)"), NULL,    set_sort, SORT_DATEC, "/" N_("Display") "/" N_("Sort by Name")},
-{">" N_("Sort by Date (mtime)"), NULL,    set_sort, SORT_DATEM, "/" N_("Display") "/" N_("Sort by Name")},
-{">" N_("Sort by Size"),         NULL,    set_sort, SORT_SIZE,  "/" N_("Display") "/" N_("Sort by Name")},
-{">" N_("Sort by Owner"),        NULL,    set_sort, SORT_OWNER, "/" N_("Display") "/" N_("Sort by Name")},
-{">" N_("Sort by Group"),        NULL,    set_sort, SORT_GROUP, "/" N_("Display") "/" N_("Sort by Name")},
-{">" N_("Reversed"),             NULL,    reverse_sort,      0,          "<ToggleItem>"},
-{">",                            NULL,    NULL,              0,          "<Separator>"},
-{">" N_("Show Hidden"),          "<Ctrl>H",  hidden,         0,          "<ToggleItem>"},
-{">" N_("Filter Files..."),      NULL,       mini_buffer,    MINI_FILTER,      NULL},
-{">" N_("Temp Filter..."),       NULL,       mini_buffer,    MINI_TEMP_FILTER, NULL},
-{">" N_("Filter Directories With Files"), NULL, filter_directories, 0,   "<ToggleItem>"},
-{">" N_("Show Thumbnails"),      NULL,       show_thumbs,    0,          "<ToggleItem>"},
-{">" N_("Refresh"),              NULL,       refresh,        0,          "<StockItem>", GTK_STOCK_REFRESH},
-{">" N_("Refresh Thumbs"),       NULL,       refresh_thumbs, 0,          "<StockItem>", GTK_STOCK_REFRESH},
-{">" N_("Save Current Display Settings..."), NULL, save_settings, 0,     NULL},
-{">" N_("Save Current Display Settings to parent ..."), NULL, save_settings_parent, 0, NULL},
-
-{N_("File"),                     NULL,       NULL,     0,                "<Branch>"},
-{">" N_("Copy..."),              "<Ctrl>C",  file_op,  FILE_COPY_ITEM,   "<StockItem>", GTK_STOCK_COPY},
-{">" N_("Rename..."),            NULL,       file_op,  FILE_RENAME_ITEM, NULL},
-{">" N_("Link..."),              NULL,       file_op,  FILE_LINK_ITEM,   NULL},
-{">" N_("Delete"),               "<Ctrl>X",  file_op,  FILE_DELETE,      "<StockItem>", GTK_STOCK_DELETE},
-{">",                            NULL,       NULL,     0,                "<Separator>"},
-{">" N_("Shift Open"),           NULL,       file_op,  FILE_OPEN_FILE},
-{">" N_("Send To..."),           NULL,       file_op,  FILE_SEND_TO,     NULL},
-{">",                            NULL,       NULL,     0,                "<Separator>"},
-{">" N_("Set Run Action..."),    "asterisk", file_op,  FILE_RUN_ACTION,  "<StockItem>", GTK_STOCK_EXECUTE},
-{">" N_("Set Icon..."),          NULL,       file_op,  FILE_SET_ICON,    NULL},
-#if defined(HAVE_GETXATTR) || defined(HAVE_ATTROPEN)
-{">" N_("Extended attributes..."), NULL,     file_op,  FILE_XATTRS,      "<StockItem>", ROX_STOCK_XATTR},
-#endif
-{">" N_("Properties"),           "<Ctrl>P",  file_op,  FILE_PROPERTIES,  "<StockItem>", GTK_STOCK_PROPERTIES},
-{">" N_("Count"),                NULL,       file_op,  FILE_USAGE,       NULL},
-{">" N_("Set Type..."),          NULL,       file_op,  FILE_SET_TYPE,    NULL},
-{">" N_("Permissions"),          NULL,       file_op,  FILE_CHMOD_ITEMS, NULL},
-{">",                            NULL,       NULL,     0,                "<Separator>"},
-{">" N_("Find"),                 "<Ctrl>F",  file_op,  FILE_FIND,        "<StockItem>", GTK_STOCK_FIND},
-
-{N_("Select"),                   NULL,       NULL,              0,       "<Branch>"},
-{">" N_("Select All"),           "<Ctrl>A",  select_all,        0,       NULL},
-{">" N_("Clear Selection"),      NULL,       clear_selection,   0,       NULL},
-{">" N_("Invert Selection"),     NULL,       invert_selection,  0,       NULL},
-{">" N_("Select by Name..."),    "period",         mini_buffer, MINI_SELECT_BY_NAME, NULL},
-{">" N_("Reg Select..."),        "asciicircum",    mini_buffer, MINI_REG_SELECT,     NULL},
-{">" N_("Select If..."),         "<Shift>question",mini_buffer, MINI_SELECT_IF,      NULL},
-
-{N_("Options..."),               NULL,       menu_show_options, 0,       "<StockItem>", GTK_STOCK_PREFERENCES},
-{N_("New"),                      NULL,       NULL,              0,       "<Branch>"},
-{">" N_("Directory"),            NULL,       new_directory,     0,       NULL},
-{">" N_("Blank file"),           NULL,       new_file,          0,       "<StockItem>", GTK_STOCK_NEW},
-{">" N_("Customise Menu..."),    NULL,       customise_new,     0,       NULL},
-
-{N_("Window"),                   NULL,       NULL,              0,       "<Branch>"},
-{">" N_("Parent, New Window"),   NULL,       open_parent,       0,       "<StockItem>", GTK_STOCK_GO_UP},
-{">" N_("Parent, Same Window"),  NULL,       open_parent_same,  0,       NULL},
-{">" N_("New Window"),           NULL,       new_window,        0,       NULL},
-{">" N_("Home Directory"),       "<Ctrl>Home", home_directory,  0,       "<StockItem>", GTK_STOCK_HOME},
-{">" N_("Show Bookmarks"),       "<Ctrl>B",  show_bookmarks,    0,       "<StockItem>", ROX_STOCK_BOOKMARKS},
-{">" N_("Show Log"),             NULL,       show_log,          0,       "<StockItem>", GTK_STOCK_INFO},
-{">" N_("Follow Symbolic Links"),NULL,       follow_symlinks,   0,       NULL},
-{">" N_("Resize Window"),        "<Ctrl>E",  resize,            0,       NULL},
-/* {">" N_("New, As User..."), NULL, new_user, 0, NULL}, */
-{">" N_("Close Window"),         "<Ctrl>Q",  close_window,      0,       "<StockItem>", GTK_STOCK_CLOSE},
-{">",                            NULL,       NULL,              0,       "<Separator>"},
-{">" N_("Enter Path..."),        "slash",         mini_buffer,  MINI_PATH,  NULL},
-{">" N_("Shell Command..."),     "<Shift>exclam", mini_buffer,  MINI_SHELL, NULL},
-{">" N_("Terminal Here"),        "grave",    xterm_here,        FALSE,   NULL},
-{">" N_("Switch to Terminal"),   NULL,       xterm_here,        TRUE,    NULL},
-
-{N_("Help"),                     NULL,    NULL,           0,             "<Branch>"},
-{">" N_("About ROX-Filer..."),   NULL,    menu_rox_help,  HELP_ABOUT,    NULL},
-{">" N_("Show Help Files"),      "F1",    menu_rox_help,  HELP_DIR,      "<StockItem>", GTK_STOCK_HELP},
-{">" N_("Manual"),               NULL,    menu_rox_help,  HELP_MANUAL,   NULL},
-
-{N_("Customise Dir Menu..."),    NULL,    customise_directory_menu, 0,   NULL},
-};
-
-
-#define GET_MENU_ITEM(var, menu)	\
-		var = gtk_item_factory_get_widget(item_factory,	"<" menu ">");
-
-#define GET_SMENU_ITEM(var, menu, sub)	\
-	do {				\
-		tmp = g_strdup_printf("<" menu ">/%s", _(sub));		\
-		var = gtk_item_factory_get_widget(item_factory,	tmp); 	\
-		g_free(tmp);		\
-	} while (0)
-
-#define GET_SSMENU_ITEM(var, menu, sub, subsub)	\
-	do {				\
-		tmp = g_strdup_printf("<" menu ">/%s/%s", _(sub), _(subsub)); \
-		var = gtk_item_factory_get_widget(item_factory,	tmp); 	\
-		g_free(tmp);		\
-	} while (0)
-
-/* Returns TRUE if the keys were installed (first call only) */
-gboolean ensure_filer_menu(void)
+static void item_common(const gchar *label, MenuCB cb, guint action)
 {
-	GList			*items;
-	guchar			*tmp;
-	GtkWidget		*item;
-	GtkItemFactory  	*item_factory;
+	if (cb)
+		g_signal_connect(current, "activate",
+				G_CALLBACK(cb),
+				GUINT_TO_POINTER(action));
 
-	if (!filer_keys_need_init)
-		return FALSE;
-	filer_keys_need_init = FALSE;
+	gtk_menu_item_set_accel_path(GTK_MENU_ITEM(current),
+			g_strconcat(gtk_menu_get_accel_path(GTK_MENU(cmenu)), label, NULL));
 
-	item_factory = menu_create(filer_menu_def,
-		sizeof(filer_menu_def) / sizeof(*filer_menu_def),
-		"<filer>", filer_keys);
+	gtk_menu_shell_append(GTK_MENU_SHELL(cmenu), current);
+}
 
-	GET_MENU_ITEM(filer_menu, "filer");
-	GET_SMENU_ITEM(filer_file_menu, "filer", "File");
-	GET_SSMENU_ITEM(filer_hidden_menu, "filer", "Display", "Show Hidden");
-	GET_SSMENU_ITEM(filer_filter_dirs_menu, "filer", "Display", "Filter Directories With Files");
+#define adi menu_add_item
+GtkWidget *menu_add_item(gchar *label, MenuCB cb, guint action)
+{
+	current = gtk_menu_item_new_with_label(_(label));
+	item_common(label, cb, action);
+	return GTK_BIN(current)->child;
+}
+#define ads menu_add_stock
+GtkWidget *menu_add_stock(
+		gchar *label, MenuCB cb, guint action, const gchar *stock_id)
+{
+	current = gtk_image_menu_item_new_from_stock(stock_id, NULL);
+	gtk_menu_item_set_label(GTK_MENU_ITEM(current), _(label));
+	item_common(label, cb, action);
+	return GTK_BIN(current)->child;
+}
+static void adt(gchar *label, MenuCB cb, guint action, GtkWidget **w)
+{
+	current = *w = gtk_check_menu_item_new_with_label(_(label));
+	item_common(label, cb, action);
+}
+static GSList *adr(
+		const gchar *label, MenuCB cb, guint action, GSList *group, GtkWidget **w)
+{
+	current = *w = gtk_radio_menu_item_new_with_label(group, _(label));
+	item_common(label, cb, action);
+	return gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(current));
+}
 
-	GET_SSMENU_ITEM(filer_sort_name_menu  , "filer", "Display", "Sort by Name");
-	GET_SSMENU_ITEM(filer_sort_type_menu  , "filer", "Display", "Sort by Type");
-	GET_SSMENU_ITEM(filer_sort_date_a_menu, "filer", "Display", "Sort by Date (atime)");
-	GET_SSMENU_ITEM(filer_sort_date_c_menu, "filer", "Display", "Sort by Date (ctime)");
-	GET_SSMENU_ITEM(filer_sort_date_m_menu, "filer", "Display", "Sort by Date (mtime)");
-	GET_SSMENU_ITEM(filer_sort_size_menu  , "filer", "Display", "Sort by Size");
-	GET_SSMENU_ITEM(filer_sort_owner_menu , "filer", "Display", "Sort by Owner");
-	GET_SSMENU_ITEM(filer_sort_group_menu , "filer", "Display", "Sort by Group");
+#define add_separator menu_add_separator
+void menu_add_separator(void)
+{ gtk_menu_shell_append(GTK_MENU_SHELL(cmenu), gtk_separator_menu_item_new()); }
 
-	GET_SSMENU_ITEM(filer_reverse_menu, "filer", "Display", "Reversed");
-	GET_SSMENU_ITEM(filer_auto_size_menu, "filer", "Display", "Automatic");
-	GET_SSMENU_ITEM(filer_thumb_menu, "filer", "Display",
-							"Show Thumbnails");
-	GET_SSMENU_ITEM(item, "filer", "File", "Set Type...");
-	filer_set_type = GTK_BIN(item)->child;
+static void sta(guint accel_key, GdkModifierType accel_mods)
+{
+	gtk_accel_map_add_entry(
+			gtk_menu_item_get_accel_path(GTK_MENU_ITEM(current)),
+			accel_key,
+			accel_mods);
+}
 
-#if defined(HAVE_GETXATTR) || defined(HAVE_ATTROPEN)
-	GET_SSMENU_ITEM(item, "filer", "File", "Extended attributes...");
-	filer_xattrs = GTK_BIN(item)->child;
-#endif
+#define start_menu menu_start
+GtkWidget *menu_start(gchar *label, GtkWidget *parent)
+{
+	const gchar *path = "";
+	if (parent)
+	{
+		cmenu = parent;
+		path = gtk_menu_get_accel_path(GTK_MENU(parent));
+		if (label)
+			adi(label, NULL, 0);
+	}
 
-	GET_SMENU_ITEM(filer_new_menu, "filer", "New");
-	GET_SSMENU_ITEM(item, "filer", "Window", "Follow Symbolic Links");
-	filer_follow_sym = GTK_BIN(item)->child;
+	if (label)
+	{
+		cmenu = gtk_menu_new();
+		if (parent)
+			gtk_menu_set_accel_group(GTK_MENU(cmenu),
+					gtk_menu_get_accel_group(GTK_MENU(parent)));
 
-	/* File '' label... */
-	items = gtk_container_get_children(GTK_CONTAINER(filer_menu));
-	filer_file_item = GTK_BIN(g_list_nth(items, 1)->data)->child;
-	g_list_free(items);
+		gtk_menu_set_accel_path(GTK_MENU(cmenu),
+				g_strconcat(path, label, "/" , NULL));
 
-	/* Shift Open... label */
-	items = gtk_container_get_children(GTK_CONTAINER(filer_file_menu));
-	file_shift_item = GTK_BIN(g_list_nth(items, 5)->data)->child;
-	g_list_free(items);
+		if (parent)
+			gtk_menu_item_set_submenu(GTK_MENU_ITEM(current), cmenu);
+	}
 
-	GET_SSMENU_ITEM(item, "filer", "Window", "New Window");
-	filer_new_window = GTK_BIN(item)->child;
-
-	g_signal_connect(filer_menu, "selection-done",
-			G_CALLBACK(menu_closed), NULL);
-	g_signal_connect(filer_file_menu, "selection-done",
-			G_CALLBACK(menu_closed), NULL);
-
-	g_signal_connect(filer_keys, "accel_changed",
-			G_CALLBACK(save_menus), NULL);
-
-	return TRUE;
+	return cmenu;
 }
 
 void menu_init(void)
 {
-	char			*menurc;
-
-	menurc = choices_find_xdg_path_load(MENUS_NAME, PROJECT, SITE);
+	char *menurc = choices_find_xdg_path_load(MENUS_NAME, PROJECT, SITE);
 	if (menurc)
 	{
 		gtk_accel_map_load(menurc);
@@ -407,39 +306,48 @@ void menu_init(void)
 	filer_keys = gtk_accel_group_new();
 }
 
-/* Name is in the form "<panel>" */
-GtkItemFactory *menu_create(GtkItemFactoryEntry *def, int n_entries,
-			    const gchar *name, GtkAccelGroup *keys)
+static MenuIconStyle get_menu_icon_style(void)
 {
-	GtkItemFactory  	*item_factory;
-	GtkItemFactoryEntry	*translated;
+	MenuIconStyle mis;
+	int display;
 
-	if (!keys)
+	mis = o_menu_iconsize.int_value;
+
+	switch (mis)
 	{
-		keys = gtk_accel_group_new();
-		gtk_accel_group_lock(keys);
+		case MIS_NONE: case MIS_SMALL: case MIS_LARGE:
+			return mis;
+		default:
+			break;
 	}
 
-	item_factory = gtk_item_factory_new(GTK_TYPE_MENU, name, keys);
+	if (mis == MIS_CURRENT && window_with_focus)
+	{
+		switch (window_with_focus->display_style)
+		{
+			case HUGE_ICONS:
+			case LARGE_ICONS:
+				return MIS_LARGE;
+			case SMALL_ICONS:
+				return MIS_SMALL;
+			default:
+				break;
+		}
+	}
 
-	translated = translate_entries(def, n_entries);
-	gtk_item_factory_create_items(item_factory, n_entries,
-					translated, NULL);
-	free_translated_entries(translated, n_entries);
+	display = o_display_size.int_value;
+	switch (display)
+	{
+		case HUGE_ICONS:
+		case LARGE_ICONS:
+			return MIS_LARGE;
+		case SMALL_ICONS:
+			return MIS_SMALL;
+		default:
+			break;
+	}
 
-	return item_factory;
-}
-
-/* Prevent the user from setting a short-cut on this item */
-static void menuitem_no_shortcuts(GtkWidget *item)
-{
-	/* XXX */
-#if 0
-	GtkMenuItem *menuitem = GTK_MENU_ITEM(item);
-
-	_gtk_widget_set_accel_path(item, NULL, NULL);
-	null_g_free(&menuitem->accel_path);
-#endif
+	return MIS_SMALL;
 }
 
 /* Shade items that only work on single files */
@@ -520,7 +428,6 @@ static GtkWidget *make_send_to_item(DirItem *ditem, const char *label,
 
 		item = gtk_image_menu_item_new_with_mnemonic(label);
 		/* TODO: Find a way to allow short-cuts */
-		menuitem_no_shortcuts(item);
 
 		gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item),
 				gtk_image_new_from_pixbuf(pixbuf));
@@ -580,27 +487,35 @@ static GList *menu_from_dir(GtkWidget *menu, const gchar *dir_name,
 
 		item = make_send_to_item(ditem, leaf, style);
 
-		g_free(leaf);
-
 		/* If it is a directory (but NOT an AppDir) and we are
 		 * recursing then set up a sub menu.
 		 */
 		if (recurse && ditem->base_type == TYPE_DIRECTORY &&
 			   !(ditem->flags & ITEM_FLAG_APPDIR))
 		{
-			GtkWidget *sub;
-			GList *new_widgets;
+			GtkWidget *sub = gtk_menu_new();
+			const gchar *apath = menu ?
+				gtk_menu_get_accel_path(GTK_MENU(menu)) : NULL;
+			if (apath)
+			{
+				gtk_menu_set_accel_group(GTK_MENU(sub),
+						gtk_menu_get_accel_group(GTK_MENU(menu)));
+				gtk_menu_set_accel_path(GTK_MENU(sub),
+						g_strconcat(apath, leaf, "/", NULL));
+			}
 
-			sub = gtk_menu_new();
-			new_widgets = menu_from_dir(sub, fname, style, func,
-						separator, strip_ext, TRUE);
-			g_list_free(new_widgets);
+			g_list_free(
+				menu_from_dir(sub, fname, style, func,
+						separator, strip_ext, TRUE)
+			);
+
 			gtk_menu_item_set_submenu(GTK_MENU_ITEM(item), sub);
 		}
 		else
 			g_signal_connect_swapped(item, "activate",
 					G_CALLBACK(func), fname);
 
+		g_free(leaf);
 		diritem_free(ditem);
 
 		if (menu)
@@ -619,7 +534,7 @@ out:
 }
 
 /* Scan the templates dir and create entries for the New menu */
-static void update_new_files_menu(MenuIconStyle style)
+static void update_new_files_menu()
 {
 	static GList *widgets = NULL;
 
@@ -639,7 +554,8 @@ static void update_new_files_menu(MenuIconStyle style)
 	templ_dname = choices_find_xdg_path_load("Templates", "", SITE);
 	if (templ_dname)
 	{
-		widgets = menu_from_dir(filer_new_menu, templ_dname, style,
+		widgets = menu_from_dir(filer_new_menu, templ_dname,
+					get_menu_icon_style(),
 					(CallbackFn) new_file_type, TRUE, TRUE,
 					FALSE);
 		g_free(templ_dname);
@@ -662,6 +578,180 @@ static void update_directory_menu()
 
 	widgets = add_sendto_shared(filer_menu,
 			inode_directory->media_type, NULL, (CallbackFn) directory_cb);
+}
+
+gboolean ensure_filer_menu(void)
+{
+	if (filer_menu) return FALSE;
+
+	filer_menu = start_menu("<filer>", NULL);
+	gtk_menu_set_accel_group(GTK_MENU(filer_menu), filer_keys);
+
+	start_menu("Display", filer_menu);
+
+	adi("Icons View"            , view_type, VIEW_TYPE_COLLECTION);
+	adi("Icons With Sizes"      , set_with , DETAILS_SIZE);
+	adi("Icons With Times"      , set_with , DETAILS_TIMES);
+	adi("Icons With Permissions", set_with , DETAILS_PERMISSIONS);
+	adi("Icons With Types"      , set_with , DETAILS_TYPE);
+
+	ads("List View", view_type, VIEW_TYPE_DETAILS, ROX_STOCK_SHOW_DETAILS);
+
+	add_separator();
+
+	ads("Bigger Icons", change_size, 1, GTK_STOCK_ZOOM_IN);
+		sta(GDK_KEY_plus, 0);
+	ads("Smaller Icons", change_size, -1, GTK_STOCK_ZOOM_OUT);
+		sta(GDK_KEY_minus, 0);
+	adt("Automatic", change_size_auto, 0, &filer_auto_size_menu);
+		sta(GDK_KEY_equal, 0);
+
+	add_separator();
+
+	GSList *sg = NULL;
+	sg = adr("Sort by Name",         set_sort, SORT_NAME , sg, &filer_sort_name_menu  );
+	sg = adr("Sort by Type",         set_sort, SORT_TYPE , sg, &filer_sort_type_menu  );
+	sg = adr("Sort by Date (atime)", set_sort, SORT_DATEA, sg, &filer_sort_date_a_menu);
+	sg = adr("Sort by Date (ctime)", set_sort, SORT_DATEC, sg, &filer_sort_date_c_menu);
+	sg = adr("Sort by Date (mtime)", set_sort, SORT_DATEM, sg, &filer_sort_date_m_menu);
+	sg = adr("Sort by Size" ,        set_sort, SORT_SIZE , sg, &filer_sort_size_menu  );
+	sg = adr("Sort by Owner",        set_sort, SORT_OWNER, sg, &filer_sort_owner_menu );
+	     adr("Sort by Group",        set_sort, SORT_GROUP, sg, &filer_sort_group_menu );
+
+	adt("Reversed", reverse_sort, 0, &filer_reverse_menu);
+
+	add_separator();
+
+	adt("Show Hidden", hidden, 0, &filer_hidden_menu);
+		sta(GDK_KEY_h, GDK_CONTROL_MASK);
+
+	adi("Filter Files..."              , mini_buffer, MINI_FILTER);
+	adi("Temp Filter..."               , mini_buffer, MINI_TEMP_FILTER);
+	adt("Filter Directories With Files", filter_directories, 0, &filer_filter_dirs_menu);
+	adt("Show Thumbnails"              , show_thumbs   , 0, &filer_thumb_menu);
+	ads("Refresh"                      , refresh       , 0, GTK_STOCK_REFRESH);
+	ads("Refresh Thumbs"               , refresh_thumbs, 0, GTK_STOCK_REFRESH);
+
+	adi("Save Display Settings..."           , save_settings, 0);
+	adi("Save Display Settings to parent ...", save_settings_parent, 0);
+
+
+	filer_file_menu = start_menu("File", filer_menu);
+	filer_file_item = GTK_BIN(current)->child;
+
+	ads("Copy..."  , file_op, FILE_COPY_ITEM, GTK_STOCK_COPY);
+		sta(GDK_KEY_c, GDK_CONTROL_MASK);
+	adi("Rename...", file_op, FILE_RENAME_ITEM);
+	adi("Link..."  , file_op, FILE_LINK_ITEM);
+	ads("Delete"   , file_op, FILE_DELETE, GTK_STOCK_DELETE);
+		sta(GDK_KEY_x, GDK_CONTROL_MASK);
+
+	add_separator();
+
+	file_shift_item =
+	adi("Shift Open", file_op, FILE_OPEN_FILE);
+	adi("Send To...", file_op, FILE_SEND_TO);
+
+	add_separator();
+
+	ads("Set Run Action...", file_op, FILE_RUN_ACTION, GTK_STOCK_EXECUTE);
+		sta(GDK_KEY_asterisk, 0);
+	adi("Set Icon..."      , file_op, FILE_SET_ICON);
+#if defined(HAVE_GETXATTR) || defined(HAVE_ATTROPEN)
+	filer_xattrs =
+	ads("Extended attributes...", file_op, FILE_XATTRS, ROX_STOCK_XATTR);
+#endif
+	ads("Properties" , file_op, FILE_PROPERTIES, GTK_STOCK_PROPERTIES);
+		sta(GDK_KEY_p, GDK_CONTROL_MASK);
+	adi("Count"      , file_op, FILE_USAGE);
+	filer_set_type =
+	adi("Set Type...", file_op, FILE_SET_TYPE);
+	adi("Permissions", file_op, FILE_CHMOD_ITEMS);
+
+	add_separator();
+
+	ads("Find", file_op, FILE_FIND, GTK_STOCK_FIND);
+		sta(GDK_KEY_f, GDK_CONTROL_MASK);
+
+	start_menu("Select", filer_menu);
+
+	adi("Select All"       , select_all, 0);
+		sta(GDK_KEY_a, GDK_CONTROL_MASK);
+	adi("Clear Selection"  , clear_selection, 0);
+	adi("Invert Selection" , invert_selection, 0);
+	adi("Select by Name...", mini_buffer, MINI_SELECT_BY_NAME);
+		sta(GDK_KEY_period, 0);
+	adi("Reg Select..."    , mini_buffer, MINI_REG_SELECT);
+		sta(GDK_KEY_asciicircum, 0);
+	adi("Select If..."     , mini_buffer, MINI_SELECT_IF);
+		sta(GDK_KEY_question, GDK_SHIFT_MASK);
+
+
+	start_menu(NULL, filer_menu);
+	ads("Options...", menu_show_options, 0, GTK_STOCK_PREFERENCES);
+
+
+	filer_new_menu = start_menu("New", filer_menu);
+
+	ads("Directory"        , new_directory, 0, GTK_STOCK_DIRECTORY);
+	ads("Blank file"       , new_file     , 0, GTK_STOCK_NEW);
+	adi("Customise Menu...", customise_new, 0);
+
+
+	start_menu("Window", filer_menu);
+
+	ads("Parent, New Window"   , open_parent     , 0, GTK_STOCK_GO_UP);
+	adi("Parent, Same Window"  , open_parent_same, 0);
+	filer_new_window =
+	adi("New Window"           , new_window      , 0);
+	ads("Home Directory"       , home_directory  , 0, GTK_STOCK_HOME);
+		sta(GDK_KEY_Home, GDK_CONTROL_MASK);
+	ads("Show Bookmarks"       , show_bookmarks  , 0, ROX_STOCK_BOOKMARKS);
+		sta(GDK_KEY_b, GDK_CONTROL_MASK);
+	ads("Show Log"             , show_log        , 0, GTK_STOCK_INFO);
+	filer_follow_sym =
+	adi("Follow Symbolic Links", follow_symlinks , 0);
+	adi("Resize Window"        , resize          , 0);
+		sta(GDK_KEY_e, GDK_CONTROL_MASK);
+	ads("Close Window"         , close_window    , 0, GTK_STOCK_CLOSE);
+		sta(GDK_KEY_q, GDK_CONTROL_MASK);
+
+	add_separator();
+
+	adi("Enter Path..."     , mini_buffer, MINI_PATH);
+		sta(GDK_KEY_slash, 0);
+	adi("Shell Command..."  , mini_buffer, MINI_SHELL);
+		sta(GDK_KEY_exclam, GDK_SHIFT_MASK);
+	adi("Terminal Here"     , xterm_here , FALSE);
+		sta(GDK_KEY_grave, 0);
+	adi("Switch to Terminal", xterm_here , TRUE);
+
+
+	start_menu("Help", filer_menu);
+
+	adi("About ROX-Filer...", menu_rox_help,  HELP_ABOUT);
+	ads("Show Help Files"   , menu_rox_help,  HELP_DIR, GTK_STOCK_HELP);
+		sta(GDK_KEY_F1, 0);
+	adi("About ROX-Filer...", menu_rox_help,  HELP_MANUAL);
+
+	start_menu(NULL, filer_menu);
+	adi("Customise Dir Menu...", customise_directory_menu, 0);
+
+
+	g_signal_connect(filer_menu, "selection-done",
+			G_CALLBACK(menu_closed), NULL);
+	g_signal_connect(filer_file_menu, "selection-done",
+			G_CALLBACK(menu_closed), NULL);
+
+	g_signal_connect(filer_keys, "accel_changed",
+			G_CALLBACK(save_menus), NULL);
+
+	//for accel
+	update_new_files_menu();
+	update_directory_menu();
+	gtk_widget_show_all(filer_menu);
+
+	return TRUE;
 }
 
 /* 'item' is the number of the item to appear under the pointer. */
@@ -704,50 +794,6 @@ void menu_popdown(void)
 {
 	if (popup_menu)
 		gtk_menu_popdown(GTK_MENU(popup_menu));
-}
-
-static MenuIconStyle get_menu_icon_style(void)
-{
-	MenuIconStyle mis;
-	int display;
-
-	mis = o_menu_iconsize.int_value;
-
-	switch (mis)
-	{
-		case MIS_NONE: case MIS_SMALL: case MIS_LARGE:
-			return mis;
-		default:
-			break;
-	}
-
-	if (mis == MIS_CURRENT && window_with_focus)
-	{
-		switch (window_with_focus->display_style)
-		{
-			case HUGE_ICONS:
-			case LARGE_ICONS:
-				return MIS_LARGE;
-			case SMALL_ICONS:
-				return MIS_SMALL;
-			default:
-				break;
-		}
-	}
-
-	display = o_display_size.int_value;
-	switch (display)
-	{
-		case HUGE_ICONS:
-		case LARGE_ICONS:
-			return MIS_LARGE;
-		case SMALL_ICONS:
-			return MIS_SMALL;
-		default:
-			break;
-	}
-
-	return MIS_SMALL;
 }
 
 /* iter->peek() is the clicked item, or NULL if none */
@@ -887,7 +933,7 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 						file_item, filer_file_menu);
 	}
 
-	update_new_files_menu(get_menu_icon_style());
+	update_new_files_menu();
 	update_directory_menu();
 
 	gtk_widget_set_sensitive(filer_new_window,
@@ -963,16 +1009,16 @@ void menu_show_shift_action(GtkWidget *menu_item, DirItem *item, gboolean next)
 		if (item->flags & ITEM_FLAG_MOUNT_POINT)
 		{
 			if (item->flags & ITEM_FLAG_MOUNTED)
-				shift_action = N_("Unmount");
+				shift_action = "Unmount";
 			else
-				shift_action = N_("Open unmounted");
+				shift_action = "Open unmounted";
 		}
 		else if (item->flags & ITEM_FLAG_SYMLINK)
-			shift_action = N_("Show Target");
+			shift_action = "Show Target";
 		else if (item->base_type == TYPE_DIRECTORY)
-			shift_action = N_("Look Inside");
+			shift_action = "Look Inside";
 		else if (item->base_type == TYPE_FILE)
-			shift_action = N_("Open As Text");
+			shift_action = "Open As Text";
 	}
 	gtk_label_set_text(GTK_LABEL(menu_item),
 			shift_action ? _(shift_action)
@@ -1671,7 +1717,9 @@ static void customise_directory_menu(gpointer data)
 	filer_opendir(path, NULL, NULL, FALSE);
 	g_free(path);
 
-	info_message(_("Symlink any programs you want into this directory. "));
+	info_message(
+			_("Symlink any programs you want into this directory. \n\n"
+			"Tip: Directories and `Set Icon' may make it more usefull."));
 }
 
 static void customise_send_to(gpointer data)
@@ -2088,9 +2136,7 @@ void menu_set_items_shaded(GtkWidget *menu, gboolean shaded, int from, int n)
 
 static void save_menus(void)
 {
-	char	*menurc;
-
-	menurc = choices_find_xdg_path_save(MENUS_NAME, PROJECT, SITE, TRUE);
+	char *menurc = choices_find_xdg_path_save(MENUS_NAME, PROJECT, SITE, TRUE);
 	if (menurc)
 	{
 		gtk_accel_map_save(menurc);
