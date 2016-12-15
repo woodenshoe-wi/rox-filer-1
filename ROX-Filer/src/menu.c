@@ -373,12 +373,13 @@ void position_menu(GtkMenu *menu, gint *x, gint *y,
 	GList		*items, *next;
 	int		y_shift = 0;
 	int		item = pos[2];
+	int h;
 
 	next = items = gtk_container_get_children(GTK_CONTAINER(menu));
 
 	while (item >= 0 && next)
 	{
-		int h = ((GtkWidget *) next->data)->requisition.height;
+		h = ((GtkWidget *) next->data)->requisition.height;
 
 		if (item > 0)
 			y_shift += h;
@@ -397,9 +398,11 @@ void position_menu(GtkMenu *menu, gint *x, gint *y,
 	*y = pos[1] - y_shift;
 
 	*x = CLAMP(*x, 0, screen_width - requisition.width);
-	*y = CLAMP(*y, 0, screen_height - requisition.height);
 
-	*push_in = FALSE;
+	if (*y > screen_height - requisition.height)
+		*y -= h / 2 - 1;
+
+	*push_in = TRUE;
 }
 
 static GtkWidget *make_send_to_item(DirItem *ditem, const char *label,
