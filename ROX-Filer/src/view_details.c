@@ -829,7 +829,7 @@ static gboolean view_details_expose(GtkWidget *widget, GdkEventExpose *event)
 	ViewDetails *view_details = (ViewDetails *) widget;
 	gboolean    had_cursor;
 
-	had_cursor = (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS) != 0;
+	had_cursor = (gtk_widget_has_focus(widget)) != 0;
 
 	if (view_details->filer_window->selection_state == GTK_STATE_SELECTED)
 		gtk_widget_grab_focus(widget);

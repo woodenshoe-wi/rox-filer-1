@@ -639,7 +639,7 @@ static void default_draw_item(
 
 	GtkStateType	state;
 
-	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
+	if (gtk_widget_has_focus(widget))
 		state = GTK_STATE_ACTIVE;
 	else
 		state = GTK_STATE_INSENSITIVE;

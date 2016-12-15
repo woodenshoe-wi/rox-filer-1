@@ -516,7 +516,7 @@ static void draw_cursor(GtkWidget *widget,
 	double dashes[] = {3.0, 1.0};
 	cairo_set_dash(cr, dashes, 2, 0);
 
-	if (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS)
+	if (gtk_widget_has_focus(widget))
 		gdk_cairo_set_source_color(cr, colour);
 	else
 		cairo_set_source_rgb(cr, .7, .7, .7);
