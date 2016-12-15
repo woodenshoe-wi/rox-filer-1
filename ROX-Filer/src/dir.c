@@ -865,7 +865,7 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 
 	if (item)
 	{
-		DirItem  old;
+		DirItem  old = {};
 		gboolean do_compare = FALSE;	/* (old is filled in) */
 
 		if (item->base_type != TYPE_UNKNOWN)
