@@ -868,20 +868,20 @@ static void may_offer_unmount(FilerWindow *filer_window, char *mount)
 			unmount_mem_btn);
 
 	button = button_new_mixed(ROX_STOCK_MOUNTED, _("No change"));
-	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+	gtk_widget_set_can_default(button, TRUE);
 	gtk_dialog_add_action_widget(GTK_DIALOG(dialog), button,
 					GTK_RESPONSE_CANCEL);
 	gtk_widget_show(button);
 
 	button = button_new_mixed(ROX_STOCK_MOUNT, _("Unmount"));
-	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+	gtk_widget_set_can_default(button, TRUE);
 	gtk_dialog_add_action_widget(GTK_DIALOG(dialog), button,
 					GTK_RESPONSE_OK);
 	gtk_widget_show(button);
 
 	/* We need a better icon, but I can't draw */
 	button = button_new_mixed(GTK_STOCK_UNDO, _("Eject"));
-	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+	gtk_widget_set_can_default(button, TRUE);
 	gtk_dialog_add_action_widget(GTK_DIALOG(dialog), button,
 					ROX_RESPONSE_EJECT);
 	gtk_widget_show(button);
@@ -2253,7 +2253,7 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 				filer_window->thumb_progress, TRUE, TRUE, 0);
 
 		cancel = gtk_button_new_with_label(_("Cancel"));
-		GTK_WIDGET_UNSET_FLAGS(cancel, GTK_CAN_FOCUS);
+		gtk_widget_set_can_focus(cancel, FALSE);
 		gtk_box_pack_start(GTK_BOX(filer_window->thumb_bar),
 				cancel, FALSE, TRUE, 0);
 		g_signal_connect_swapped(cancel, "clicked",

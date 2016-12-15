@@ -205,7 +205,7 @@ static void collection_class_init(GObjectClass *gclass, gpointer data)
 	GtkObjectClass *object_class = (GtkObjectClass *) gclass;
 	GtkWidgetClass *widget_class = (GtkWidgetClass *) gclass;
 
-	parent_class = gtk_type_class(gtk_widget_get_type());
+	parent_class = g_type_class_ref(gtk_widget_get_type());
 
 	object_class->destroy = collection_destroy;
 	G_OBJECT_CLASS(object_class)->finalize =
@@ -276,7 +276,7 @@ static void collection_init(GTypeInstance *instance, gpointer g_class)
 	g_return_if_fail(object != NULL);
 	g_return_if_fail(IS_COLLECTION(object));
 
-	GTK_WIDGET_SET_FLAGS(GTK_WIDGET(object), GTK_CAN_FOCUS);
+	gtk_widget_set_can_focus(GTK_WIDGET(object), TRUE);
 
 	object->number_of_items = 0;
 	object->number_selected = 0;
@@ -381,7 +381,7 @@ static void collection_realize(GtkWidget *widget)
 	g_return_if_fail(IS_COLLECTION(widget));
 	g_return_if_fail(widget->parent != NULL);
 
-	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
+	gtk_widget_set_realized(widget, TRUE);
 	collection = COLLECTION(widget);
 
 	attributes.x = widget->allocation.x;
@@ -483,7 +483,7 @@ static void collection_size_allocate(GtkWidget *widget,
 	if (collection->columns < 1)
 		collection->columns = 1;
 
-	if (GTK_WIDGET_REALIZED(widget))
+	if (gtk_widget_get_realized(widget))
 	{
 		gdk_window_move_resize(widget->window,
 				allocation->x, allocation->y,
@@ -1118,7 +1118,7 @@ static void scroll_to_show(Collection *collection, int item)
 		GtkWidget	*widget = (GtkWidget *) collection;
 		gint 		height;
 
-		if (GTK_WIDGET_REALIZED(widget))
+		if (gtk_widget_get_realized(widget))
 		{
 			height = collection->vadj->page_size;
 			gtk_adjustment_set_value(collection->vadj,
@@ -1139,7 +1139,7 @@ static void get_visible_limits(Collection *collection, int *first, int *last)
 	g_return_if_fail(IS_COLLECTION(collection));
 	g_return_if_fail(first != NULL && last != NULL);
 
-	if (!GTK_WIDGET_REALIZED(widget))
+	if (!gtk_widget_get_realized(widget))
 	{
 		*first = 0;
 		*last = 0;
@@ -1182,7 +1182,7 @@ static void invert_wink(Collection *collection)
 
 	g_return_if_fail(collection->wink_item >= 0);
 
-	if (!GTK_WIDGET_REALIZED(GTK_WIDGET(collection)))
+	if (!gtk_widget_get_realized(GTK_WIDGET(collection)))
 		return;
 
 	collection_item_to_rowcol(collection, collection->wink_item,
@@ -1437,7 +1437,7 @@ void collection_draw_item(Collection *collection, gint item, gboolean blank)
 			(item == 0 || item < collection->number_of_items));
 
 	widget = GTK_WIDGET(collection);
-	if (!GTK_WIDGET_REALIZED(widget))
+	if (!gtk_widget_get_realized(widget))
 		return;
 
 	collection_item_to_rowcol(collection, item, &row, &col);
@@ -1464,7 +1464,7 @@ void collection_set_item_size(Collection *collection, int width, int height)
 	collection->item_width = width;
 	collection->item_height = height;
 
-	if (GTK_WIDGET_REALIZED(widget))
+	if (gtk_widget_get_realized(widget))
 	{
 		int window_width;
 
@@ -1799,7 +1799,7 @@ void collection_delete_if(Collection *collection,
 		resize_arrays(collection,
 			MAX(collection->number_of_items, MINIMUM_ITEMS));
 
-		if (GTK_WIDGET_REALIZED(GTK_WIDGET(collection)))
+		if (gtk_widget_get_realized(GTK_WIDGET(collection)))
 			gtk_widget_queue_draw(GTK_WIDGET(collection));
 
 		gtk_widget_queue_resize(GTK_WIDGET(collection));

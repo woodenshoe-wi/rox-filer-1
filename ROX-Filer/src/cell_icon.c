@@ -74,7 +74,7 @@ static void cell_icon_render     (GtkCellRenderer		*cell,
 				      GdkRectangle	*cell_area,
 				      GdkRectangle	*expose_area,
 				      guint		flags);
-static GtkType cell_icon_get_type(void);
+static GType cell_icon_get_type(void);
 
 enum {
 	PROP_ZERO,
@@ -101,9 +101,9 @@ GtkCellRenderer *cell_icon_new(ViewDetails *view_details)
  ****************************************************************/
 
 
-static GtkType cell_icon_get_type(void)
+static GType cell_icon_get_type(void)
 {
-	static GtkType cell_icon_type = 0;
+	static GType cell_icon_type = 0;
 
 	if (!cell_icon_type)
 	{

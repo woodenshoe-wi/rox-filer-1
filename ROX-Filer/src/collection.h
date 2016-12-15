@@ -18,7 +18,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define COLLECTION(obj) GTK_CHECK_CAST((obj), collection_get_type(), Collection)
+#define COLLECTION(obj) G_TYPE_CHECK_INSTANCE_CAST((obj), collection_get_type(), Collection)
 #define COLLECTION_CLASS(obj) G_TYPE_INSTANCE_GET_CLASS((obj), \
 					collection_get_type(), CollectionClass)
 #define IS_COLLECTION(obj) \

@@ -180,7 +180,7 @@ int get_choice(const char *title,
 		else
 			button = gtk_button_new_from_stock(stock);
 
-		GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+		gtk_widget_set_can_default(button, TRUE);
 		gtk_widget_show(button);
 
 		gtk_dialog_add_action_widget(GTK_DIALOG(current_dialog),
@@ -498,7 +498,7 @@ GtkWidget *new_help_button(HelpFunc show_help, gpointer data)
 	gtk_container_add(GTK_CONTAINER(b), icon);
 	g_signal_connect_swapped(b, "clicked", G_CALLBACK(show_help), data);
 
-	GTK_WIDGET_UNSET_FLAGS(b, GTK_CAN_FOCUS);
+	gtk_widget_set_can_focus(b, FALSE);
 
 	return b;
 }
@@ -1224,7 +1224,7 @@ static void simple_image_class_init(gpointer gclass, gpointer data)
 
 static void simple_image_init(GTypeInstance *object, gpointer gclass)
 {
-	GTK_WIDGET_SET_FLAGS(object, GTK_NO_WINDOW);
+	gtk_widget_set_has_window(GTK_WIDGET(object), FALSE);
 }
 
 static GType simple_image_get_type(void)

@@ -109,7 +109,7 @@ static void wrapped_label_init(GTypeInstance *object, gpointer gclass)
 	WrappedLabel *wl = (WrappedLabel *) object;
 	GtkWidget *widget = (GtkWidget *) object;
 
-	GTK_WIDGET_SET_FLAGS(widget, GTK_NO_WINDOW);
+	gtk_widget_set_has_window(widget, FALSE);
 
 	wl->layout = NULL;
 	wl->width = -1;

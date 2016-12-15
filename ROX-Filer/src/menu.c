@@ -373,7 +373,7 @@ void position_menu(GtkMenu *menu, gint *x, gint *y,
 	GList		*items, *next;
 	int		y_shift = 0;
 	int		item = pos[2];
-	int h;
+	int h = 2;
 
 	next = items = gtk_container_get_children(GTK_CONTAINER(menu));
 
@@ -1254,7 +1254,7 @@ static void savebox_show(const gchar *action, const gchar *path,
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_relative),
 					     last_symlink_check_relative);
 
-		GTK_WIDGET_UNSET_FLAGS(check_relative, GTK_CAN_FOCUS);
+		gtk_widget_set_can_focus(check_relative, FALSE);
 		gtk_widget_set_tooltip_text(check_relative,
 			_("If on, the symlink will store the path from the "
 			"symlink to the target file. Use this if the symlink "
@@ -1272,7 +1272,7 @@ static void savebox_show(const gchar *action, const gchar *path,
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_sympath),
 					     last_symlink_check_sympath);
 
-		GTK_WIDGET_UNSET_FLAGS(check_sympath, GTK_CAN_FOCUS);
+		gtk_widget_set_can_focus(check_sympath, FALSE);
 		gtk_widget_set_tooltip_text(check_sympath,
 			_("If on, the symlink will use target path as Sym path."));
 		gtk_box_pack_start(GTK_BOX(GTK_DIALOG(savebox)->vbox),
@@ -1434,7 +1434,7 @@ static gboolean link_cb(GObject *savebox,
 
 		button = button_new_mixed(GTK_STOCK_YES, _("_Replace"));
 		gtk_widget_show(button);
-		GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+		gtk_widget_set_can_default(button, TRUE);
 		gtk_dialog_add_action_widget(GTK_DIALOG(box),
 					     button, GTK_RESPONSE_OK);
 		gtk_dialog_set_default_response(GTK_DIALOG(box),

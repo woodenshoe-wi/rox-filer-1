@@ -947,7 +947,7 @@ void type_set_handler_dialog(MIME_type *type)
 	gtk_dialog_add_button(dialog, GTK_STOCK_CLOSE, GTK_RESPONSE_CANCEL);
 
 	button = button_new_mixed(GTK_STOCK_OK, _("_Use Command"));
-	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+	gtk_widget_set_can_default(button, TRUE);
 	gtk_dialog_add_action_widget(dialog, button, GTK_RESPONSE_OK);
 
 	hbox = gtk_hbox_new(TRUE, 4);

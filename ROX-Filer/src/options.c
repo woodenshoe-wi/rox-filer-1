@@ -962,7 +962,7 @@ static GtkWidget *build_window_frame(GtkTreeView **tree_view)
 	gtk_box_pack_start(GTK_BOX(tl_vbox), actions, FALSE, TRUE, 0);
 
 	revert_widget = button_new_mixed(GTK_STOCK_UNDO, _("_Revert"));
-	GTK_WIDGET_SET_FLAGS(revert_widget, GTK_CAN_DEFAULT);
+	gtk_widget_set_can_default(revert_widget, TRUE);
 	gtk_box_pack_start(GTK_BOX(actions), revert_widget, FALSE, TRUE, 0);
 	g_signal_connect(revert_widget, "clicked",
 			 G_CALLBACK(revert_options), NULL);
@@ -972,7 +972,7 @@ static GtkWidget *build_window_frame(GtkTreeView **tree_view)
 	gtk_widget_set_sensitive(revert_widget, check_anything_changed());
 
 	button = gtk_button_new_from_stock(GTK_STOCK_OK);
-	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+	gtk_widget_set_can_default(button, TRUE);
 	gtk_box_pack_start(GTK_BOX(actions), button, FALSE, TRUE, 0);
 	g_signal_connect_swapped(button, "clicked",
 				G_CALLBACK(gtk_widget_destroy), window);
@@ -1499,7 +1499,7 @@ static GList *build_slider(Option *option, xmlNode *node, guchar *label)
 	}
 	else
 		gtk_scale_set_draw_value(GTK_SCALE(slide), FALSE);
-	GTK_WIDGET_UNSET_FLAGS(slide, GTK_CAN_FOCUS);
+	gtk_widget_set_can_focus(slide, FALSE);
 
 	may_add_tip(slide, node);
 

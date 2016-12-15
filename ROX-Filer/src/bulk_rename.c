@@ -64,10 +64,10 @@ void bulk_rename(const char *dir, GList *items)
 	g_object_set_data_full(G_OBJECT(box), "rename_dir",
 				g_strdup(dir), g_free);
 	gtk_window_set_title(GTK_WINDOW(box), _("Bulk rename files"));
-	gtk_dialog_set_has_separator(GTK_DIALOG(box), FALSE);
+//	gtk_dialog_set_has_separator(GTK_DIALOG(box), FALSE);
 
 	button = button_new_mixed(GTK_STOCK_REFRESH, _("Reset"));
-	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+	gtk_widget_set_can_default(button, TRUE);
 	gtk_dialog_add_action_widget(GTK_DIALOG(box), button, RESPONSE_RESET);
 	gtk_dialog_set_default_response(GTK_DIALOG(box), RESPONSE_RESET);
 	gtk_widget_set_tooltip_text(button,
@@ -77,7 +77,7 @@ void bulk_rename(const char *dir, GList *items)
 				GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
 
 	button = button_new_mixed(GTK_STOCK_EXECUTE, _("_Rename"));
-	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+	gtk_widget_set_can_default(button, TRUE);
 	gtk_dialog_add_action_widget(GTK_DIALOG(box), button, RESPONSE_RENAME);
 	gtk_dialog_set_default_response(GTK_DIALOG(box), RESPONSE_RENAME);
 
