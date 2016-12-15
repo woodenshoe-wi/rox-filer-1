@@ -11,7 +11,7 @@
 typedef struct _DropBoxClass DropBoxClass;
 typedef struct _DropBox DropBox;
 
-#define DROP_BOX(obj) (GTK_CHECK_CAST((obj), drop_box_get_type(), DropBox))
+#define DROP_BOX(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), drop_box_get_type(), DropBox))
 
 GtkWidget *drop_box_new(const char *message);
 GType drop_box_get_type(void);

@@ -50,7 +50,7 @@ struct _ViewDetails {
 
 
 #define VIEW_DETAILS(obj) \
-	(GTK_CHECK_CAST((obj), view_details_get_type(), ViewDetails))
+	(G_TYPE_CHECK_INSTANCE_CAST((obj), view_details_get_type(), ViewDetails))
 
 GtkWidget *view_details_new(FilerWindow *filer_window);
 GType view_details_get_type(void);

@@ -11,7 +11,7 @@
 typedef struct _ViewCollectionClass ViewCollectionClass;
 
 #define VIEW_COLLECTION(obj) \
-	(GTK_CHECK_CAST((obj), view_collection_get_type(), ViewCollection))
+	(G_TYPE_CHECK_INSTANCE_CAST((obj), view_collection_get_type(), ViewCollection))
 
 GtkWidget *view_collection_new(FilerWindow *filer_window);
 GType view_collection_get_type(void);

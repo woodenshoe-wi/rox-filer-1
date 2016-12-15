@@ -23,7 +23,7 @@ extern "C" {
 #define GTK_TYPE_SAVEBOX		(gtk_savebox_get_type ())
 
 #define GTK_SAVEBOX(obj)		\
-	(GTK_CHECK_CAST ((obj), GTK_TYPE_SAVEBOX, GtkSavebox))
+	(G_TYPE_CHECK_INSTANCE_CAST ((obj), GTK_TYPE_SAVEBOX, GtkSavebox))
 
 #define GTK_SAVEBOX_CLASS(klass)	\
 	(GTK_CHECK_CLASS_CAST ((klass), GTK_TYPE_SAVEBOX, GtkSaveboxClass))

@@ -1165,7 +1165,7 @@ struct _SimpleImage {
 	int	  width, height;
 };
 
-#define SIMPLE_IMAGE(obj) (GTK_CHECK_CAST((obj), \
+#define SIMPLE_IMAGE(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), \
 				simple_image_get_type(), SimpleImage))
 
 static void simple_image_finialize(GObject *object)

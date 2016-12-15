@@ -83,7 +83,7 @@ struct _PanelIcon {
 	int		style;
 };
 
-#define PANEL_ICON(obj) GTK_CHECK_CAST((obj), panel_icon_get_type(), PanelIcon)
+#define PANEL_ICON(obj) G_TYPE_CHECK_INSTANCE_CAST((obj), panel_icon_get_type(), PanelIcon)
 #define IS_PANEL_ICON(obj) \
 	G_TYPE_CHECK_INSTANCE_TYPE((obj), panel_icon_get_type())
 
