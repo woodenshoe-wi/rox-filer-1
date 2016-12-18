@@ -794,23 +794,6 @@ static void free_path_for_item(GtkWidget *widget, gpointer udata)
 	g_free(path);
 }
 
-static gboolean selection_cb(GtkWidget *widget,
-               GdkEvent  *event,
-               gpointer   user_data)
-{
-	switch (event->type)
-	{ /* This is just as is. No logic. */
-		case GDK_LEAVE_NOTIFY:
-			gtk_menu_item_deselect(GTK_MENU_ITEM(widget));
-			return FALSE; /* Don't change this */
-		case GDK_ENTER_NOTIFY:
-			gtk_menu_item_select(GTK_MENU_ITEM(widget));
-			return TRUE;
-		default:
-			return FALSE;
-	}
-}
-
 static GtkWidget *build_history_menu(FilerWindow *filer_window)
 {
 	GtkWidget *menu;
@@ -884,13 +867,6 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 
 		gtk_widget_show_all(item);
 		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
-
-		/* I don't know why, but these items throw selection
-		 * to under menuitems. */
-		g_signal_connect(GTK_WIDGET(item), "enter-notify-event",
-				 G_CALLBACK(selection_cb), NULL);
-		g_signal_connect(GTK_WIDGET(item), "leave-notify-event",
-				 G_CALLBACK(selection_cb), NULL);
 	}
 
 	return menu;
@@ -920,11 +896,11 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 	item = gtk_menu_item_new_with_label(_("Edit Bookmarks"));
 	g_signal_connect(item, "activate", G_CALLBACK(activate_edit), NULL);
 	gtk_widget_show(item);
-	gtk_menu_attach(GTK_MENU(menu), item, 1, 2, 0, 1);
+	gtk_menu_attach(GTK_MENU(menu), item, 0, 1, 1, 2);
 
 	item = gtk_menu_item_new_with_label(_("Recently Visited"));
 	gtk_widget_show(item);
-	gtk_menu_attach(GTK_MENU(menu), item, 0, 1, 1, 2);
+	gtk_menu_attach(GTK_MENU(menu), item, 1, 2, 0, 1);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(item),
 			build_history_menu(filer_window));
 
