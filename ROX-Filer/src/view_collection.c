@@ -1377,9 +1377,10 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		int pix_size = 0;
 		int dw = view->details_width;
 		int nh = view->name_height;
+		int ml = 0;
 
 		if (o_max_length.int_value)
-			nw = MIN(nw, o_max_length.int_value);
+			nw = MIN(nw, ml = o_max_length.int_value * filer_window->name_scale);
 
 		if (type == DETAILS_NONE || style == HUGE_ICONS)
 		{
@@ -1433,7 +1434,7 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		{
 			//g_print("mono width %d, dw %d\n", monospace_width, dw);
 			if (type != DETAILS_TYPE && o_max_length.int_value &&
-				(nw >= o_max_length.int_value || dw > o_max_length.int_value))
+				(nw >= ml || dw > ml))
 				max_h = max_w = TRUE;
 
 			w = ICON_WIDTH + 2 + MAX(dw, nw);
