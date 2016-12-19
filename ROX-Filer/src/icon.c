@@ -1381,7 +1381,7 @@ static void create_menu(void)
 {
 	GList		*items;
 
-	g_return_if_fail(icon_menu == NULL);
+	if (icon_menu) return;
 
 	icon_menu = menu_start("<icon>", NULL);
 	menu_start("ROX-Filer", icon_menu);

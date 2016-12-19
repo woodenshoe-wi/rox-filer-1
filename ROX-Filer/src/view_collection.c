@@ -314,7 +314,7 @@ static gboolean transparent_expose(GtkWidget *widget,
 			set_bg_src(cr);
 			cairo_paint(cr);
 		}
-		else if (o_view_alpha.int_value != 0)
+		else if (o_view_alpha.int_value)
 		{
 			cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 			cairo_paint_with_alpha(cr, o_view_alpha.int_value / 100.0);
