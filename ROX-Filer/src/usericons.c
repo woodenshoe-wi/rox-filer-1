@@ -273,7 +273,7 @@ void icon_set_handler_dialog(DirItem *item, const guchar *path)
 	g_return_if_fail(item != NULL && path != NULL);
 
 	dialog = GTK_DIALOG(gtk_dialog_new());
-	gtk_dialog_set_has_separator(dialog, FALSE);
+//	gtk_dialog_set_has_separator(dialog, FALSE);
 	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_MOUSE);
 	g_object_set_data_full(G_OBJECT(dialog), "pathname",
 				 strdup(path), g_free);

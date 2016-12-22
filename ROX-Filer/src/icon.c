@@ -836,7 +836,7 @@ static void show_rename_box(Icon *icon)
 	}
 
 	icon->dialog = gtk_dialog_new();
-	gtk_dialog_set_has_separator(GTK_DIALOG(icon->dialog), FALSE);
+//	gtk_dialog_set_has_separator(GTK_DIALOG(icon->dialog), FALSE);
 	g_signal_connect(icon->dialog, "destroy",
 			G_CALLBACK(gtk_widget_destroyed), &icon->dialog);
 

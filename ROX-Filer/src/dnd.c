@@ -1138,7 +1138,7 @@ void dnd_spring_load(GdkDragContext *context, FilerWindow *src_win)
 	spring_context = context;
 	g_object_ref(spring_context);
 	spring_src_window = src_win;
-	spring_timeout = gtk_timeout_add(
+	spring_timeout = g_timeout_add(
 			o_dnd_spring_delay.int_value, spring_now, NULL);
 }
 
@@ -1149,7 +1149,7 @@ void dnd_spring_abort(void)
 
 	g_object_unref(spring_context);
 	spring_context = NULL;
-	gtk_timeout_remove(spring_timeout);
+	g_source_remove(spring_timeout);
 }
 
 /* If all mod keys are released, no buttons are pressed, and the
@@ -1230,7 +1230,7 @@ static gboolean spring_now(gpointer data)
 						spring_src_window, NULL, FALSE);
 		if (spring_window)
 		{
-			gtk_timeout_add(500, spring_check_idle, NULL);
+			g_timeout_add(500, spring_check_idle, NULL);
 			g_signal_connect(spring_window->window, "destroy",
 					G_CALLBACK(spring_win_destroyed), NULL);
 			centre_window(spring_window->window->window, x, y);

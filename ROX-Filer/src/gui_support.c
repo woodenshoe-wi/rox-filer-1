@@ -678,7 +678,7 @@ void wink_widget(GtkWidget *widget)
 
 static gboolean idle_destroy_cb(GtkWidget *widget)
 {
-	gtk_widget_unref(widget);
+	g_object_unref(widget);
 	gtk_widget_destroy(widget);
 	return FALSE;
 }
@@ -686,7 +686,7 @@ static gboolean idle_destroy_cb(GtkWidget *widget)
 /* Destroy the widget in an idle callback */
 void destroy_on_idle(GtkWidget *widget)
 {
-	gtk_widget_ref(widget);
+	g_object_ref(widget);
 	g_idle_add((GSourceFunc) idle_destroy_cb, widget);
 }
 
@@ -819,7 +819,8 @@ void fixed_move_fast(GtkFixed *fixed, GtkWidget *widget, int x, int y)
 
 	gtk_widget_thaw_child_notify(widget);
 
-	if (GTK_WIDGET_VISIBLE(widget) && GTK_WIDGET_VISIBLE(fixed))
+	if (gtk_widget_get_visible(widget) &&
+			gtk_widget_get_visible(GTK_WIDGET(fixed)))
 	{
 		int border_width = GTK_CONTAINER(fixed)->border_width;
 		GtkAllocation child_allocation;

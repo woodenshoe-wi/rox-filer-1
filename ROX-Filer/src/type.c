@@ -870,7 +870,7 @@ void type_set_handler_dialog(MIME_type *type)
 	g_return_if_fail(type != NULL);
 
 	dialog = GTK_DIALOG(gtk_dialog_new());
-	gtk_dialog_set_has_separator(dialog, FALSE);
+//	gtk_dialog_set_has_separator(dialog, FALSE);
 	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_MOUSE);
 
 	g_object_set_data(G_OBJECT(dialog), "mime_type", type);
@@ -1473,7 +1473,7 @@ static GList *build_icon_theme(Option *option, xmlNode *node, guchar *label)
 	option->widget = button;
 
 	gtk_signal_connect_object(GTK_OBJECT(button), "changed",
-			GTK_SIGNAL_FUNC(option_check_widget),
+			G_CALLBACK(option_check_widget),
 			(GtkObject *) option);
 
 	return g_list_append(NULL, hbox);

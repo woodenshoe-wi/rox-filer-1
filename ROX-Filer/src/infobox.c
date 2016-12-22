@@ -143,8 +143,8 @@ void infobox_new(const gchar *pathname)
 
 	owindow = G_OBJECT(window);
 	details = make_vbox(path, owindow);
-	gtk_box_pack_start_defaults(GTK_BOX(GTK_DIALOG(window)->vbox),
-				    details);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox),
+				    details, TRUE, TRUE, 0);
 
 	g_object_set_data(owindow, "details", details);
 	g_object_set_data_full(owindow, "path", path, g_free);
@@ -185,7 +185,7 @@ static void refresh_info(GObject *window)
 
 	details = make_vbox(path, window);
 	g_object_set_data(window, "details", details);
-	gtk_box_pack_start_defaults(GTK_BOX(vbox), details);
+	gtk_box_pack_start(GTK_BOX(vbox), details, TRUE, TRUE, 0);
 	gtk_widget_show_all(details);
 }
 
@@ -196,7 +196,7 @@ static void add_frame(GtkBox *vbox, GtkWidget *list)
 	frame = gtk_frame_new(NULL);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
 	gtk_container_add(GTK_CONTAINER(frame), list);
-	gtk_box_pack_start_defaults(vbox, frame);
+	gtk_box_pack_start(vbox, frame, TRUE, TRUE, 0);
 }
 
 /* Create the VBox widget that contains the details.
@@ -306,7 +306,7 @@ static GtkWidget *make_vbox(const guchar *path, GObject *window)
 		gtk_misc_set_alignment(GTK_MISC(label), 0, 1);
 		gtk_box_pack_start(vbox, label, FALSE, TRUE, 2);
 
-		gtk_box_pack_start_defaults(vbox, make_file_says(path));
+		gtk_box_pack_start(vbox, make_file_says(path), TRUE, TRUE, 0);
 	}
 	else if (item->flags & ITEM_FLAG_MOUNT_POINT)
 	{

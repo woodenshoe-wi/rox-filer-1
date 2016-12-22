@@ -2157,14 +2157,14 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 	int vh = MIN(max_y, h * rows + space);
 	gboolean notauto = FALSE;
 
-	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	if (gtk_widget_get_visible(filer_window->thumb_bar))
 	{
 		GtkRequisition req;
 		gtk_widget_size_request(filer_window->thumb_bar, &req);
 		exh += req.height;
 	}
 
-	if (GTK_WIDGET_VISIBLE(filer_window->minibuffer_area))
+	if (gtk_widget_get_visible(filer_window->minibuffer_area))
 	{
 		GtkRequisition req;
 		gtk_widget_size_request(filer_window->minibuffer_area, &req);

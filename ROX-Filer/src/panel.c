@@ -1982,14 +1982,14 @@ static void applet_died(GtkWidget *socket)
 		gtk_widget_destroy(socket);
 	}
 
-	gtk_widget_unref(socket);
+	g_object_unref(socket);
 }
 
 static void socket_destroyed(GtkWidget *socket, GtkWidget *widget)
 {
 	g_object_set_data(G_OBJECT(socket), "lost_plug", "yes");
 
-	gtk_widget_unref(socket);
+	g_object_unref(socket);
 
 	gtk_widget_destroy(widget);	/* Remove from panel */
 
@@ -2081,10 +2081,10 @@ static void run_applet(PanelIcon *pi)
 	}
 	else
 	{
-		gtk_widget_ref(pi->socket);
+		g_object_ref(pi->socket);
 		on_child_death(pid, (CallbackFn) applet_died, pi->socket);
 
-		gtk_widget_ref(pi->socket);
+		g_object_ref(pi->socket);
 		g_signal_connect(pi->socket, "destroy",
 				G_CALLBACK(socket_destroyed), pi->widget);
 	}
@@ -2200,7 +2200,7 @@ static void panel_style_changed(void)
 			panel_new(NULL, i);
 		}
 
-		g_idle_add((GtkFunction) recreate_panels, names);
+		g_idle_add((GSourceFunc) recreate_panels, names);
 	}
 }
 

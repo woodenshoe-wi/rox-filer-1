@@ -970,7 +970,7 @@ static void pinboard_check_options(void)
 		gchar *name;
 		name = g_strdup(current_pinboard->name);
 		pinboard_activate(NULL);
-		g_idle_add((GtkFunction) recreate_pinboard, name);
+		g_idle_add((GSourceFunc) recreate_pinboard, name);
 	}
 
 	tasklist_set_active(o_pinboard_tasklist.int_value && current_pinboard);
@@ -2762,7 +2762,7 @@ static void find_free_rect(Pinboard *pinboard, GdkRectangle *rect,
 	{
 		GtkFixedChild *fix = (GtkFixedChild *) next->data;
 
-		if (!GTK_WIDGET_VISIBLE(fix->widget))
+		if (!gtk_widget_get_visible(fix->widget))
 			continue;
 
 		used_rect.x = fix->x;

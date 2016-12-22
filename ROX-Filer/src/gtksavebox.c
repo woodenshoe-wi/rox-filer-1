@@ -240,7 +240,7 @@ gtk_savebox_init (GtkSavebox *savebox)
   GtkDialog *dialog = (GtkDialog *) savebox;
   GtkTargetEntry targets[] = { {"XdndDirectSave0", 0, GTK_TARGET_XDS} };
 
-  gtk_dialog_set_has_separator (dialog, FALSE);
+//  gtk_dialog_set_has_separator (dialog, FALSE);
 
   savebox->targets = gtk_target_list_new (targets,
 					  sizeof (targets) / sizeof (*targets));
@@ -665,7 +665,7 @@ gtk_savebox_get_property (GObject     *object,
   switch (prop_id)
     {
     case PROP_HAS_DISCARD:
-      g_value_set_boolean (value, GTK_WIDGET_VISIBLE(savebox->discard_area));
+      g_value_set_boolean (value, gtk_widget_get_visible(savebox->discard_area));
       break;
 
     default:

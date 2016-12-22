@@ -710,8 +710,7 @@ static void collection_set_adjustment(Collection    *collection,
 		g_object_unref(G_OBJECT(collection->vadj));
 
 	collection->vadj = vadj;
-	g_object_ref(G_OBJECT(collection->vadj));
-	gtk_object_sink(GTK_OBJECT(collection->vadj));
+	g_object_ref_sink(GTK_OBJECT(collection->vadj));
 }
 
 static void collection_get_property(GObject    *object,
@@ -1707,7 +1706,7 @@ void collection_wink_item(Collection *collection, gint item)
 	if (item == -1)
 		return;
 
-	if (!GTK_WIDGET_MAPPED(GTK_WIDGET(collection)))
+	if (!gtk_widget_get_mapped(GTK_WIDGET(collection)))
 	{
 		collection->wink_on_map = item;
 		return;

@@ -358,7 +358,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean not
 
 		if (filer_window->reqx >= 0)
 		{
-			if (GTK_WIDGET_VISIBLE(window))
+			if (gtk_widget_get_visible(window))
 			{ /* If visible there are window decorations */
 				gtk_window_get_position(GTK_WINDOW(window),&x, &y);
 				x = filer_window->reqx + x - frect.x;
@@ -2074,10 +2074,10 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 			G_CALLBACK(drag_end), filer_window);
 	/* Dragging from us... */
 	g_signal_connect(view, "drag_data_get",
-			GTK_SIGNAL_FUNC(drag_data_get), NULL);
+			G_CALLBACK(drag_data_get), NULL);
 
 	g_signal_connect(view, "scroll-event",
-			GTK_SIGNAL_FUNC(scroll_cb), filer_window);
+			G_CALLBACK(scroll_cb), filer_window);
 
 	gtk_widget_add_events(view, GDK_LEAVE_NOTIFY_MASK);
 	g_signal_connect_swapped(view, "leave-notify-event",
@@ -2223,7 +2223,7 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 
 	hbox = gtk_hbox_new(FALSE, 0);
 	filer_window->view_hbox = GTK_BOX(hbox);
-	gtk_box_pack_start_defaults(GTK_BOX(vbox), hbox);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 0);
 	/* Add the main View widget */
 	filer_set_view_type(filer_window, filer_window->view_type);
 	/* Put the scrollbar next to the View */
@@ -2872,7 +2872,7 @@ static gboolean make_dir_thumb_link()
 
 void filer_cancel_thumbnails(FilerWindow *filer_window)
 {
-	if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	if (gtk_widget_get_visible(filer_window->thumb_bar))
 	{
 		gtk_widget_hide(filer_window->thumb_bar);
 		filer_autosize(filer_window);
@@ -2929,7 +2929,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 		filer_window->trying_thumbs--;
 		if (filer_window->trying_thumbs == 0)
 		{
-			if (GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+			if (gtk_widget_get_visible(filer_window->thumb_bar))
 			{
 				filer_window->update = TRUE;
 				view_style_changed(filer_window->view, VIEW_UPDATE_VIEWDATA);
@@ -2973,7 +2973,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 	pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
 	g_free(path);
 
-	if (!GTK_WIDGET_VISIBLE(filer_window->thumb_bar))
+	if (!gtk_widget_get_visible(filer_window->thumb_bar))
 	{
 		gtk_widget_show_all(filer_window->thumb_bar);
 		filer_autosize(filer_window);
@@ -3520,7 +3520,7 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 
 			tip_item = item;
 			motion_window = event->window;
-			tooltip_prime((GtkFunction) tooltip_activate,
+			tooltip_prime((GSourceFunc) tooltip_activate,
 					G_OBJECT(filer_window->window));
 		}
 	}
@@ -4433,7 +4433,7 @@ static gboolean check_settings(FilerWindow *filer_window, gboolean onlycheck)
 		filer_window->reqx = set->x;
 		filer_window->reqy = set->y;
 
-		if (GTK_WIDGET_VISIBLE(filer_window->window) &&
+		if (gtk_widget_get_visible(filer_window->window) &&
 			o_filer_auto_resize.int_value != RESIZE_ALWAYS &&
 			!(set->flags & SET_SIZE) &&
 			!force_resize)
