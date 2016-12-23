@@ -275,6 +275,7 @@ void diritem_free(DirItem *item)
 MaskedPixmap *_diritem_get_image(DirItem *item)
 {
 	MaskedPixmap *ret;
+
 	g_mutex_lock(&m_diritems);
 	if (!item->_image && item->base_type != TYPE_UNKNOWN)
 	{
@@ -286,9 +287,9 @@ MaskedPixmap *_diritem_get_image(DirItem *item)
 		else
 			item->_image = type_to_icon(item->mime_type);
 	}
+	g_mutex_unlock(&m_diritems);
 
 	ret = item->_image;
-	g_mutex_unlock(&m_diritems);
 
 	return ret;
 }
@@ -299,14 +300,24 @@ MaskedPixmap *_diritem_get_image(DirItem *item)
  */
 gboolean diritem_examine_dir(const guchar *path, DirItem *item)
 {
+	guchar *rpath = pathdup(path); //realpath
+
+	int pathlen = strlen(rpath);
+	//pathbuf has length of path + '/AppIcon.xpm'
+	gchar *pathbuf = g_new(gchar, pathlen + 13);
+	gchar *inspt  = pathbuf + pathlen;
+
+	strcpy(pathbuf, rpath);
+	g_free(rpath);
 
 	struct stat info;
-	static GString *tmp = NULL;
-	uid_t uid = item->uid;
+	if (mc_lstat(pathbuf, &info) != 0)
+		goto out;
+
+	uid_t uid = info.st_uid;
+
 	MaskedPixmap *newimage = NULL;
 
-	if (!tmp)
-		tmp = g_string_new(NULL);
 
 	/* Finding the icon:
 	 *
@@ -319,28 +330,26 @@ gboolean diritem_examine_dir(const guchar *path, DirItem *item)
 	 * directory itself, to prevent abuse of /tmp, etc.
 	 * For symlinks, we want the symlink's owner.
 	 */
+	strcpy(inspt, "/.DirIcon");
 
-	g_string_printf(tmp, "%s/.DirIcon", path);
-
-	if (mc_lstat(tmp->str, &info) != 0 || info.st_uid != uid)
+	if (mc_lstat(pathbuf, &info) != 0 || info.st_uid != uid)
 		goto no_diricon;	/* Missing, or wrong owner */
 
-	if (S_ISLNK(info.st_mode) && mc_stat(tmp->str, &info) != 0)
+	if (S_ISLNK(info.st_mode) && mc_stat(pathbuf, &info) != 0)
 		goto no_diricon;	/* Bad symlink */
 
 	if (info.st_size > MAX_ICON_SIZE || !S_ISREG(info.st_mode))
 		goto no_diricon;	/* Too big, or non-regular file */
 
 	/* Try to load image; may still get NULL... */
-	newimage = g_fscache_lookup(pixmap_cache, tmp->str);
+	newimage = g_fscache_lookup(pixmap_cache, pathbuf);
 
 no_diricon:
 
 	/* Try to find AppRun... */
-	g_string_truncate(tmp, tmp->len - 8);
-	g_string_append(tmp, "AppRun");
+	strcpy(inspt + 1, /*"/"*/ "AppRun");
 
-	if (mc_lstat(tmp->str, &info) != 0 || info.st_uid != uid)
+	if (mc_lstat(pathbuf, &info) != 0 || info.st_uid != uid)
 		goto out;	/* Missing, or wrong owner */
 
 	if (!(info.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
@@ -355,23 +364,23 @@ no_diricon:
 	if (newimage)
 		goto out;	/* Already got an icon */
 
-	g_string_truncate(tmp, tmp->len - 3);
-	g_string_append(tmp, "Icon.xpm");
-
 	/* Note: since AppRun is valid we don't need to check AppIcon.xpm
 	 *	 so carefully.
 	 */
 
-	if (mc_stat(tmp->str, &info) != 0)
+	strcpy(inspt + 4, /*"/App"*/ "Icon.xpm");
+
+	if (mc_stat(pathbuf, &info) != 0)
 		goto out;	/* Missing, or broken symlink */
 
 	if (info.st_size > MAX_ICON_SIZE || !S_ISREG(info.st_mode))
 		goto out;	/* Too big, or non-regular file */
 
 	/* Try to load image; may still get NULL... */
-	newimage = g_fscache_lookup(pixmap_cache, tmp->str);
+	newimage = g_fscache_lookup(pixmap_cache, pathbuf);
 
 out:
+	g_free(pathbuf);
 
 	g_mutex_lock(&m_diritems);
 	item->flags &= ~ITEM_FLAG_DIR_NEED_EXAMINE;
