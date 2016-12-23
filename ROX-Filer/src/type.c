@@ -1349,52 +1349,6 @@ static void set_icon_theme(void)
 	gtk_icon_theme_rescan_if_needed(icon_theme);
 }
 
-static guchar *read_theme(Option *option)
-{
-	GtkOptionMenu *om = GTK_OPTION_MENU(option->widget);
-	GtkLabel *item;
-
-	item = GTK_LABEL(GTK_BIN(om)->child);
-
-	g_return_val_if_fail(item != NULL, g_strdup("ROX"));
-
-	return g_strdup(gtk_label_get_text(item));
-}
-
-static void update_theme(Option *option)
-{
-	GtkOptionMenu *om = GTK_OPTION_MENU(option->widget);
-	GtkWidget *menu;
-	GList *kids, *next;
-	int i = 0;
-
-	menu = gtk_option_menu_get_menu(om);
-
-	kids = gtk_container_get_children(GTK_CONTAINER(menu));
-	for (next = kids; next; next = next->next, i++)
-	{
-		GtkLabel *item = GTK_LABEL(GTK_BIN(next->data)->child);
-		const gchar *label;
-
-		/* The label actually moves from the menu!! */
-		if (!item)
-			item = GTK_LABEL(GTK_BIN(om)->child);
-
-		label = gtk_label_get_text(item);
-
-		g_return_if_fail(label != NULL);
-
-		if (strcmp(label, option->value) == 0)
-			break;
-	}
-	g_list_free(kids);
-
-	if (next)
-		gtk_option_menu_set_history(om, i);
-	else
-		g_warning("Theme '%s' not found", option->value);
-}
-
 static void add_themes_from_dir(GPtrArray *names, const char *dir)
 {
 	GPtrArray *list;
@@ -1426,7 +1380,6 @@ static void add_themes_from_dir(GPtrArray *names, const char *dir)
 
 static GList *build_icon_theme(Option *option, xmlNode *node, guchar *label)
 {
-	GtkWidget *button, *menu, *hbox;
 	GPtrArray *names;
 	gchar **theme_dirs = NULL;
 	gint n_dirs = 0;
@@ -1434,17 +1387,6 @@ static GList *build_icon_theme(Option *option, xmlNode *node, guchar *label)
 
 	g_return_val_if_fail(option != NULL, NULL);
 	g_return_val_if_fail(label != NULL, NULL);
-
-	hbox = gtk_hbox_new(FALSE, 4);
-
-	gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new(_(label)),
-				FALSE, TRUE, 0);
-
-	button = gtk_option_menu_new();
-	gtk_box_pack_start(GTK_BOX(hbox), button, TRUE, TRUE, 0);
-
-	menu = gtk_menu_new();
-	gtk_option_menu_set_menu(GTK_OPTION_MENU(button), menu);
 
 	gtk_icon_theme_get_search_path(icon_theme, &theme_dirs, &n_dirs);
 	names = g_ptr_array_new();
@@ -1454,29 +1396,7 @@ static GList *build_icon_theme(Option *option, xmlNode *node, guchar *label)
 
 	g_ptr_array_sort(names, strcmp2);
 
-	for (i = 0; i < names->len; i++)
-	{
-		GtkWidget *item;
-		char *name = names->pdata[i];
-
-		item = gtk_menu_item_new_with_label(name);
-		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
-		gtk_widget_show_all(item);
-
-		g_free(name);
-	}
-
-	g_ptr_array_free(names, TRUE);
-
-	option->update_widget = update_theme;
-	option->read_widget = read_theme;
-	option->widget = button;
-
-	gtk_signal_connect_object(GTK_OBJECT(button), "changed",
-			G_CALLBACK(option_check_widget),
-			(GtkObject *) option);
-
-	return g_list_append(NULL, hbox);
+	return options_build_menu(option, label, names, names);
 }
 
 GtkIconInfo *theme_lookup_icon(const gchar *icon_name, gint size,

@@ -1425,7 +1425,7 @@ static gboolean grab_focus(GtkWidget *minibuffer)
 {
 	GtkWidgetClass *class;
 
-	class = GTK_WIDGET_CLASS(gtk_type_class(GTK_TYPE_WIDGET));
+	class = GTK_WIDGET_CLASS(g_type_class_ref(GTK_TYPE_WIDGET));
 
 	class->grab_focus(minibuffer);
 

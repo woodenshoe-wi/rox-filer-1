@@ -38,6 +38,8 @@ void option_add_notify(OptionNotify *callback);
 void option_add_saver(OptionNotify *callback);
 GList *build_numentry_base(Option *option, xmlNode *node,
 				  guchar *label, GtkAdjustment *adj);
+GList *options_build_menu(
+		Option *option, guchar *label, GPtrArray *names, GPtrArray *values);
 
 GtkWidget *options_show(void);
 

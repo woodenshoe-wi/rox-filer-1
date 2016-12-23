@@ -53,7 +53,7 @@ void i18n_init(void)
 {
 	const char *lang;
 
-	gtk_set_locale();
+	setlocale(LC_ALL, "");
 
 #ifdef HAVE_LIBINTL_H
 	gchar *path = g_strdup_printf("%s/Messages", app_dir);
