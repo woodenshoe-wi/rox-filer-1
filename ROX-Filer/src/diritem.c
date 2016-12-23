@@ -310,14 +310,13 @@ gboolean diritem_examine_dir(const guchar *path, DirItem *item)
 	strcpy(pathbuf, rpath);
 	g_free(rpath);
 
+	MaskedPixmap *newimage = NULL;
+
 	struct stat info;
 	if (mc_lstat(pathbuf, &info) != 0)
 		goto out;
 
 	uid_t uid = info.st_uid;
-
-	MaskedPixmap *newimage = NULL;
-
 
 	/* Finding the icon:
 	 *
