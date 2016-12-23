@@ -1727,7 +1727,7 @@ static void button_patch_set_colour(GtkWidget *button, GdkColor *colour)
 	gtk_widget_set_style(patch, style);
 	g_object_unref(G_OBJECT(style));
 
-	if (GTK_WIDGET_REALIZED(patch))
+	if (gtk_widget_get_realized(patch))
 		gdk_window_clear(patch->window);
 }
 

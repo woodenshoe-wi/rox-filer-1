@@ -94,13 +94,11 @@ static SmProperty *new_property(SmClient *client,
 	return prop;
 }
 
-static gint close_connection(gpointer data)
+static SmClient *client_exit = NULL;
+static void close_connection()
 {
-	SmClient *client = (SmClient *)data;
-
-	SmcCloseConnection(client->conn, 0, NULL);
-
-	return 0;
+	if (client_exit)
+		SmcCloseConnection(client_exit->conn, 0, NULL);
 }
 
 /* Called when there's data to be read on the ICE file descriptor.
@@ -404,7 +402,8 @@ gboolean sc_connect(SmClient *client)
 	gdk_set_sm_client_id(client->id);
 	XFree(client_id_ret);
 
-	gtk_quit_add(0, &close_connection, client);
+	client_exit = client;
+	atexit(close_connection);
 
 	return TRUE;
 }

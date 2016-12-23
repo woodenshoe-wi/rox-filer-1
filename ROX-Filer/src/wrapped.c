@@ -173,7 +173,7 @@ static gint wrapped_label_expose(GtkWidget *widget, GdkEventExpose *event)
 
 	gtk_paint_layout(widget->style,
 			 widget->window,
-			 GTK_WIDGET_STATE(widget),
+			 gtk_widget_get_state(widget),
 			 FALSE,
 			 NULL,		/* DON'T clip! */
 			 widget,

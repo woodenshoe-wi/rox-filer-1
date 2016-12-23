@@ -118,15 +118,6 @@ static gboolean details_get_sort_column_id(GtkTreeSortable *sortable,
 static void details_set_sort_column_id(GtkTreeSortable     *sortable,
 				       gint                sort_column_id,
 				       GtkSortType         order);
-static void details_set_sort_func(GtkTreeSortable          *sortable,
-			          gint                    sort_column_id,
-			          GtkTreeIterCompareFunc  func,
-			          gpointer                data,
-			          GtkDestroyNotify        destroy);
-static void details_set_default_sort_func(GtkTreeSortable        *sortable,
-				          GtkTreeIterCompareFunc  func,
-				          gpointer                data,
-				          GtkDestroyNotify        destroy);
 static gboolean details_has_default_sort_func(GtkTreeSortable *sortable);
 static void view_details_sortable_init(GtkTreeSortableIface *iface);
 static void set_selected(ViewDetails *view_details, int i, gboolean selected);
@@ -517,8 +508,8 @@ static void view_details_sortable_init(GtkTreeSortableIface *iface)
 {
 	iface->get_sort_column_id = details_get_sort_column_id;
 	iface->set_sort_column_id = details_set_sort_column_id;
-	iface->set_sort_func = details_set_sort_func;
-	iface->set_default_sort_func = details_set_default_sort_func;
+	iface->set_sort_func = NULL;
+	iface->set_default_sort_func = NULL;
 	iface->has_default_sort_func = details_has_default_sort_func;
 }
 
@@ -590,23 +581,6 @@ static void details_set_sort_column_id(GtkTreeSortable     *sortable,
 		default:
 			g_assert_not_reached();
 	}
-}
-
-static void details_set_sort_func(GtkTreeSortable          *sortable,
-			          gint                    sort_column_id,
-			          GtkTreeIterCompareFunc  func,
-			          gpointer                data,
-			          GtkDestroyNotify        destroy)
-{
-	g_assert_not_reached();
-}
-
-static void details_set_default_sort_func(GtkTreeSortable        *sortable,
-				          GtkTreeIterCompareFunc  func,
-				          gpointer                data,
-				          GtkDestroyNotify        destroy)
-{
-	g_assert_not_reached();
 }
 
 static gboolean details_has_default_sort_func(GtkTreeSortable *sortable)
@@ -833,8 +807,7 @@ static gboolean view_details_expose(GtkWidget *widget, GdkEventExpose *event)
 
 	if (view_details->filer_window->selection_state == GTK_STATE_SELECTED)
 		gtk_widget_grab_focus(widget);
-	else
-		GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
+
 	GTK_WIDGET_CLASS(parent_class)->expose_event(widget, event);
 	if (had_cursor)
 		gtk_widget_grab_focus(widget);
@@ -1000,7 +973,7 @@ static void view_details_class_init(gpointer gclass, gpointer data)
 static gboolean block_focus(GtkWidget *button, GtkDirectionType dir,
 			    ViewDetails *view_details)
 {
-	GTK_WIDGET_UNSET_FLAGS(button, GTK_CAN_FOCUS);
+	gtk_widget_set_can_focus(button, FALSE);
 	return FALSE;
 }
 
@@ -1495,7 +1468,7 @@ static void view_details_clear(ViewIface *view)
 	g_ptr_array_set_size(items, 0);
 	gtk_tree_path_free(path);
 
-	if (GTK_WIDGET_REALIZED(view))
+	if (gtk_widget_get_realized(GTK_WIDGET(view)))
 		gtk_tree_view_scroll_to_point(GTK_TREE_VIEW(view), 0, 0);
 }
 

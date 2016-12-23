@@ -975,7 +975,7 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 			   icon_widget,
 			   NULL, NULL,	/* CB, userdata */
 			   GTK_TOOLBAR(bar)->num_children);
-	GTK_WIDGET_UNSET_FLAGS(button, GTK_CAN_FOCUS);
+	gtk_widget_set_can_focus(button, FALSE);
 
 	g_object_set_data(G_OBJECT(button), "rox-tool", tool);
 
