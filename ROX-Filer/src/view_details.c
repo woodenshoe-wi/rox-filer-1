@@ -801,16 +801,8 @@ static gboolean view_details_expose(GtkWidget *widget, GdkEventExpose *event)
 	GtkTreePath *path = NULL;
 	GdkRectangle focus_rectangle;
 	ViewDetails *view_details = (ViewDetails *) widget;
-	gboolean    had_cursor;
-
-	had_cursor = gtk_widget_has_focus(widget);
-
-	if (view_details->filer_window->selection_state == GTK_STATE_SELECTED)
-		gtk_widget_grab_focus(widget);
 
 	GTK_WIDGET_CLASS(parent_class)->expose_event(widget, event);
-	if (had_cursor)
-		gtk_widget_grab_focus(widget);
 
 	if (event->window != gtk_tree_view_get_bin_window(tree))
 		return FALSE;	/* Not the main area */
