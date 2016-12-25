@@ -294,6 +294,8 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean not
 	Settings *set = (Settings *) g_hash_table_lookup(
 			settings_table, filer_window->sym_path);
 	GtkWidget *window = filer_window->window;
+	GdkWindow *gdk_window = window->window;
+	if (!gdk_window) return;
 	GtkRequisition *req = &window->requisition;
 	gint dx = 0, dy = 0, px = 0, py = 0;
 
@@ -324,7 +326,6 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean not
 
 	if (o_auto_move.int_value || filer_window->reqx >= 0)
 	{
-		GdkWindow *gdk_window = window->window;
 		gint x, y, m, currentw, currenth, bcw, bch, lx, ly, mxend, myend;
 		GdkRectangle frect = {0, 0, 0, 0};
 
@@ -429,10 +430,8 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean not
 		{
 			int nx, ny;
 
-			GdkWindow *win = filer_window->window->window;
-
 			if (dx == 0 && dy == 0)
-				gdk_window_get_pointer(filer_window->window->window,
+				gdk_window_get_pointer(gdk_window,
 						&px, &py, NULL);
 
 			if (filer_window->scrollbar)
@@ -443,9 +442,10 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean not
 
 			if (nx != px || ny != py)
 			{
-				XWarpPointer(gdk_x11_drawable_get_xdisplay(win),
+				XWarpPointer(
+						gdk_x11_drawable_get_xdisplay(gdk_window),
 						None,
-						gdk_x11_drawable_get_xid(win),
+						gdk_x11_drawable_get_xid(gdk_window),
 						0, 0, 0, 0,
 						nx + dx, ny + dy);
 			}
