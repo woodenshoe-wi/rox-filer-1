@@ -776,9 +776,13 @@ static gint bar_scrolled(
 //	if (fw->right_link && event->state & GDK_MOD1_MASK)
 //		filer_dir_link_next(fw->right_link, event->direction, FALSE);
 //
-	if (fw->right_link && event->state & GDK_SHIFT_MASK)
+	if (fw->right_link && (
+				event->state & GDK_SHIFT_MASK ||
+				event->state & GDK_BUTTON1_MASK))
 		filer_send_event_to_view(fw->right_link, (GdkEvent *) event);
-	else if (event->state & GDK_CONTROL_MASK)
+	else if (
+			event->state & GDK_CONTROL_MASK ||
+			event->state & GDK_BUTTON3_MASK)
 		filer_send_event_to_view(fw, (GdkEvent *) event);
 	else
 		filer_dir_link_next(fw, event->direction, FALSE);
