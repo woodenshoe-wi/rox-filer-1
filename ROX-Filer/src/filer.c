@@ -4352,7 +4352,7 @@ static gboolean check_settings(FilerWindow *filer_window, gboolean onlycheck)
 	set = (Settings *) g_hash_table_lookup(settings_table,
 			filer_window->sym_path);
 
-	status = set ? "▼" : "▽";
+	status = set ? _("▼") : _("▽");
 
 	current = filer_window->sym_path;
 	while (!set && !(current[0] == '/' && current[1] == '\0'))
@@ -4363,7 +4363,7 @@ static gboolean check_settings(FilerWindow *filer_window, gboolean onlycheck)
 				make_path(current , "*"));
 
 		if (set)
-			status = moved ? "▷" : "▶";
+			status = moved ? _("▷") : _("▶");
 
 		g_free(moved);
 		moved = current;
