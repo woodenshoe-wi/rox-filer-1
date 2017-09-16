@@ -1504,11 +1504,7 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 
 	if (filer_window->under_init) return;
 
-	if (flags & VIEW_UPDATE_NAME ||
-			col->reached_scale != filer_window->icon_scale)
-		col->reached_scale = .0;
-
-	gboolean dont_set_size = col->reached_scale != .0;
+	col->reached_scale = .0;
 
 	if (n == 0 && filer_window->display_style != SMALL_ICONS)
 		height = ICON_HEIGHT;
@@ -1541,8 +1537,7 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 					col->number_of_items);
 	}
 
-	if (!dont_set_size)
-		collection_set_item_size(col, width, height);
+	collection_set_item_size(col, width, height);
 
 	reset_thumb_func(view_collection);
 
