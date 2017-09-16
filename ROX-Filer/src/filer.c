@@ -201,7 +201,7 @@ Option o_filer_width_limit;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 static Option o_disable_pointer_warp;
-static Option o_create_sub_dir_thumbs;
+Option o_create_sub_dir_thumbs;
 static Option o_thumb_processes_num;
 Option o_window_link;
 
