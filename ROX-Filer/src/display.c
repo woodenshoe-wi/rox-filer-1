@@ -628,13 +628,13 @@ void display_set_layout(FilerWindow *fw,
 
 	if (fw->toolbar_size_text)
 	{
-		gchar *size_label = g_strdup_printf("%s%s", N_("Size"),
-			want == LARGE_ICONS ? "┤" :
-			want == SMALL_ICONS ? "┐" :
-			want == HUGE_ICONS  ? "┘" :
+		gchar *size_label = g_strdup_printf("%s%s", _("Size"),
+			want == LARGE_ICONS ? _("┤") :
+			want == SMALL_ICONS ? _("┐") :
+			want == HUGE_ICONS  ? _("┘") :
 			want == AUTO_SIZE_ICONS ?
-				fw->display_style == LARGE_ICONS ? "├" : "┌"
-			: "┼");
+				fw->display_style == LARGE_ICONS ? _("├") : _("┌")
+			: _("┼"));
 		gtk_label_set_text(fw->toolbar_size_text, size_label);
 
 		g_free(size_label);
