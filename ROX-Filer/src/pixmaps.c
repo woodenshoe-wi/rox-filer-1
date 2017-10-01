@@ -341,9 +341,6 @@ GdkPixbuf *pixmap_load_thumb(const gchar *path)
 		char *thumb_path = pixmap_make_thumb_path(path);
 		ret = gdk_pixbuf_new_from_file(thumb_path, NULL);
 
-		// workaround for #158
-		if (!GDK_IS_PIXBUF(ret)) ret = NULL;
-
 		if (ret && o_purge_time.int_value > 0)
 			g_fscache_insert(thumb_cache, path, ret, TRUE);
 
