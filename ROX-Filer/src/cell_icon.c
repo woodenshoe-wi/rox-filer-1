@@ -330,13 +330,13 @@ static void cell_icon_render(GtkCellRenderer    *cell,
 
 	g_return_if_fail(view_item != NULL);
 
+	size = get_style(cell);
 	MaskedPixmap *image = view_item->image;
 	GdkPixbuf *sendi = view_item->thumb;
 
 	if (!image && !sendi)
 		return;
 
-	size = get_style(cell);
 	color = &widget->style->base[fw->selection_state];
 
 	/* Draw the icon */
