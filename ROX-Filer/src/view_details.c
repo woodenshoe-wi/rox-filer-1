@@ -1648,6 +1648,7 @@ static void redraw_wink_area(ViewDetails *view_details)
 	{
 		GdkWindow *window;
 		window = gtk_tree_view_get_bin_window(tree);
+		if (!window) return;
 
 		wink_area.width = GTK_WIDGET(tree)->allocation.width;
 		gdk_window_invalidate_rect(window, &wink_area, FALSE);
