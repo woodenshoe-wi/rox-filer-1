@@ -204,6 +204,7 @@ static Option o_disable_pointer_warp;
 Option o_create_sub_dir_thumbs;
 static Option o_thumb_processes_num;
 Option o_window_link;
+Option o_scroll_speed;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 
@@ -221,6 +222,7 @@ void filer_init(void)
 	option_add_int(&o_short_flag_names, "filer_short_flag_names", TRUE);
 	option_add_int(&o_filer_view_type, "filer_view_type", VIEW_TYPE_COLLECTION);
 	option_add_int(&o_window_link, "window_link", 1);
+	option_add_int(&o_scroll_speed, "scroll_speed", 6);
 
 	option_add_int(&o_right_gap, "right_gap", 0);
 	option_add_int(&o_bottom_gap, "bottom_gap", 0);

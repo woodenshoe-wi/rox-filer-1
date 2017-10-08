@@ -32,6 +32,7 @@
 
 #include "collection.h"
 #include "filer.h"
+#include "options.h"
 
 #define MIN_WIDTH 80
 #define MIN_HEIGHT 60
@@ -820,7 +821,8 @@ static gboolean scroll_idle(gpointer data) {
 		int	old_value = collection->vadj->value;
 		int	new_value = 0;
 		gboolean box = collection->lasso_box;
-		int	step = collection->vadj->page_increment / 6;
+
+		int	step = collection->vadj->page_increment / o_scroll_speed.int_value;
 
 		new_value = CLAMP(old_value + diff * step, 0.0,
 				collection->vadj->upper
