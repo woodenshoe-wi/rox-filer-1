@@ -83,7 +83,7 @@ struct _GUIside
 	int 		input_tag;	/* gdk_input_add() */
 	pid_t		child;		/* Process ID */
 	int		errors;		/* Number of errors so far */
-	gboolean	show_info;	/* For Disk Usage */
+	gboolean	show_info;	/* For Disk Usage and warning/notice messages */
 
 	guchar		**default_string; /* Changed when the entry changes */
 	void		(*entry_string_func)(GtkWidget *widget,
@@ -426,6 +426,8 @@ static void message_from_child(gpointer 	  data,
 	close(gui_side->from_child);
 	g_source_remove(gui_side->input_tag);
 	abox_cancel_ask(gui_side->abox);
+	gtk_widget_hide(gui_side->abox->btn_cancel);
+	gtk_widget_show(gui_side->abox->btn_close);
 
 	if (gui_side->errors)
 	{
