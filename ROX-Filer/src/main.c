@@ -533,13 +533,7 @@ int main(int argc, char **argv)
 	 */
 	i = optind;
 	while (i < argc)
-	{
-		tmp = pathdup(argv[i++]);
-
-		soap_add(body, "Run", "Filename", tmp, NULL, NULL);
-
-		g_free(tmp);
-	}
+		soap_add(body, "Run", "Filename", argv[i++], NULL, NULL);
 
 	if (soap_rpc)
 	{
