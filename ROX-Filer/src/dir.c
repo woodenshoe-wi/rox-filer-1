@@ -232,7 +232,7 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 		callback(dir, DIR_ADD, items, data);
 	g_ptr_array_free(items, TRUE);
 
-	if (dir->needs_update && !dir->scanning)
+	if ((dir->needs_update || dir->error) && !dir->scanning)
 		dir_scan(dir);
 	else
 		callback(dir, DIR_QUEUE_INTERESTING, NULL, data);

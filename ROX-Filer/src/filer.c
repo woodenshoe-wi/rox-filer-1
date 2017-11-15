@@ -662,6 +662,7 @@ static void update_display(Directory *dir,
 			break;
 		case DIR_ERROR_CHANGED:
 			filer_set_title(filer_window);
+			gtk_widget_queue_draw(GTK_WIDGET(view));
 			break;
 		case DIR_QUEUE_INTERESTING:
 			queue_interesting(filer_window);
