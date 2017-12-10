@@ -398,6 +398,8 @@ void position_menu(GtkMenu *menu, gint *x, gint *y,
 	*y = pos[1] - y_shift;
 
 	*x = CLAMP(*x, 0, screen_width - requisition.width);
+	if (o_menu_quick.int_value)
+		*y = CLAMP(*y, 0, screen_height - requisition.height);
 
 	if (*y > screen_height - requisition.height)
 		*y -= h / 2 - 1;
