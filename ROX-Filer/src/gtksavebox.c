@@ -355,7 +355,13 @@ gtk_savebox_set_pathname (GtkSavebox *savebox, const gchar *pathname)
 
   leaf = slash ? g_utf8_pointer_to_offset(pathname, slash) + 1 : 0;
   dot = strchr(pathname + leaf, '.');
-
+  if (dot)
+  {
+    if (pathname + leaf == dot) //hidden file
+      dot = NULL, leaf++;
+    else
+      dot = strrchr(pathname + leaf, '.');
+  }
   gtk_editable_select_region (GTK_EDITABLE (savebox->entry), leaf,
 			      dot ? g_utf8_pointer_to_offset (pathname, dot)
 			      	  : -1);
