@@ -738,8 +738,8 @@ static void make_dir_thumb(const gchar *path)
 	if (o_create_sub_dir_thumbs.int_value != 1) return;
 
 	gchar *dir = g_path_get_dirname(path);
-
-	GdkPixbuf *image = pixmap_try_thumb(dir, TRUE);
+	gchar *dir_thumb_path = pixmap_make_thumb_path(dir);
+	GdkPixbuf *image = gdk_pixbuf_new_from_file(dir_thumb_path, NULL);
 	if (image)
 	{
 		g_object_unref(image);
