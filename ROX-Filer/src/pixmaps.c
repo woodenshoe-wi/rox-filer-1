@@ -338,13 +338,9 @@ GdkPixbuf *pixmap_load_thumb(const gchar *path)
 				path, FSCACHE_LOOKUP_ONLY_NEW, &found);
 
 	if (!found) {
-		char *thumb_path = pixmap_make_thumb_path(path);
-		ret = gdk_pixbuf_new_from_file(thumb_path, NULL);
-
+		ret = get_thumbnail_for(path);
 		if (ret && o_purge_time.int_value > 0)
 			g_fscache_insert(thumb_cache, path, ret, TRUE);
-
-		g_free(thumb_path);
 	}
 	return ret;
 }
@@ -863,8 +859,7 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 			)
 			goto err;
 
-		if (!S_ISLNK(thumbinfo.st_mode) &&
-				info.st_ctime > thumbinfo.st_ctime)
+		if (info.st_ctime > thumbinfo.st_ctime)
 			goto err;
 	}
 
