@@ -3,7 +3,7 @@
 # Contributor: Jochem Kossen <j.kossen@home.nl>
 
 pkgname=rox-filer-hugeicons
-pkgver=2.11.h.3231.e8e129fb
+pkgver=2.11.h
 pkgrel=1
 branch=stable
 pkgdesc="A fork of rox-filer having 64 - 512px icons"
