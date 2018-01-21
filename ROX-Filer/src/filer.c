@@ -2010,6 +2010,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 			o_filer_auto_resize.int_value != RESIZE_ALWAYS);
 
 	gtk_widget_show(filer_window->window);
+	gtk_window_present(GTK_WINDOW(filer_window->window));
 
 	return filer_window;
 }
