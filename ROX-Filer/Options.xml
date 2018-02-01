@@ -90,7 +90,7 @@ indicator'>If this is on then files which have one or more extended attributes s
 		<numentry name='display_large_width' label='Large Icons (Max width):' unit='pixels' min='0' max='2000' width='4'>
 			Text wider than this is broken onto two lines in Large Icons mode.</numentry>
 	  <spacer/>
-			<numentry name='display_max_length' label='(Wrapped, Details):' unit='pixels' min='0' max='2000' width='4'>Maximum length for Large Icons mode and Details.</numentry>
+			<numentry name='display_max_length' label='(Wrapped, Details):' unit='pixels' min='0' max='2000' width='4'>Maximum length for Large Icons mode and Details. This can be changed temporarily by right dragging of the toolbar.</numentry>
         </hbox>
 		<toggle name='wrap_by_char' label='Wrap by characters'>
 			If this option is on, file names will wrap by characters instead of words.
