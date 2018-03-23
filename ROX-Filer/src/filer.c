@@ -187,6 +187,7 @@ static GdkCursor *busy_cursor = NULL;
 static GdkCursor *crosshair = NULL;
 static GdkCursor *hand_cursor = NULL;
 static GdkCursor *blank_cursor = NULL;
+static GdkCursor *fleur_cursor = NULL;
 
 /* Indicates whether the filer's display is different to the machine it
  * is actually running on.
@@ -238,6 +239,7 @@ void filer_init(void)
 	crosshair = gdk_cursor_new(GDK_CROSSHAIR);
 	hand_cursor = gdk_cursor_new(GDK_HAND2);
 	blank_cursor = gdk_cursor_new(GDK_BLANK_CURSOR);
+	fleur_cursor = gdk_cursor_new(GDK_FLEUR);
 
 
 	window_with_id = g_hash_table_new_full(g_str_hash, g_str_equal,
@@ -490,6 +492,7 @@ static gboolean _set_pointer(void *vp)
 	ViewIter iter;
 	gint x, y;
 	DirItem *item = NULL;
+	GdkCursor *nocur = NULL;
 
 	fw->pointer_idle = 0;
 	if (!g_list_find(all_filer_windows, fw)) return FALSE;//destroyed
@@ -502,10 +505,11 @@ static gboolean _set_pointer(void *vp)
 
 		view_get_iter_at_point(fw->view, &iter, gwin, x, y);
 		item = iter.peek(&iter);
+		nocur = item || view_count_items(fw->view) ? NULL : fleur_cursor;
 	}
 
 	gdk_window_set_cursor(fw->window->window,
-			item ? hand_cursor : NULL);
+			item ? hand_cursor : nocur);
 
 	return FALSE;
 }
@@ -3530,7 +3534,10 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	}
 	else
 	{
-		gdk_window_set_cursor(filer_window->window->window, NULL);
+		if (view_count_items(filer_window->view))
+			gdk_window_set_cursor(filer_window->window->window, NULL);
+		else
+			gdk_window_set_cursor(filer_window->window->window, fleur_cursor);
 
 		tooltip_show(NULL);
 		tip_item = NULL;
