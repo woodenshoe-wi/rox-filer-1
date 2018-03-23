@@ -505,7 +505,8 @@ static gboolean _set_pointer(void *vp)
 
 		view_get_iter_at_point(fw->view, &iter, gwin, x, y);
 		item = iter.peek(&iter);
-		nocur = item || view_count_items(fw->view) ? NULL : fleur_cursor;
+		nocur = item || (fw->view_type != VIEW_TYPE_COLLECTION ||
+			view_count_items(fw->view)) ? NULL : fleur_cursor;
 	}
 
 	gdk_window_set_cursor(fw->window->window,
@@ -3534,7 +3535,8 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	}
 	else
 	{
-		if (view_count_items(filer_window->view))
+		if (filer_window->view_type != VIEW_TYPE_COLLECTION ||
+				view_count_items(filer_window->view))
 			gdk_window_set_cursor(filer_window->window->window, NULL);
 		else
 			gdk_window_set_cursor(filer_window->window->window, fleur_cursor);
