@@ -59,6 +59,7 @@
 /* Options bits */
 static Option o_display_caps_first;
 Option o_display_dirs_first;
+static Option o_display_newly_first;
 Option o_display_size;
 Option o_display_details;
 Option o_display_sort_by;
@@ -95,6 +96,7 @@ void display_init()
 {
 	option_add_int(&o_display_caps_first, "display_caps_first", FALSE);
 	option_add_int(&o_display_dirs_first, "display_dirs_first", FALSE);
+	option_add_int(&o_display_newly_first, "display_newly_first", FALSE);
 
 	option_add_int(&o_display_inherit_options,
 		       "display_inherit_options", FALSE);
@@ -532,8 +534,15 @@ int sort_by_group(const void *item1, const void *item2)
 
 int sort_by_datea(const void *item1, const void *item2)
 {
-	const DirItem *i1 = (DirItem *) item1;
-	const DirItem *i2 = (DirItem *) item2;
+	const DirItem *i1, *i2;
+	if (o_display_newly_first.int_value)
+	{
+		i1 = item2;
+		i2 = item1;
+	} else {
+		i1 = item1;
+		i2 = item2;
+	}
 
 	/* SORT_DIRS; -- too confusing! */
 
@@ -544,11 +553,15 @@ int sort_by_datea(const void *item1, const void *item2)
 
 int sort_by_datec(const void *item1, const void *item2)
 {
-	const DirItem *i1 = (DirItem *) item1;
-	const DirItem *i2 = (DirItem *) item2;
-
-	/* SORT_DIRS; -- too confusing! */
-
+	const DirItem *i1, *i2;
+	if (o_display_newly_first.int_value)
+	{
+		i1 = item2;
+		i2 = item1;
+	} else {
+		i1 = item1;
+		i2 = item2;
+	}
 	return i1->ctime < i2->ctime ? -1 :
 		i1->ctime > i2->ctime ? 1 :
 		sort_by_name(item1, item2);
@@ -556,11 +569,15 @@ int sort_by_datec(const void *item1, const void *item2)
 
 int sort_by_datem(const void *item1, const void *item2)
 {
-	const DirItem *i1 = (DirItem *) item1;
-	const DirItem *i2 = (DirItem *) item2;
-
-	/* SORT_DIRS; -- too confusing! */
-
+	const DirItem *i1, *i2;
+	if (o_display_newly_first.int_value)
+	{
+		i1 = item2;
+		i2 = item1;
+	} else {
+		i1 = item1;
+		i2 = item2;
+	}
 	return i1->mtime < i2->mtime ? -1 :
 		i1->mtime > i2->mtime ? 1 :
 		sort_by_name(item1, item2);
@@ -826,6 +843,7 @@ static void options_changed(void)
 		o_display_show_thumbs.has_changed ||
 		o_display_dirs_first.has_changed ||
 		o_display_caps_first.has_changed ||
+		o_display_newly_first.has_changed ||
 		o_display_show_full_type.has_changed ||
 		o_vertical_order_small.has_changed ||
 		o_vertical_order_large.has_changed ||
@@ -845,7 +863,8 @@ static void options_changed(void)
 			filer_set_title(filer_window);
 
 		if (o_display_dirs_first.has_changed ||
-		    o_display_caps_first.has_changed)
+		    o_display_caps_first.has_changed ||
+		    o_display_newly_first.has_changed)
 			view_sort(VIEW(filer_window->view));
 
 		if (flags || changed)

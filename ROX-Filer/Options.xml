@@ -35,6 +35,7 @@
     <frame label='Sorting'>
       <toggle name='display_dirs_first' label='Directories come first (for sort by name)'>If this is on then directories will always appear before anything else when sorting by name.</toggle>
       <toggle name='display_caps_first' label='Capitalised names first (for sort by name)'>If on, all filenames starting with a capital letter come before filenames starting with lowercase ones.</toggle>
+      <toggle name='display_newly_first' label='Newly comes first (for sort by Date)'>If on, the Sort by Dates are reversed.</toggle>
     </frame>
     <section title='Display'>
       <frame label='Default settings for new windows'>
