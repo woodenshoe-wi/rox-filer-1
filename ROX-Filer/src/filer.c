@@ -2904,7 +2904,6 @@ static gboolean filer_next_thumb_real(GObject *window)
 {
 	FilerWindow *filer_window;
 	gchar	*path;
-	int	done, total;
 
 	filer_window = g_object_get_data(window, "filer_window");
 
@@ -2938,11 +2937,8 @@ static gboolean filer_next_thumb_real(GObject *window)
 		filer_window->trying_thumbs--;
 		if (filer_window->trying_thumbs == 0)
 		{
-			if (gtk_widget_get_visible(filer_window->thumb_bar))
-			{
-				filer_window->update = TRUE;
+			if (filer_window->update)
 				view_style_changed(filer_window->view, VIEW_UPDATE_VIEWDATA);
-			}
 
 			filer_cancel_thumbnails(filer_window);
 		}
@@ -2982,12 +2978,14 @@ static gboolean filer_next_thumb_real(GObject *window)
 	pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
 	g_free(path);
 
+	filer_window->update = TRUE;
 	if (!gtk_widget_get_visible(filer_window->thumb_bar))
 	{
 		gtk_widget_show_all(filer_window->thumb_bar);
 		filer_autosize(filer_window);
 	}
 
+	int done, total;
 	total = filer_window->max_thumbs;
 	done = total - g_queue_get_length(filer_window->thumb_queue);
 
