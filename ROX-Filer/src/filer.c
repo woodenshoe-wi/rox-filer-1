@@ -2819,7 +2819,7 @@ static gboolean make_dir_thumb_link()
 
 	int i = sdinfo.tried;
 	sdinfo.tried += 3;
-	int end = MIN(sdinfo.items->len, 999);
+	int end = MIN(sdinfo.items->len, 9);
 	int loopend = end * 2;
 	int currentend = MIN(sdinfo.tried, loopend);
 
