@@ -153,6 +153,8 @@ static void invert_selection(gpointer data, guint action, GtkWidget *widget);
 static void new_directory(gpointer data, guint action, GtkWidget *widget);
 static void new_file(gpointer data, guint action, GtkWidget *widget);
 static void customise_new(gpointer data);
+static GList *add_sendto_shared(GtkWidget *menu,
+		const gchar *type, const gchar *subtype, CallbackFn swapped_func);
 static void customise_directory_menu(gpointer data);
 static void xterm_here(gpointer data, guint action, GtkWidget *widget);
 
@@ -840,8 +842,6 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 	/* Short-cut to the Send To menu */
 	if (state & GDK_SHIFT_MASK)
 	{
-		GList *paths;
-
 		updating_menu--;
 
 		if (n_selected == 0)
@@ -850,10 +850,8 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 			return;
 		}
 
-		paths = filer_selected_items(filer_window);
-
-		show_send_to_menu(paths, event); /* (paths eaten) */
-
+		/* (paths eaten) */
+		show_send_to_menu(filer_selected_items(filer_window), event);
 		return;
 	}
 
@@ -932,10 +930,13 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 
 		menu_show_shift_action(file_shift_item, file_item,
 					n_selected == 0);
-		if (file_item)
-			n_added = appmenu_add(make_path(filer_window->sym_path,
-							file_item->leafname),
-						file_item, filer_file_menu);
+
+		if (n_selected)
+			n_added = file_item ?
+				appmenu_add(NULL, make_path(filer_window->sym_path, file_item->leafname),
+							file_item, filer_file_menu)
+				:
+				appmenu_add(filer_selected_items(filer_window), NULL, NULL, filer_file_menu);
 	}
 
 	update_new_files_menu();
@@ -1818,16 +1819,7 @@ static void customise_new(gpointer data)
 /* Add everything in the directory <Choices>/SendTo/[.type[_subtype]]
  * to the menu.
  */
-static void add_sendto(GtkWidget *menu, const gchar *type, const gchar *subtype)
-{
-		GList *widgets = NULL;
-		widgets = add_sendto_shared(menu, type, subtype, (CallbackFn) do_send_to);
-		if (widgets)
-			gtk_menu_shell_append(GTK_MENU_SHELL(menu),
-					gtk_menu_item_new());
-		g_list_free(widgets);	/* TODO: Get rid of this */
-}
-GList *add_sendto_shared(GtkWidget *menu,
+static GList *add_sendto_shared(GtkWidget *menu,
 		const gchar *type, const gchar *subtype, CallbackFn swapped_func)
 {
 	gchar *searchdir;
@@ -1858,17 +1850,18 @@ GList *add_sendto_shared(GtkWidget *menu,
 	choices_free_list(paths);
 	return widgets;
 }
-
-/* Scan the SendTo dir and create and show the Send To menu.
- * The 'paths' list and every path in it is claimed, and will be
- * freed later -- don't free it yourself!
- */
-static void show_send_to_menu(GList *paths, GdkEvent *event)
+static void add_sendto(GList **list, const gchar *type, const gchar *subtype)
 {
-	GtkWidget	*menu, *item;
-
-	menu = gtk_menu_new();
-
+	GList *new = add_sendto_shared(NULL, type, subtype, (CallbackFn) do_send_to);
+	if (!new) return;
+	if (*list)
+		new = g_list_prepend(new, gtk_menu_item_new());
+	*list = g_list_concat(*list, new);
+}
+//don't free paths
+GList *menu_sendto_for_type(GList *paths)
+{
+	GList *ret = NULL;
 	if (g_list_length(paths) == 1)
 	{
 		DirItem	*item;
@@ -1876,11 +1869,11 @@ static void show_send_to_menu(GList *paths, GdkEvent *event)
 		item = diritem_new("");
 		diritem_restat(paths->data, item, NULL, TRUE);
 
-		add_sendto(menu,
+		add_sendto(&ret,
 			   item->mime_type->media_type,
 			   item->mime_type->subtype);
 
-		add_sendto(menu, item->mime_type->media_type, NULL);
+		add_sendto(&ret, item->mime_type->media_type, NULL);
 
 		diritem_free(item);
 	}
@@ -1916,27 +1909,42 @@ static void show_send_to_menu(GList *paths, GdkEvent *event)
 		if(type)
 		{
 			if(same)
-				add_sendto(menu, type->media_type,
-					   type->subtype);
+				add_sendto(&ret, type->media_type, type->subtype);
 			if(same_media)
-				add_sendto(menu, type->media_type, NULL);
+				add_sendto(&ret, type->media_type, NULL);
 		}
 
-		add_sendto(menu, "group", NULL);
+		add_sendto(&ret, "group", NULL);
 	}
 
-	add_sendto(menu, NULL, NULL);
-	add_sendto(menu, "all", NULL);
+	add_sendto(&ret, "all", NULL);
+
+	if (send_to_paths) destroy_glist(&send_to_paths);
+	send_to_paths = paths;
+
+	return ret;
+}
+
+/* Scan the SendTo dir and create and show the Send To menu.
+ * The 'paths' list and every path in it is claimed, and will be
+ * freed later -- don't free it yourself!
+ */
+static void show_send_to_menu(GList *paths, GdkEvent *event)
+{
+	GtkWidget	*menu, *item;
+
+	menu = gtk_menu_new();
+
+	GList *list = menu_sendto_for_type(paths);
+	add_sendto(&list, NULL, NULL);
+
+	for (; list; list = g_list_delete_link(list, list))
+		gtk_menu_shell_append(GTK_MENU_SHELL(menu), list->data);
 
 	item = gtk_menu_item_new_with_label(_("Customise..."));
 	g_signal_connect_swapped(item, "activate",
 				G_CALLBACK(customise_send_to), NULL);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
-
-	if (send_to_paths)
-		destroy_glist(&send_to_paths);
-
-	send_to_paths = paths;
 
 	g_signal_connect(menu, "selection-done", G_CALLBACK(menu_closed), NULL);
 
@@ -1972,15 +1980,9 @@ static void show_dir_send_to_menu(GdkEvent *event)
 
 static void send_to(FilerWindow *filer_window)
 {
-	GList		*paths;
-	GdkEvent	*event;
-
-	paths = filer_selected_items(filer_window);
-	event = gtk_get_current_event();
-
+	GdkEvent *event = gtk_get_current_event();
 	/* Eats paths */
-	show_send_to_menu(paths, event);
-
+	show_send_to_menu(filer_selected_items(filer_window), event);
 	if (event)
 		gdk_event_free(event);
 }

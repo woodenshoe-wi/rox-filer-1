@@ -40,8 +40,7 @@ void show_filer_menu(FilerWindow *filer_window,
 		     GdkEvent *event,
 		     ViewIter *item);
 void menu_popdown(void);
-GList *add_sendto_shared(GtkWidget *menu,
-		const gchar *type, const gchar *subtype, CallbackFn func);
+GList *menu_sendto_for_type(GList *paths);
 
 /* Public menu handlers */
 void menu_rox_help(gpointer data, guint action, GtkWidget *widget);

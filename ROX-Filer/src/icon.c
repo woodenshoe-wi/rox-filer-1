@@ -302,7 +302,7 @@ void icon_prepare_menu(Icon *icon, GtkWidget *options_item, ...)
 		g_free(tmp);
 
 		/* Check for app-specific menu */
-		appmenu_add(icon->path, icon->item, icon_menu);
+		appmenu_add(NULL, icon->path, icon->item, icon_menu);
 	}
 	else
 	{

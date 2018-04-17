@@ -54,7 +54,8 @@
 static void apprun_menu(GtkWidget *item, gpointer data);
 static GtkWidget *create_menu_item(xmlNode *node);
 static void show_app_help(GtkWidget *item, gpointer data);
-static void build_app_menu(const char *app_dir, DirItem *app_item);
+static void build_menu_for_type(GList *paths, const gchar *app_dir, MIME_type *type);
+static gboolean build_app_menu(const char *app_dir, DirItem *app_item);
 static void mnt_eject(GtkWidget *item, gpointer data);
 
 /* There can only be one menu open at a time... we store: */
@@ -92,7 +93,7 @@ void appmenu_remove(void)
  * Returns number of entries added.
  * Call appmenu_remove() to undo the effect.
  */
-int appmenu_add(const gchar *app_dir, DirItem *app_item, GtkWidget *menu)
+int appmenu_add(GList *paths, const gchar *app_dir, DirItem *app_item, GtkWidget *menu)
 {
 	GList	*next;
 	GtkWidget *sep;
@@ -104,9 +105,10 @@ int appmenu_add(const gchar *app_dir, DirItem *app_item, GtkWidget *menu)
 	g_return_val_if_fail(current_menu == NULL, 0);
 	g_return_val_if_fail(current_items == NULL, 0);
 
-	build_app_menu(app_dir, app_item);
+	if (paths || !build_app_menu(app_dir, app_item))
+		build_menu_for_type(paths, app_dir, app_item ? app_item->mime_type : NULL);
 
-	if (app_item->flags & ITEM_FLAG_MOUNT_POINT)
+	if (app_item && app_item->flags & ITEM_FLAG_MOUNT_POINT)
 	{
 		GtkWidget *item;
 		item = gtk_menu_item_new_with_label(_("Eject"));
@@ -256,18 +258,6 @@ static GtkWidget *create_menu_item(xmlNode *node)
 	return item;
 }
 
-/* Send to current_app_path (though not actually an app) */
-static void send_to(const gchar *app)
-{
-	GList *file_list;
-
-	g_return_if_fail(current_app_path != NULL);
-
-	file_list = g_list_prepend(NULL, current_app_path);
-	run_with_files(app, file_list);
-	g_list_free(file_list);
-}
-
 /* Function called to execute an AppMenu item */
 static void apprun_menu(GtkWidget *item, gpointer data)
 {
@@ -322,28 +312,21 @@ static void customise_type(GtkWidget *item, MIME_type *type)
 			"type (%s/%s)."), type->media_type, type->subtype);
 }
 
-static void build_menu_for_type(MIME_type *type)
+static void build_menu_for_type(GList *paths, const gchar *app_dir, MIME_type *type)
 {
 	GtkWidget *item;
-	GList *widgets = NULL;
-
-	widgets = add_sendto_shared(NULL,
-				type->media_type, type->subtype, (CallbackFn) send_to);
-	widgets = g_list_concat(widgets,
-			add_sendto_shared(NULL,
-				type->media_type, NULL, (CallbackFn) send_to)
-		);
-	widgets = g_list_concat(widgets,
-			add_sendto_shared(NULL,
-				"all", NULL, (CallbackFn) send_to)
-		);
+	GList *widgets = menu_sendto_for_type( /* path eaten */
+			paths ?: g_list_append(NULL, g_strdup(app_dir)));
 
 	widgets = g_list_reverse(widgets);
 	current_items = g_list_concat(widgets, current_items);
 
+	if (!type) return;
+
 	item = gtk_menu_item_new_with_label(_("Customise Menu..."));
 	current_items = g_list_prepend(current_items, item);
 	g_signal_connect(item, "activate", G_CALLBACK(customise_type), type);
+
 	gtk_widget_show(item);
 }
 
@@ -354,7 +337,7 @@ static inline gboolean is_dir(const char *dir)
 }
 
 /* Adds to current_items */
-static void build_app_menu(const char *app_dir, DirItem *app_item)
+static gboolean build_app_menu(const char *app_dir, DirItem *app_item)
 {
 	XMLwrapper	*ai = NULL;
 	xmlNode	*node;
@@ -375,8 +358,7 @@ static void build_app_menu(const char *app_dir, DirItem *app_item)
 		else
 		{
 			/* Not an application AND no AppInfo */
-			build_menu_for_type(app_item->mime_type);
-			return;
+			return FALSE;
 		}
 	}
 
@@ -402,4 +384,6 @@ static void build_app_menu(const char *app_dir, DirItem *app_item)
 
 	if (ai)
 		g_object_unref(ai);
+
+	return TRUE;
 }
