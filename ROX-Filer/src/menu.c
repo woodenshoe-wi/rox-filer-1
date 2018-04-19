@@ -1862,7 +1862,6 @@ static void add_sendto(GList **list, const gchar *type, const gchar *subtype)
 
 MIME_type *menu_paths_type(GList *paths)
 {
-	if (!paths) return NULL;
 	MIME_type *type=NULL;
 	gboolean same=TRUE, same_media=TRUE;
 	DirItem *item = diritem_new("");
