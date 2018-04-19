@@ -40,6 +40,7 @@ void show_filer_menu(FilerWindow *filer_window,
 		     GdkEvent *event,
 		     ViewIter *item);
 void menu_popdown(void);
+MIME_type *menu_paths_type(GList *paths);
 GList *menu_sendto_for_type(GList *paths);
 
 /* Public menu handlers */

@@ -1858,10 +1858,53 @@ static void add_sendto(GList **list, const gchar *type, const gchar *subtype)
 		new = g_list_prepend(new, gtk_menu_item_new());
 	*list = g_list_concat(*list, new);
 }
+
+
+MIME_type *menu_paths_type(GList *paths)
+{
+	if (!paths) return NULL;
+	MIME_type *type=NULL;
+	gboolean same=TRUE, same_media=TRUE;
+	DirItem *item = diritem_new("");
+	for(GList *rover=paths; rover; rover=g_list_next(rover))
+	{
+		diritem_restat(rover->data, item, NULL, TRUE);
+		if(!type)
+			type=item->mime_type;
+		else
+		{
+			if(type!=item->mime_type)
+			{
+				same=FALSE;
+				if(strcmp(type->media_type,
+					  item->mime_type->media_type)!=0)
+				{
+					same_media=FALSE;
+					break;
+				}
+			}
+		}
+	}
+
+	static MIME_type ret;
+	ret.media_type = ret.subtype = NULL;
+	if(type)
+	{
+		if(same)
+			ret.subtype = item->mime_type->subtype;
+		if(same_media)
+			ret.media_type = item->mime_type->media_type;
+	}
+	diritem_free(item);
+	return &ret;
+}
+
 //don't free paths
 GList *menu_sendto_for_type(GList *paths)
 {
 	GList *ret = NULL;
+	if (!paths)
+		;
 	if (g_list_length(paths) == 1)
 	{
 		DirItem	*item;
@@ -1879,40 +1922,11 @@ GList *menu_sendto_for_type(GList *paths)
 	}
 	else
 	{
-		GList *rover;
-		gboolean same=TRUE, same_media=TRUE;
-		MIME_type *type=NULL;
-		DirItem	*item;
-
-		item = diritem_new("");
-		for(rover=paths; rover; rover=g_list_next(rover))
-		{
-			diritem_restat(rover->data, item, NULL, TRUE);
-			if(!type)
-				type=item->mime_type;
-			else
-			{
-				if(type!=item->mime_type)
-				{
-					same=FALSE;
-					if(strcmp(type->media_type,
-						  item->mime_type->media_type)!=0)
-					{
-						same_media=FALSE;
-						break;
-					}
-				}
-			}
-		}
-		diritem_free(item);
-
-		if(type)
-		{
-			if(same)
-				add_sendto(&ret, type->media_type, type->subtype);
-			if(same_media)
-				add_sendto(&ret, type->media_type, NULL);
-		}
+		MIME_type *type = menu_paths_type(paths);
+		if(type->subtype)
+			add_sendto(&ret, type->media_type, type->subtype);
+		if(type->media_type)
+			add_sendto(&ret, type->media_type, NULL);
 
 		add_sendto(&ret, "group", NULL);
 	}

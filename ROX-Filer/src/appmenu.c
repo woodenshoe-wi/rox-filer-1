@@ -299,7 +299,8 @@ static void customise_type(GtkWidget *item, MIME_type *type)
 	char *leaf;
 	char *path;
 
-	leaf = g_strconcat(".", type->media_type, "_", type->subtype, NULL);
+	leaf = g_strconcat(".", type->media_type ?: "all",
+			type->subtype ? "_" : NULL, type->subtype, NULL);
 	path = choices_find_xdg_path_save(leaf, "SendTo", SITE, TRUE);
 	g_free(leaf);
 
@@ -309,7 +310,7 @@ static void customise_type(GtkWidget *item, MIME_type *type)
 
 	info_message(_("Symlink any programs you want into this directory. "
 			"They will appear in the menu for all items of this "
-			"type (%s/%s)."), type->media_type, type->subtype);
+			"type (%s/%s)."), type->media_type ?: "*", type->subtype ?: "*");
 }
 
 static void build_menu_for_type(GList *paths, const gchar *app_dir, MIME_type *type)
@@ -321,6 +322,8 @@ static void build_menu_for_type(GList *paths, const gchar *app_dir, MIME_type *t
 	widgets = g_list_reverse(widgets);
 	current_items = g_list_concat(widgets, current_items);
 
+	if (!type && paths)
+		type = menu_paths_type(paths);
 	if (!type) return;
 
 	item = gtk_menu_item_new_with_label(_("Customise Menu..."));
