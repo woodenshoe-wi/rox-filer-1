@@ -2819,7 +2819,7 @@ static gboolean make_dir_thumb_link()
 
 	int i = sdinfo.tried;
 	sdinfo.tried += 3;
-	int end = MIN(sdinfo.items->len, 9);
+	int end = MIN(sdinfo.items->len, 99);
 	int loopend = end * 2;
 	int currentend = MIN(sdinfo.tried, loopend);
 
@@ -2848,7 +2848,16 @@ static gboolean make_dir_thumb_link()
 				g_object_unref(pixmap);
 
 			if (!found)
-				filer_create_thumb(sdinfo.fw, subpath);
+			{
+				gchar *sp = g_strdup(subpath);
+				if (pixmap_check_thumb(sp) == 0)
+				{
+					sdinfo.fw->max_thumbs++;
+					g_queue_push_tail(sdinfo.fw->thumb_queue, sp/*eaten*/);
+					goto done;
+				}
+				g_free(sp);
+			}
 
 			continue;
 		}
@@ -2866,15 +2875,14 @@ static gboolean make_dir_thumb_link()
 			g_object_unref(image);
 			g_free(rel_path);
 			g_free(sub_thumb_path);
-
-			free_subdir_info();
-			return FALSE;
+			goto done;
 		}
 	}
 
 	if (currentend < loopend)
 		return TRUE;
 
+done:
 	free_subdir_info();
 	return FALSE;
 }
