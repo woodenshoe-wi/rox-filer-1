@@ -88,6 +88,8 @@ static void toolbar_dirs_clicked(GtkWidget *widget,
 				   FilerWindow *filer_window);
 static void toolbar_select_clicked(GtkWidget *widget,
 				   FilerWindow *filer_window);
+static void toolbar_new_clicked(GtkWidget *widget,
+				   FilerWindow *filer_window);
 static void toolbar_sort_clicked(GtkWidget *widget,
 				   FilerWindow *filer_window);
 static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
@@ -177,6 +179,12 @@ static Tool all_tools[] = {
 	{N_("Select"), GTK_STOCK_SELECT_ALL, N_("Left: Select all\n"
 						"Right: Invert selection"),
 	 toolbar_select_clicked, DROP_NONE, FALSE,
+	 FALSE},
+
+	{N_("New"), GTK_STOCK_ADD, N_("Left: New Directory\n"
+								  "Middle: New Blank file\n"
+								  "Right: Menu"),
+	 toolbar_new_clicked, DROP_NONE, FALSE,
 	 FALSE},
 
 	{N_("○"), GTK_STOCK_SAVE, N_("Save Current Display Settings...\n"
@@ -839,6 +847,23 @@ static gint bar_scrolled(
 		filer_dir_link_next(fw, event->direction, FALSE);
 
 	return TRUE;
+}
+
+static void toolbar_new_clicked(GtkWidget *widget, FilerWindow *filer_window)
+{
+	GdkEvent	*event;
+
+	event = get_current_event(GDK_BUTTON_RELEASE);
+	if (event->type == GDK_BUTTON_RELEASE)
+	{
+		if (((GdkEventButton *) event)->button == 1)
+			show_new_directory(filer_window);
+		else if (((GdkEventButton *) event)->button == 2)
+			show_new_file(filer_window);
+		else
+			show_menu_new(filer_window);
+	}
+	gdk_event_free(event);
 }
 
 /* If filer_window is NULL, the toolbar is for the options window */
