@@ -1504,7 +1504,8 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 
 	if (filer_window->under_init) return;
 
-	col->reached_scale = .0;
+	if (flags != VIEW_UPDATE_VIEWDATA)
+		col->reached_scale = .0;
 
 	if (n == 0 && filer_window->display_style != SMALL_ICONS)
 		height = ICON_HEIGHT;
@@ -1524,20 +1525,25 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 	for (i = 0; i < n; i++)
 	{
 		CollectionItem *ci = &col->items[i];
+		gboolean nosize = FALSE;
 
-		if (flags & (VIEW_UPDATE_VIEWDATA | VIEW_UPDATE_NAME))
+		if (flags & (VIEW_UPDATE_VIEWDATA | VIEW_UPDATE_NAME) ||
+				(nosize = col->reached_scale == .0 &&
+				 !((ViewData *) ci->view_data)->name_width)
+		)
 			display_update_view(filer_window,
 					(DirItem *) ci->data,
 					(ViewData *) ci->view_data,
-					(flags & VIEW_UPDATE_NAME) != 0,
+					(flags & VIEW_UPDATE_NAME) != 0 || nosize,
 					col->reached_scale != .0);
 
-		if (col->reached_scale == .0)
+		if (flags != VIEW_UPDATE_VIEWDATA && col->reached_scale == .0)
 			col->reached_scale = calc_size(filer_window, ci, &width, &height,
 					col->number_of_items);
 	}
 
-	collection_set_item_size(col, width, height);
+	if (flags != VIEW_UPDATE_VIEWDATA)
+		collection_set_item_size(col, width, height);
 
 	reset_thumb_func(view_collection);
 
