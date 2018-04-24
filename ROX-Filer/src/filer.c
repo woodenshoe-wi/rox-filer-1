@@ -523,7 +523,10 @@ static void filer_set_pointer(FilerWindow *fw)
 void filer_autosize(FilerWindow *fw) {
 	if (!fw->directory) return;
 
+	if (fw->may_resize)
+		view_style_changed(fw->view, 0);
 	fw->may_resize = FALSE;
+
 	if (o_filer_auto_resize.int_value != RESIZE_ALWAYS &&
 			!fw->new_win_first_scan)
 		return;
@@ -531,12 +534,8 @@ void filer_autosize(FilerWindow *fw) {
 	gint w,h;
 	gtk_window_get_size(GTK_WINDOW(fw->window), &w, &h);
 	if (!fw->configured ||
-		(w == fw->last_width &&
-		h == fw->last_height))
-	{
-		view_style_changed(fw->view, 0);
+		(w == fw->last_width && h == fw->last_height))
 		view_autosize(fw->view, FALSE);
-	}
 }
 
 static void update_display(Directory *dir,
