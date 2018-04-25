@@ -110,7 +110,7 @@ void display_init()
 	option_add_int(&o_filer_change_size_num, "filer_change_size_num", 90);
 
 	option_add_int(&o_large_width, "display_large_width", 120);
-	option_add_int(&o_max_length, "display_max_length", 240);
+	option_add_int(&o_max_length, "display_max_length", 360);
 	option_add_int(&o_wrap_by_char, "wrap_by_char", FALSE);
 	option_add_int(&o_small_width, "display_small_width", 160);
 
