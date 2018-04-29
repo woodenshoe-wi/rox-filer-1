@@ -1082,7 +1082,17 @@ static void set_with(gpointer data, guint action, GtkWidget *widget)
 	filer_set_view_type(window_with_focus, VIEW_TYPE_COLLECTION);
 	display_set_layout(window_with_focus, size, action, FALSE);
 }
-
+static void wink_if(FilerWindow *fw)
+{
+	if (!fw->temp_item_selected &&
+			view_count_selected(fw->view) == 1)
+	{
+		ViewIter iter;
+		view_get_iter(fw->view, &iter, VIEW_ITER_SELECTED);
+		if (iter.next(&iter))
+			view_wink_item(fw->view, &iter);
+	}
+}
 static void set_sort(gpointer data, guint action, GtkWidget *widget)
 {
 	if (updating_menu)
@@ -1091,6 +1101,7 @@ static void set_sort(gpointer data, guint action, GtkWidget *widget)
 	g_return_if_fail(window_with_focus != NULL);
 
 	display_set_sort_type(window_with_focus, action, GTK_SORT_ASCENDING);
+	wink_if(window_with_focus);
 }
 
 static void reverse_sort(gpointer data, guint action, GtkWidget *widget)
@@ -1110,6 +1121,7 @@ static void reverse_sort(gpointer data, guint action, GtkWidget *widget)
 
 	display_set_sort_type(window_with_focus, window_with_focus->sort_type,
 			      order);
+	wink_if(window_with_focus);
 }
 
 static void hidden(gpointer data, guint action, GtkWidget *widget)
