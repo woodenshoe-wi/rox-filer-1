@@ -1092,12 +1092,12 @@ static void prompt_action(GList *paths, gchar *dest)
 	{
 		dnd_menu = menu_start("<dnd>", NULL);
 #define adi menu_add_item
-		adi("Copy"                     , menuitem_response, MENU_COPY        );
-		adi("Move"                     , menuitem_response, MENU_MOVE        );
-		adi("Link (relative)"          , menuitem_response, MENU_LINK_REL    );
-		adi("Link (absolute)"          , menuitem_response, MENU_LINK_ABS    );
-		adi("Link (relative, sym path)", menuitem_response, MENU_LINK_REL_SYM);
-		adi("Link (absolute, sym path)", menuitem_response, MENU_LINK_ABS_SYM);
+		adi(N_("Copy"                     ), menuitem_response, MENU_COPY        );
+		adi(N_("Move"                     ), menuitem_response, MENU_MOVE        );
+		adi(N_("Link (relative)"          ), menuitem_response, MENU_LINK_REL    );
+		adi(N_("Link (absolute)"          ), menuitem_response, MENU_LINK_ABS    );
+		adi(N_("Link (relative, sym path)"), menuitem_response, MENU_LINK_REL_SYM);
+		adi(N_("Link (absolute, sym path)"), menuitem_response, MENU_LINK_ABS_SYM);
 	}
 
 	/* Shade 'Set Icon' if there are multiple files */

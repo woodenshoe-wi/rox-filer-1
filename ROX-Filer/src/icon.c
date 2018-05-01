@@ -1384,30 +1384,30 @@ static void create_menu(void)
 	if (icon_menu) return;
 
 	icon_menu = menu_start("<icon>", NULL);
-	menu_start("ROX-Filer", icon_menu);
+	menu_start(N_("ROX-Filer"), icon_menu);
 
 #define adi menu_add_item
 #define ads menu_add_stock
 
-	ads("About ROX-Filer...", menu_rox_help, HELP_ABOUT , GTK_STOCK_DIALOG_INFO);
-	ads("Show Help Files"   , menu_rox_help, HELP_DIR   , GTK_STOCK_HELP);
-	adi("Manual"            , menu_rox_help, HELP_MANUAL);
+	ads(N_("About ROX-Filer..."), menu_rox_help, HELP_ABOUT , GTK_STOCK_DIALOG_INFO);
+	ads(N_("Show Help Files"   ), menu_rox_help, HELP_DIR   , GTK_STOCK_HELP);
+	adi(N_("Manual"            ), menu_rox_help, HELP_MANUAL);
 	menu_add_separator();
-	ads("Options..."    , menu_show_options, 0, GTK_STOCK_PREFERENCES);
-	ads("Home Directory", open_home        , 0, GTK_STOCK_HOME       );
+	ads(N_("Options..."    ), menu_show_options, 0, GTK_STOCK_PREFERENCES);
+	ads(N_("Home Directory"), open_home        , 0, GTK_STOCK_HOME       );
 
-	icon_file_menu = menu_start("File", icon_menu);
+	icon_file_menu = menu_start(N_("File"), icon_menu);
 
-	adi("Shift Open"       , file_op, ACTION_SHIFT     );
-	ads("Properties"       , file_op, ACTION_PROPERTIES, GTK_STOCK_PROPERTIES);
-	ads("Set Run Action...", file_op, ACTION_RUN_ACTION, GTK_STOCK_EXECUTE   );
-	adi("Set Icon..."      , file_op, ACTION_SET_ICON  );
+	adi(N_("Shift Open"       ), file_op, ACTION_SHIFT     );
+	ads(N_("Properties"       ), file_op, ACTION_PROPERTIES, GTK_STOCK_PROPERTIES);
+	ads(N_("Set Run Action..."), file_op, ACTION_RUN_ACTION, GTK_STOCK_EXECUTE   );
+	adi(N_("Set Icon..."      ), file_op, ACTION_SET_ICON  );
 
 	menu_start(NULL, icon_menu);
 
-	ads("Edit Item"     , file_op     , ACTION_EDIT    , GTK_STOCK_PROPERTIES);
-	ads("Show Location" , file_op     , ACTION_LOCATION, GTK_STOCK_JUMP_TO   );
-	ads("Remove Item(s)", remove_items, 0              , GTK_STOCK_REMOVE    );
+	ads(N_("Edit Item"     ), file_op     , ACTION_EDIT    , GTK_STOCK_PROPERTIES);
+	ads(N_("Show Location" ), file_op     , ACTION_LOCATION, GTK_STOCK_JUMP_TO   );
+	ads(N_("Remove Item(s)"), remove_items, 0              , GTK_STOCK_REMOVE    );
 	menu_add_separator();
 
 	/* File '' label... */

@@ -597,156 +597,156 @@ gboolean ensure_filer_menu(void)
 	filer_menu = start_menu("<filer>", NULL);
 	gtk_menu_set_accel_group(GTK_MENU(filer_menu), filer_keys);
 
-	start_menu("Display", filer_menu);
+	start_menu(N_("Display"), filer_menu);
 
-	adi("Icons View"            , view_type, VIEW_TYPE_COLLECTION);
-	adi("Icons With Sizes"      , set_with , DETAILS_SIZE);
-	adi("Icons With Times"      , set_with , DETAILS_TIMES);
-	adi("Icons With Permissions", set_with , DETAILS_PERMISSIONS);
-	adi("Icons With Types"      , set_with , DETAILS_TYPE);
+	adi(N_("Icons View"            ), view_type, VIEW_TYPE_COLLECTION);
+	adi(N_("Icons With Sizes"      ), set_with , DETAILS_SIZE);
+	adi(N_("Icons With Times"      ), set_with , DETAILS_TIMES);
+	adi(N_("Icons With Permissions"), set_with , DETAILS_PERMISSIONS);
+	adi(N_("Icons With Types"      ), set_with , DETAILS_TYPE);
 
-	ads("List View", view_type, VIEW_TYPE_DETAILS, ROX_STOCK_SHOW_DETAILS);
+	ads(N_("List View"), view_type, VIEW_TYPE_DETAILS, ROX_STOCK_SHOW_DETAILS);
 
 	add_separator();
 
-	ads("Bigger Icons", change_size, 1, GTK_STOCK_ZOOM_IN);
+	ads(N_("Bigger Icons"), change_size, 1, GTK_STOCK_ZOOM_IN);
 		sta(GDK_KEY_plus, 0);
-	ads("Smaller Icons", change_size, -1, GTK_STOCK_ZOOM_OUT);
+	ads(N_("Smaller Icons"), change_size, -1, GTK_STOCK_ZOOM_OUT);
 		sta(GDK_KEY_minus, 0);
-	adt("Automatic", change_size_auto, 0, &filer_auto_size_menu);
+	adt(N_("Automatic"), change_size_auto, 0, &filer_auto_size_menu);
 		sta(GDK_KEY_equal, 0);
 
 	add_separator();
 
 	GSList *sg = NULL;
-	sg = adr("Sort by Name",         set_sort, SORT_NAME , sg, &filer_sort_name_menu  );
-	sg = adr("Sort by Type",         set_sort, SORT_TYPE , sg, &filer_sort_type_menu  );
-	sg = adr("Sort by Date (atime)", set_sort, SORT_DATEA, sg, &filer_sort_date_a_menu);
-	sg = adr("Sort by Date (ctime)", set_sort, SORT_DATEC, sg, &filer_sort_date_c_menu);
-	sg = adr("Sort by Date (mtime)", set_sort, SORT_DATEM, sg, &filer_sort_date_m_menu);
-	sg = adr("Sort by Size" ,        set_sort, SORT_SIZE , sg, &filer_sort_size_menu  );
-	sg = adr("Sort by Owner",        set_sort, SORT_OWNER, sg, &filer_sort_owner_menu );
-	     adr("Sort by Group",        set_sort, SORT_GROUP, sg, &filer_sort_group_menu );
+	sg = adr(N_("Sort by Name"        ), set_sort, SORT_NAME , sg, &filer_sort_name_menu  );
+	sg = adr(N_("Sort by Type"        ), set_sort, SORT_TYPE , sg, &filer_sort_type_menu  );
+	sg = adr(N_("Sort by Date (atime)"), set_sort, SORT_DATEA, sg, &filer_sort_date_a_menu);
+	sg = adr(N_("Sort by Date (ctime)"), set_sort, SORT_DATEC, sg, &filer_sort_date_c_menu);
+	sg = adr(N_("Sort by Date (mtime)"), set_sort, SORT_DATEM, sg, &filer_sort_date_m_menu);
+	sg = adr(N_("Sort by Size"        ), set_sort, SORT_SIZE , sg, &filer_sort_size_menu  );
+	sg = adr(N_("Sort by Owner"       ), set_sort, SORT_OWNER, sg, &filer_sort_owner_menu );
+	     adr(N_("Sort by Group"       ), set_sort, SORT_GROUP, sg, &filer_sort_group_menu );
 
-	adt("Reversed", reverse_sort, 0, &filer_reverse_menu);
+	adt(N_("Reversed"), reverse_sort, 0, &filer_reverse_menu);
 
 	add_separator();
 
-	adt("Show Hidden", hidden, 0, &filer_hidden_menu);
+	adt(N_("Show Hidden"), hidden, 0, &filer_hidden_menu);
 		sta(GDK_KEY_h, GDK_CONTROL_MASK);
-	adt("Show Only Files"              , only_dirs, 0, &filer_files_only_menu);
-	adt("Show Only Directories"        , only_dirs, 1, &filer_dirs_only_menu);
-	adi("Filter Files..."              , mini_buffer, MINI_FILTER);
-	adi("Temp Filter..."               , mini_buffer, MINI_TEMP_FILTER);
-	adt("Filter Directories With Files", filter_directories, 0, &filer_filter_dirs_menu);
-	adt("Show Thumbnails"              , show_thumbs   , 0, &filer_thumb_menu);
-	ads("Refresh"                      , refresh       , 0, GTK_STOCK_REFRESH);
-	ads("Refresh Thumbs"               , refresh_thumbs, 0, GTK_STOCK_REFRESH);
+	adt(N_("Show Only Files"              ), only_dirs, 0, &filer_files_only_menu);
+	adt(N_("Show Only Directories"        ), only_dirs, 1, &filer_dirs_only_menu);
+	adi(N_("Filter Files..."              ), mini_buffer, MINI_FILTER);
+	adi(N_("Temp Filter..."               ), mini_buffer, MINI_TEMP_FILTER);
+	adt(N_("Filter Directories With Files"), filter_directories, 0, &filer_filter_dirs_menu);
+	adt(N_("Show Thumbnails"              ), show_thumbs   , 0, &filer_thumb_menu);
+	ads(N_("Refresh"                      ), refresh       , 0, GTK_STOCK_REFRESH);
+	ads(N_("Refresh Thumbs"               ), refresh_thumbs, 0, GTK_STOCK_REFRESH);
 
-	adi("Save Display Settings..."           , save_settings, 0);
-	adi("Save Display Settings to parent ...", save_settings_parent, 0);
+	adi(N_("Save Display Settings..."           ), save_settings, 0);
+	adi(N_("Save Display Settings to parent ..."), save_settings_parent, 0);
 
 
 	filer_file_menu = start_menu("File", filer_menu);
 	filer_file_item = GTK_BIN(current)->child;
 
-	ads("Copy..."  , file_op, FILE_COPY_ITEM, GTK_STOCK_COPY);
+	ads(N_("Copy..."  ), file_op, FILE_COPY_ITEM, GTK_STOCK_COPY);
 		sta(GDK_KEY_c, GDK_CONTROL_MASK);
-	adi("Rename...", file_op, FILE_RENAME_ITEM);
-	adi("Link..."  , file_op, FILE_LINK_ITEM);
-	ads("Delete"   , file_op, FILE_DELETE, GTK_STOCK_DELETE);
+	adi(N_("Rename..."), file_op, FILE_RENAME_ITEM);
+	adi(N_("Link..."  ), file_op, FILE_LINK_ITEM);
+	ads(N_("Delete"   ), file_op, FILE_DELETE, GTK_STOCK_DELETE);
 		sta(GDK_KEY_x, GDK_CONTROL_MASK);
 
 	add_separator();
 
 	file_shift_item =
-	adi("Shift Open", file_op, FILE_OPEN_FILE);
-	adi("Send To...", file_op, FILE_SEND_TO);
+	adi(N_("Shift Open"), file_op, FILE_OPEN_FILE);
+	adi(N_("Send To..."), file_op, FILE_SEND_TO);
 
 	add_separator();
 
-	ads("Set Run Action...", file_op, FILE_RUN_ACTION, GTK_STOCK_EXECUTE);
+	ads(N_("Set Run Action..."), file_op, FILE_RUN_ACTION, GTK_STOCK_EXECUTE);
 		sta(GDK_KEY_asterisk, 0);
-	adi("Set Icon..."      , file_op, FILE_SET_ICON);
+	adi(N_("Set Icon..."      ), file_op, FILE_SET_ICON);
 #if defined(HAVE_GETXATTR) || defined(HAVE_ATTROPEN)
 	filer_xattrs =
-	ads("Extended attributes...", file_op, FILE_XATTRS, ROX_STOCK_XATTR);
+	ads(N_("Extended attributes..."), file_op, FILE_XATTRS, ROX_STOCK_XATTR);
 #endif
-	ads("Properties" , file_op, FILE_PROPERTIES, GTK_STOCK_PROPERTIES);
+	ads(N_("Properties" ), file_op, FILE_PROPERTIES, GTK_STOCK_PROPERTIES);
 		sta(GDK_KEY_p, GDK_CONTROL_MASK);
-	adi("Count"      , file_op, FILE_USAGE);
+	adi(N_("Count"      ), file_op, FILE_USAGE);
 	filer_set_type =
-	adi("Set Type...", file_op, FILE_SET_TYPE);
-	adi("Permissions", file_op, FILE_CHMOD_ITEMS);
+	adi(N_("Set Type..."), file_op, FILE_SET_TYPE);
+	adi(N_("Permissions"), file_op, FILE_CHMOD_ITEMS);
 
 	add_separator();
 
-	ads("Find", file_op, FILE_FIND, GTK_STOCK_FIND);
+	ads(N_("Find"), file_op, FILE_FIND, GTK_STOCK_FIND);
 		sta(GDK_KEY_f, GDK_CONTROL_MASK);
 
-	start_menu("Select", filer_menu);
+	start_menu(N_("Select"), filer_menu);
 
-	adi("Select All"       , select_all, 0);
+	adi(N_("Select All"       ), select_all, 0);
 		sta(GDK_KEY_a, GDK_CONTROL_MASK);
-	adi("Clear Selection"  , clear_selection, 0);
-	adi("Invert Selection" , invert_selection, 0);
-	adi("Select by Name...", mini_buffer, MINI_SELECT_BY_NAME);
+	adi(N_("Clear Selection"  ), clear_selection, 0);
+	adi(N_("Invert Selection" ), invert_selection, 0);
+	adi(N_("Select by Name..."), mini_buffer, MINI_SELECT_BY_NAME);
 		sta(GDK_KEY_period, 0);
-	adi("Reg Select..."    , mini_buffer, MINI_REG_SELECT);
+	adi(N_("Reg Select..."    ), mini_buffer, MINI_REG_SELECT);
 		sta(GDK_KEY_asciicircum, 0);
-	adi("Select If..."     , mini_buffer, MINI_SELECT_IF);
+	adi(N_("Select If..."     ), mini_buffer, MINI_SELECT_IF);
 		sta(GDK_KEY_question, GDK_SHIFT_MASK);
 
 
 	start_menu(NULL, filer_menu);
-	ads("Options...", menu_show_options, 0, GTK_STOCK_PREFERENCES);
+	ads(N_("Options..."), menu_show_options, 0, GTK_STOCK_PREFERENCES);
 
 
-	filer_new_menu = start_menu("New", filer_menu);
+	filer_new_menu = start_menu(N_("New"), filer_menu);
 
-	ads("Directory"        , new_directory, 0, GTK_STOCK_DIRECTORY);
-	ads("Blank file"       , new_file     , 0, GTK_STOCK_NEW);
-	adi("Customise Menu...", customise_new, 0);
+	ads(N_("Directory"        ), new_directory, 0, GTK_STOCK_DIRECTORY);
+	ads(N_("Blank file"       ), new_file     , 0, GTK_STOCK_NEW);
+	adi(N_("Customise Menu..."), customise_new, 0);
 
 
-	start_menu("Window", filer_menu);
+	start_menu(N_("Window"), filer_menu);
 
-	ads("Parent, New Window"   , open_parent     , 0, GTK_STOCK_GO_UP);
-	adi("Parent, Same Window"  , open_parent_same, 0);
+	ads(N_("Parent, New Window"   ), open_parent     , 0, GTK_STOCK_GO_UP);
+	adi(N_("Parent, Same Window"  ), open_parent_same, 0);
 	filer_new_window =
-	adi("New Window"           , new_window      , 0);
-	ads("Home Directory"       , home_directory  , 0, GTK_STOCK_HOME);
+	adi(N_("New Window"           ), new_window      , 0);
+	ads(N_("Home Directory"       ), home_directory  , 0, GTK_STOCK_HOME);
 		sta(GDK_KEY_Home, GDK_CONTROL_MASK);
-	ads("Show Bookmarks"       , show_bookmarks  , 0, ROX_STOCK_BOOKMARKS);
+	ads(N_("Show Bookmarks"       ), show_bookmarks  , 0, ROX_STOCK_BOOKMARKS);
 		sta(GDK_KEY_b, GDK_CONTROL_MASK);
-	ads("Show Log"             , show_log        , 0, GTK_STOCK_INFO);
+	ads(N_("Show Log"             ), show_log        , 0, GTK_STOCK_INFO);
 	filer_follow_sym =
-	adi("Follow Symbolic Links", follow_symlinks , 0);
-	adi("Resize Window"        , resize          , 0);
+	adi(N_("Follow Symbolic Links"), follow_symlinks , 0);
+	adi(N_("Resize Window"        ), resize          , 0);
 		sta(GDK_KEY_e, GDK_CONTROL_MASK);
-	ads("Close Window"         , close_window    , 0, GTK_STOCK_CLOSE);
+	ads(N_("Close Window"         ), close_window    , 0, GTK_STOCK_CLOSE);
 		sta(GDK_KEY_q, GDK_CONTROL_MASK);
 
 	add_separator();
 
-	adi("Enter Path..."     , mini_buffer, MINI_PATH);
+	adi(N_("Enter Path..."     ), mini_buffer, MINI_PATH);
 		sta(GDK_KEY_slash, 0);
-	adi("Shell Command..."  , mini_buffer, MINI_SHELL);
+	adi(N_("Shell Command..."  ), mini_buffer, MINI_SHELL);
 		sta(GDK_KEY_exclam, GDK_SHIFT_MASK);
-	adi("Terminal Here"     , xterm_here , FALSE);
+	adi(N_("Terminal Here"     ), xterm_here , FALSE);
 		sta(GDK_KEY_grave, 0);
-	adi("Switch to Terminal", xterm_here , TRUE);
+	adi(N_("Switch to Terminal"), xterm_here , TRUE);
 
 
-	start_menu("Help", filer_menu);
+	start_menu(N_("Help"), filer_menu);
 
-	adi("About ROX-Filer...", menu_rox_help,  HELP_ABOUT);
-	ads("Show Help Files"   , menu_rox_help,  HELP_DIR, GTK_STOCK_HELP);
+	adi(N_("About ROX-Filer..."), menu_rox_help,  HELP_ABOUT);
+	ads(N_("Show Help Files"   ), menu_rox_help,  HELP_DIR, GTK_STOCK_HELP);
 		sta(GDK_KEY_F1, 0);
-	adi("About ROX-Filer...", menu_rox_help,  HELP_MANUAL);
+	adi(N_("About ROX-Filer..."), menu_rox_help,  HELP_MANUAL);
 
 	start_menu(NULL, filer_menu);
-	adi("Customise Dir Menu...", customise_directory_menu, 0);
+	adi(N_("Customise Dir Menu..."), customise_directory_menu, 0);
 
 
 	g_signal_connect(filer_menu, "selection-done",
@@ -1025,16 +1025,16 @@ void menu_show_shift_action(GtkWidget *menu_item, DirItem *item, gboolean next)
 		if (item->flags & ITEM_FLAG_MOUNT_POINT)
 		{
 			if (item->flags & ITEM_FLAG_MOUNTED)
-				shift_action = "Unmount";
+				shift_action = N_("Unmount");
 			else
-				shift_action = "Open unmounted";
+				shift_action = N_("Open unmounted");
 		}
 		else if (item->flags & ITEM_FLAG_SYMLINK)
-			shift_action = "Show Target";
+			shift_action = N_("Show Target");
 		else if (item->base_type == TYPE_DIRECTORY)
-			shift_action = "Look Inside";
+			shift_action = N_("Look Inside");
 		else if (item->base_type == TYPE_FILE)
-			shift_action = "Open As Text";
+			shift_action = N_("Open As Text");
 	}
 	gtk_label_set_text(GTK_LABEL(menu_item),
 			shift_action ? _(shift_action)
