@@ -30,6 +30,7 @@ struct _ABox
 	GtkWidget	*btn_cancel;
 	GtkWidget	*btn_close;
 	GtkWidget	*btn_seqno;
+	GtkWidget	*btn_seqno_all;
 	FilerWindow	*preview;
 
 	GtkWidget       *cmp_area;      /* Area where files are compared */

@@ -117,6 +117,7 @@ static gboolean o_force = FALSE;
 static gboolean o_brief = FALSE;
 static gboolean o_recurse = FALSE;
 static gboolean o_newer = FALSE;
+static gboolean o_seqno = FALSE;
 
 static Option o_action_copy, o_action_move, o_action_link;
 static Option o_action_delete, o_action_mount;
@@ -382,7 +383,15 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 		abox_set_percentage(abox, atoi(buffer+1));
 	}
 	else if (*buffer == '2')
+	{
 		gtk_widget_set_sensitive(abox->btn_seqno, TRUE);
+		gtk_widget_set_sensitive(abox->btn_seqno_all, TRUE);
+	}
+	else if (*buffer == '3')
+	{
+		gtk_widget_set_sensitive(abox->btn_seqno, FALSE);
+		gtk_widget_set_sensitive(abox->btn_seqno_all, TRUE);
+	}
 	else
 		abox_log(abox, buffer + 1, NULL);
 }
@@ -578,6 +587,8 @@ static void response(GtkDialog *dialog, gint response, GUIside *gui_side)
 		code = 'N';
 	else if (response == 2) //seqno
 		code = '2';
+	else if (response == 3) //seqno
+		code = '3';
 	else
 		return;
 
@@ -639,8 +650,8 @@ static void process_flag(char flag)
 		case 'B':
 			o_brief = !o_brief;
 			break;
-	        case 'W':
-		        o_newer = !o_newer;
+		case 'W':
+			o_newer = !o_newer;
 			break;
 		case 'E':
 			read_new_entry_text();
@@ -723,8 +734,10 @@ static int printf_reply(int fd, gboolean ignore_quiet,
 			case 'N':
 				printf_send("' %s\n", _("No"));
 				return 0;
+			case '3':
+				o_seqno = TRUE;
 			case '2':
-				printf_send("' %s\n", _("Add num"));
+				printf_send("' %s\n", _("Add seq num"));
 				return 2;
 			default:
 				process_flag(retval);
@@ -813,6 +826,7 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 	o_brief = brief;
 	o_recurse = recurse;
 	o_newer = newer;
+	o_seqno = FALSE;
 
 	child = fork();
 	switch (child)
@@ -1360,10 +1374,15 @@ static void do_copy2(const char *path, const char *dest)
 		{
 			/* Newer; keep going */
 		}
+		else if (o_seqno)
+			rep = 2;
 		else
 		{
-			if (!merge)
-				printf_send("2"); //seqno
+			if (merge)
+				printf_send("3"); //seqno only all
+			else
+				printf_send("2"); //seqno on
+
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
 			if (!(rep = printf_reply(from_parent, !o_force,
@@ -1534,6 +1553,8 @@ static void do_move2(const char *path, const char *dest)
 		{
 			/* Newer; keep going */
 		}
+		else if (o_seqno)
+			rep = 2;
 		else
 		{
 			printf_send("2"); //seqno
@@ -2325,6 +2346,7 @@ void action_copy(GList *paths, const char *dest, const char *leaf, int quiet)
 		return;
 
 	gtk_widget_show(ABOX(abox)->btn_seqno);
+	gtk_widget_show(ABOX(abox)->btn_seqno_all);
 
 	abox_add_flag(ABOX(abox),
 		_("Force"), _("Don't confirm over-write."),
@@ -2370,6 +2392,7 @@ void action_move(GList *paths, const char *dest, const char *leaf, int quiet)
 		return;
 
 	gtk_widget_show(ABOX(abox)->btn_seqno);
+	gtk_widget_show(ABOX(abox)->btn_seqno_all);
 
 	abox_add_flag(ABOX(abox),
 		_("Force"), _("Don't confirm over-write."),

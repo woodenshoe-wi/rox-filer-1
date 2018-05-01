@@ -38,6 +38,8 @@
 #include "pixmaps.h"
 
 #define RESPONSE_QUIET 1
+// RESPONSE_SEQNO 2
+// RESPONSE_SEQNO_ALL 3
 
 /* Static prototypes */
 static void abox_class_init(GObjectClass *gclass, gpointer data);
@@ -170,9 +172,10 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 	abox->btn_close = gtk_dialog_add_button(dialog,
 			GTK_STOCK_CLOSE, GTK_RESPONSE_CANCEL);
 
-	abox->btn_seqno = gtk_button_new_with_label(_("Add num"));
-	//gtk responses are < 0
+	abox->btn_seqno = gtk_button_new_with_label(_("+.Num"));
 	gtk_dialog_add_action_widget(dialog, abox->btn_seqno, 2);
+	abox->btn_seqno_all = button_new_mixed(GTK_STOCK_GOTO_LAST, _("+.Num"));
+	gtk_dialog_add_action_widget(dialog, abox->btn_seqno_all, 3);
 
 	gtk_dialog_add_buttons(dialog,
 			GTK_STOCK_NO, GTK_RESPONSE_NO,
@@ -233,6 +236,7 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 	gtk_widget_hide(abox->cmp_area);
 	gtk_widget_hide(abox->btn_close);
 	gtk_widget_hide(abox->btn_seqno);
+	gtk_widget_hide(abox->btn_seqno_all);
 
 	abox->quiet = abox_add_flag(abox,
 			_("Quiet"), _("Don't confirm every operation"),
@@ -603,7 +607,10 @@ static void shade(ABox *abox)
 						  RESPONSE_QUIET, FALSE);
 
 	if (!on)
+	{
 		gtk_widget_set_sensitive(abox->btn_seqno, FALSE);
+		gtk_widget_set_sensitive(abox->btn_seqno_all, FALSE);
+	}
 
 	/* Unsetting the focus means that set_default will put it in the
 	 * right place...
