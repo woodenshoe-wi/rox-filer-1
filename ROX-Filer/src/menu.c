@@ -139,6 +139,7 @@ static void reverse_sort(gpointer data, guint action, GtkWidget *widget);
 
 static void filter_directories(gpointer data, guint action, GtkWidget *widget);
 static void hidden(gpointer data, guint action, GtkWidget *widget);
+static void only_dirs(gpointer data, guint action, GtkWidget *widget);
 static void show_thumbs(gpointer data, guint action, GtkWidget *widget);
 static void refresh(gpointer data, guint action, GtkWidget *widget);
 static void refresh_thumbs(gpointer data, guint action, GtkWidget *widget);
@@ -180,6 +181,8 @@ static GtkWidget	*filer_file_menu;	/* The File '' menu */
 static GtkWidget	*file_shift_item;	/* Shift Open label */
 static GtkWidget	*filer_auto_size_menu;	/* The Automatic item */
 static GtkWidget	*filer_hidden_menu;	/* The Show Hidden item */
+static GtkWidget	*filer_files_only_menu;
+static GtkWidget	*filer_dirs_only_menu;
 static GtkWidget	*filer_filter_dirs_menu;/* The Filter Dirs item */
 
 /* The Sort items */
@@ -631,7 +634,8 @@ gboolean ensure_filer_menu(void)
 
 	adt("Show Hidden", hidden, 0, &filer_hidden_menu);
 		sta(GDK_KEY_h, GDK_CONTROL_MASK);
-
+	adt("Show Only Files"              , only_dirs, 0, &filer_files_only_menu);
+	adt("Show Only Directories"        , only_dirs, 1, &filer_dirs_only_menu);
 	adi("Filter Files..."              , mini_buffer, MINI_FILTER);
 	adi("Temp Filter..."               , mini_buffer, MINI_TEMP_FILTER);
 	adt("Filter Directories With Files", filter_directories, 0, &filer_filter_dirs_menu);
@@ -867,6 +871,12 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 		gtk_check_menu_item_set_active(
 				GTK_CHECK_MENU_ITEM(filer_hidden_menu),
 				filer_window->show_hidden);
+		gtk_check_menu_item_set_active(
+				GTK_CHECK_MENU_ITEM(filer_files_only_menu),
+				filer_window->files_only);
+		gtk_check_menu_item_set_active(
+				GTK_CHECK_MENU_ITEM(filer_dirs_only_menu),
+				filer_window->dirs_only);
 		gtk_check_menu_item_set_active(
 				GTK_CHECK_MENU_ITEM(filer_filter_dirs_menu),
 				filer_window->filter_directories);
@@ -1133,6 +1143,26 @@ static void hidden(gpointer data, guint action, GtkWidget *widget)
 
 	display_set_hidden(window_with_focus,
 			   !window_with_focus->show_hidden);
+}
+static void only_dirs(gpointer data, guint action, GtkWidget *widget)
+{
+	if (updating_menu)
+		return;
+
+	g_return_if_fail(window_with_focus != NULL);
+	FilerWindow *fw = window_with_focus;
+
+	if (action) //dir
+	{
+		fw->dirs_only = !fw->dirs_only;
+		fw->files_only = FALSE;
+	}
+	else //faile
+	{
+		fw->dirs_only = FALSE;
+		fw->files_only = !fw->files_only;
+	}
+	display_update_hidden(fw);
 }
 
 static void filter_directories(gpointer data, guint action, GtkWidget *widget)
