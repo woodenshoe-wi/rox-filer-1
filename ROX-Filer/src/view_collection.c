@@ -2130,13 +2130,7 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 		{
 			cols = MAX(min_x / w, 1);
 			x = cols * w;
-			if (min_x != x &&
-				n % cols &&
-				n % cols <= n / cols &&
-				/* Put window decoration away
-				 * because in this case, wide is good */
-				(tn + h * (n / cols)) * (x + w - min_x)
-					< (min_x * h))
+			if (min_x != x)
 				x += w;
 		}
 		else
