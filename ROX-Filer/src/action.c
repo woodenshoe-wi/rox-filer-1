@@ -149,7 +149,7 @@ static gboolean send_error(void);
 static gboolean send_dir(const char *dir);
 static gboolean read_exact(int source, char *buffer, ssize_t len);
 static void do_mount(const guchar *path, gboolean mount);
-static gboolean printf_reply(int fd, gboolean ignore_quiet,
+static int printf_reply(int fd, gboolean ignore_quiet,
 			     const char *msg, ...);
 static gboolean remove_pinned_ok(GList *paths);
 
@@ -381,6 +381,8 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 	{
 		abox_set_percentage(abox, atoi(buffer+1));
 	}
+	else if (*buffer == '2')
+		gtk_widget_set_sensitive(abox->btn_seqno, TRUE);
 	else
 		abox_log(abox, buffer + 1, NULL);
 }
@@ -567,7 +569,6 @@ static gboolean send_error(void)
 static void response(GtkDialog *dialog, gint response, GUIside *gui_side)
 {
 	gchar code;
-
 	if (!gui_side->to_child)
 		return;
 
@@ -575,6 +576,8 @@ static void response(GtkDialog *dialog, gint response, GUIside *gui_side)
 		code = 'Y';
 	else if (response == GTK_RESPONSE_NO)
 		code = 'N';
+	else if (response == 2) //seqno
+		code = '2';
 	else
 		return;
 
@@ -682,7 +685,7 @@ static void check_flags(void)
  * the user MUST click Yes or No, else treat quiet on as Yes.
  * If the user needs prompting then does send_msg().
  */
-static gboolean printf_reply(int fd, gboolean ignore_quiet,
+static int printf_reply(int fd, gboolean ignore_quiet,
 			     const char *msg, ...)
 {
 	ssize_t len;
@@ -691,7 +694,7 @@ static gboolean printf_reply(int fd, gboolean ignore_quiet,
 	gchar *tmp;
 
 	if (quiet && !ignore_quiet)
-		return TRUE;
+		return 1;
 
 	va_start(args, msg);
 	tmp = g_strdup_vprintf(msg, args);
@@ -716,10 +719,13 @@ static gboolean printf_reply(int fd, gboolean ignore_quiet,
 		{
 			case 'Y':
 				printf_send("' %s\n", _("Yes"));
-				return TRUE;
+				return 1;
 			case 'N':
 				printf_send("' %s\n", _("No"));
-				return FALSE;
+				return 0;
+			case '2':
+				printf_send("' %s\n", _("Add num"));
+				return 2;
 			default:
 				process_flag(retval);
 				break;
@@ -1315,6 +1321,17 @@ static const char *make_dest_path(const char *object, const char *dir)
 	return make_path(dir, leaf);
 }
 
+static const char *seq_path(const char *dest_path)
+{
+	static char *path = NULL;
+	int i = 2;
+	do {
+		g_free(path);
+		path = g_strdup_printf("%s.%d", dest_path, i++);
+	}
+	while (g_file_test(path, G_FILE_TEST_EXISTS));
+	return path;
+}
 /* If action_leaf is not NULL it specifies the new leaf name */
 static void do_copy2(const char *path, const char *dest)
 {
@@ -1334,7 +1351,7 @@ static void do_copy2(const char *path, const char *dest)
 
 	if (mc_lstat(dest_path, &dest_info) == 0)
 	{
-		int		err;
+		int err = 0, rep = 0;
 		gboolean	merge;
 
 		merge = S_ISDIR(info.st_mode) && S_ISDIR(dest_info.st_mode);
@@ -1345,19 +1362,23 @@ static void do_copy2(const char *path, const char *dest)
 		}
 		else
 		{
+			if (!merge)
+				printf_send("2"); //seqno
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
-			if (!printf_reply(from_parent, !o_force,
+			if (!(rep = printf_reply(from_parent, !o_force,
 					  _("?'%s' already exists - %s?"),
 					  dest_path,
 					  merge ? _("merge contents")
-					  	: _("overwrite")))
+					        : _("overwrite"))))
 				return;
 		}
 
 		if (!merge)
 		{
-			if (S_ISDIR(dest_info.st_mode))
+			if (rep == 2)
+				dest_path = seq_path(dest_path);
+			else if (S_ISDIR(dest_info.st_mode))
 				err = rmdir(dest_path);
 			else
 				err = unlink(dest_path);
@@ -1501,7 +1522,7 @@ static void do_move2(const char *path, const char *dest)
 	if (access(dest_path, F_OK) == 0)
 	{
 		struct stat	info;
-		int		err;
+		int err = 0, rep = 0;
 
 		if (mc_lstat(dest_path, &info))
 		{
@@ -1515,15 +1536,18 @@ static void do_move2(const char *path, const char *dest)
 		}
 		else
 		{
+			printf_send("2"); //seqno
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
-			if (!printf_reply(from_parent, !o_force,
+			if (!(rep = printf_reply(from_parent, !o_force,
 				       _("?'%s' already exists - overwrite?"),
-				       dest_path))
+				       dest_path)))
 				return;
 		}
 
-		if (S_ISDIR(info.st_mode))
+		if (rep == 2)
+			dest_path = seq_path(dest_path);
+		else if (S_ISDIR(info.st_mode))
 			err = rmdir(dest_path);
 		else
 			err = unlink(dest_path);
@@ -2300,6 +2324,8 @@ void action_copy(GList *paths, const char *dest, const char *leaf, int quiet)
 	if (!gui_side)
 		return;
 
+	gtk_widget_show(ABOX(abox)->btn_seqno);
+
 	abox_add_flag(ABOX(abox),
 		_("Force"), _("Don't confirm over-write."),
 		'F', FALSE);
@@ -2342,6 +2368,8 @@ void action_move(GList *paths, const char *dest, const char *leaf, int quiet)
 					 o_action_newer.int_value);
 	if (!gui_side)
 		return;
+
+	gtk_widget_show(ABOX(abox)->btn_seqno);
 
 	abox_add_flag(ABOX(abox),
 		_("Force"), _("Don't confirm over-write."),

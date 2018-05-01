@@ -29,6 +29,7 @@ struct _ABox
 	GtkWidget	*entry;		/* Plain entry, or part of combo */
 	GtkWidget	*btn_cancel;
 	GtkWidget	*btn_close;
+	GtkWidget	*btn_seqno;
 	FilerWindow	*preview;
 
 	GtkWidget       *cmp_area;      /* Area where files are compared */

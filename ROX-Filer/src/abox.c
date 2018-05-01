@@ -169,6 +169,11 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
 	abox->btn_close = gtk_dialog_add_button(dialog,
 			GTK_STOCK_CLOSE, GTK_RESPONSE_CANCEL);
+
+	abox->btn_seqno = gtk_button_new_with_label(_("Add num"));
+	//gtk responses are < 0
+	gtk_dialog_add_action_widget(dialog, abox->btn_seqno, 2);
+
 	gtk_dialog_add_buttons(dialog,
 			GTK_STOCK_NO, GTK_RESPONSE_NO,
 			GTK_STOCK_YES, GTK_RESPONSE_YES,
@@ -227,6 +232,7 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 	gtk_widget_show_all(dialog->vbox);
 	gtk_widget_hide(abox->cmp_area);
 	gtk_widget_hide(abox->btn_close);
+	gtk_widget_hide(abox->btn_seqno);
 
 	abox->quiet = abox_add_flag(abox,
 			_("Quiet"), _("Don't confirm every operation"),
@@ -278,7 +284,8 @@ static void response(GtkDialog *dialog, gint response_id)
 		gtk_dialog_response(dialog, GTK_RESPONSE_YES);
 	}
 	else if (response_id == GTK_RESPONSE_YES ||
-					response_id == GTK_RESPONSE_NO)
+					response_id == GTK_RESPONSE_NO ||
+					response_id == 2) //seqno
 	{
 		abox->question = FALSE;
 		shade(abox);
@@ -594,6 +601,9 @@ static void shade(ABox *abox)
 	else
 		gtk_dialog_set_response_sensitive(dialog,
 						  RESPONSE_QUIET, FALSE);
+
+	if (!on)
+		gtk_widget_set_sensitive(abox->btn_seqno, FALSE);
 
 	/* Unsetting the focus means that set_default will put it in the
 	 * right place...
