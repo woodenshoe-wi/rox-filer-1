@@ -916,7 +916,7 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		GtkWidget **links;
 		GtkWidget *label, *fix;
 		PangoLayout *layout;
-		int width;
+		int width, height;
 
 		if (node->type != XML_ELEMENT_NODE)
 			continue;
@@ -960,9 +960,9 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		label =  gtk_label_new_with_mnemonic(title);
 
 		layout = gtk_label_get_layout(GTK_LABEL(label));
-		pango_layout_get_pixel_size(layout, &width, NULL);
+		pango_layout_get_pixel_size(layout, &width, &height);
 		if (width > maxwidth)
-			maxwidth = width + 12;
+			maxwidth = width + height;
 
 		gtk_fixed_put(GTK_FIXED(fix), label, 4, 0);
 
