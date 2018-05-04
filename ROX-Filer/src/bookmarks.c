@@ -84,37 +84,43 @@ static MenuIconStyle style;
 static GList *labels = NULL;
 static GList *labelshist = NULL; //temp
 static guint labelprocs = 0;
-static void clearlabels()
+static void resetlabels()
 {
+	style = get_menu_icon_style();
 	if (labelprocs)
 	{
 		g_source_remove(labelprocs);
 		labelprocs = 0;
 	}
-
 	if (!labels) return;
+
 	for (GList *next = labels; next; next = next->next)
 		g_free(((void **)next->data)[2]); //free the path
 
-	g_list_free_full(labels, g_free); //GDestroyNotify
+	g_list_free_full(labels, g_free);
 	labels = NULL;
 }
-static void resetlabels()
+static gboolean checkmount(gchar *path)
 {
-	style = get_menu_icon_style();
-	clearlabels();
+	gboolean ret = strlen(path) > 1 && (
+			checkmount(g_path_get_dirname(path)) || (
+				g_hash_table_lookup(fstab_mounts, path) &&
+				!mount_is_mounted(path, NULL, NULL)
+			));
+	g_free(path);
+	return ret;
 }
 static gboolean labelproc(gpointer p)
 {
-	void  *fix  = ((void **)labels->data)[0];
 	gchar *path = ((void **)labels->data)[2];
 
 	DirItem *ditem = diritem_new("");
-	char real[MAXPATHLEN];
-	if (realpath(path, real))
-		diritem_restat(path, ditem, NULL, TRUE);
-	else
+	//currently not works on sym
+	//though realpath demands mount
+	if (checkmount(g_path_get_dirname(path)))
 		ditem->base_type = TYPE_ERROR;
+	else
+		diritem_restat(path, ditem, NULL, TRUE);
 
 	GtkWidget *img = menu_make_image(ditem, style);
 	diritem_free(ditem);
@@ -122,7 +128,7 @@ static gboolean labelproc(gpointer p)
 	if (img)
 	{
 		gtk_widget_show(img);
-		gtk_fixed_put(fix, img, -1, -1);
+		gtk_fixed_put(((void **)labels->data)[0], img, -1, -1);
 	}
 
 	g_free(path);
@@ -153,11 +159,9 @@ void bookmarks_show_menu(FilerWindow *filer_window, GtkWidget *widget)
 		gdk_event_free(event);
 	}
 
+	resetlabels();
 	if (menu)
-	{
-		clearlabels();
 		gtk_widget_destroy((GtkWidget *) menu);
-	}
 
 	menu = GTK_MENU(bookmarks_build_menu(filer_window));
 
@@ -942,8 +946,6 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
  */
 static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 {
-	resetlabels();
-
 	GtkWidget *menu;
 	GtkWidget *item;
 	xmlNode *node;

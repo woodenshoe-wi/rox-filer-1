@@ -4527,7 +4527,7 @@ static void settings_response(GtkWidget *window, gint response,
 	{
 		GList *next;
 		gchar *parent = NULL;
-		int len;
+		int len = 0;
 
 		if (set_win->parent) {
 			parent = g_path_get_dirname(set_win->set->path);
