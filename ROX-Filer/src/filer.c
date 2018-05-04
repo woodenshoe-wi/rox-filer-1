@@ -463,6 +463,7 @@ static gboolean acceptfocuscb(FilerWindow *fw)
 {
 	if (filer_exists(fw))
 		gtk_window_set_accept_focus(GTK_WINDOW(fw->window), TRUE);
+	fw->accept_timeout = 0;
 	return FALSE;
 }
 void filer_link(FilerWindow *left, FilerWindow *right)
@@ -475,7 +476,10 @@ void filer_link(FilerWindow *left, FilerWindow *right)
 
 	gtk_window_set_accept_focus(GTK_WINDOW(right->window), FALSE);
 	gdk_window_raise(right->window->window);
-	g_timeout_add(100, (GSourceFunc)acceptfocuscb, right);
+	if (right->accept_timeout)
+		g_source_remove(right->accept_timeout);
+	right->accept_timeout =
+		g_timeout_add(200, (GSourceFunc)acceptfocuscb, right);
 }
 
 /* Look through all items we want to display, and queue a recheck on any
@@ -1942,6 +1946,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->right_link = NULL;
 	filer_window->left_link = NULL;
 	filer_window->right_link_idle = 0;
+	filer_window->accept_timeout = 0;
 	filer_window->pointer_idle = 0;
 	filer_window->resize_drag_width = 0;
 

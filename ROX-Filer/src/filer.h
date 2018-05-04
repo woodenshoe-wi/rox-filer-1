@@ -103,6 +103,7 @@ struct _FilerWindow
 	FilerWindow *right_link;
 	FilerWindow *left_link;
 	guint right_link_idle;
+	guint accept_timeout;
 
 	guint pointer_idle;
 
