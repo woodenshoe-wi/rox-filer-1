@@ -311,7 +311,7 @@ void menu_init(void)
 	filer_keys = gtk_accel_group_new();
 }
 
-static MenuIconStyle get_menu_icon_style(void)
+MenuIconStyle get_menu_icon_style(void)
 {
 	MenuIconStyle mis;
 	int display;
@@ -412,11 +412,8 @@ void position_menu(GtkMenu *menu, gint *x, gint *y,
 	*push_in = TRUE;
 }
 
-static GtkWidget *make_send_to_item(DirItem *ditem, const char *label,
-				MenuIconStyle style)
+GtkWidget *menu_make_image(DirItem *ditem, MenuIconStyle style)
 {
-	GtkWidget *item;
-
 	if (style != MIS_NONE && di_image(ditem))
 	{
 		GdkPixbuf *pixbuf;
@@ -436,11 +433,24 @@ static GtkWidget *make_send_to_item(DirItem *ditem, const char *label,
 				break;
 		}
 
+		return gtk_image_new_from_pixbuf(pixbuf);
+	}
+
+	return NULL;
+}
+static GtkWidget *make_send_to_item(DirItem *ditem, const char *label,
+				MenuIconStyle style)
+{
+	GtkWidget *item;
+	GtkWidget *img;
+
+	if ((img = menu_make_image(ditem, style)))
+	{
 		item = gtk_image_menu_item_new_with_mnemonic(label);
 		/* TODO: Find a way to allow short-cuts */
 
 		gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item),
-				gtk_image_new_from_pixbuf(pixbuf));
+				img);
 		gtk_widget_show_all(item);
 	}
 	else

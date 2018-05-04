@@ -38,6 +38,8 @@
 #include "action.h"
 #include "options.h"
 #include "bind.h"
+#include "menu.h"
+#include "diritem.h"
 
 static GList *history = NULL;		/* Most recent first */
 static GList *history_tail = NULL;	/* Oldest item */
@@ -54,7 +56,7 @@ static void bookmarks_save(void);
 static void bookmarks_add(GtkMenuItem *menuitem, gpointer user_data);
 static void bookmarks_activate(GtkMenuShell *item, FilerWindow *filer_window);
 static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window);
-static void position_menu(GtkMenu *menu, gint *x, gint *y,
+static void bposition_menu(GtkMenu *menu, gint *x, gint *y,
 		   	  gboolean *push_in, gpointer data);
 static void position_menu_widget(GtkMenu *menu, gint *x, gint *y,
 		   	  gboolean *push_in, gpointer data);
@@ -74,6 +76,56 @@ static gboolean dir_dropped(GtkWidget *window, GdkDragContext *context,
 static void bookmarks_add_dir(const guchar *dir);
 static void commit_edits(GtkTreeModel *model);
 
+
+
+//menu icons
+static MenuIconStyle style;
+static GList *labels = NULL;
+static GList *labelshist = NULL; //temp
+static guint labelprocs = 0;
+static void clearlabels()
+{
+	if (labelprocs)
+	{
+		g_source_remove(labelprocs);
+		labelprocs = 0;
+	}
+
+	if (!labels) return;
+	for (GList *next = labels; next; next = next->next)
+		g_free(((void **)next->data)[2]); //free the path
+
+	g_list_free_full(labels, g_free); //GDestroyNotify
+	labels = NULL;
+}
+static void resetlabels()
+{
+	style = get_menu_icon_style();
+	clearlabels();
+}
+static gboolean labelproc(gpointer p)
+{
+	void  *fix  = ((void **)labels->data)[0];
+	gchar *path = ((void **)labels->data)[2];
+
+	DirItem *ditem = diritem_new("");
+	diritem_restat(path, ditem, NULL, TRUE);
+	GtkWidget *img = menu_make_image(ditem, style);
+	diritem_free(ditem);
+
+	if (img)
+	{
+		gtk_widget_show(img);
+		gtk_fixed_put(fix, img, -1, -1);
+	}
+
+	g_free(path);
+	labels = g_list_delete_link(labels, labels);
+
+	if (labels) return TRUE;
+	labelprocs = 0;
+	return FALSE;
+}
 
 /****************************************************************
  *			EXTERNAL INTERFACE			*
@@ -96,7 +148,10 @@ void bookmarks_show_menu(FilerWindow *filer_window, GtkWidget *widget)
 	}
 
 	if (menu)
+	{
+		clearlabels();
 		gtk_widget_destroy((GtkWidget *) menu);
+	}
 
 	menu = GTK_MENU(bookmarks_build_menu(filer_window));
 
@@ -104,7 +159,7 @@ void bookmarks_show_menu(FilerWindow *filer_window, GtkWidget *widget)
 		gtk_menu_popup(menu, NULL, NULL, position_menu_widget, widget,
 			button, gtk_get_current_event_time());
 	else
-		gtk_menu_popup(menu, NULL, NULL, position_menu, filer_window,
+		gtk_menu_popup(menu, NULL, NULL, bposition_menu, filer_window,
 			button, gtk_get_current_event_time());
 }
 
@@ -384,7 +439,7 @@ static void bookmarks_new(void)
 		xmlNewDocNode(bookmarks->doc, NULL, "bookmarks", NULL));
 }
 
-static void position_menu(GtkMenu *menu, gint *x, gint *y,
+static void bposition_menu(GtkMenu *menu, gint *x, gint *y,
 		   	  gboolean *push_in, gpointer data)
 {
 	FilerWindow *filer_window = (FilerWindow *) data;
@@ -794,6 +849,7 @@ static void free_path_for_item(GtkWidget *widget, gpointer udata)
 	g_free(path);
 }
 
+
 static GtkWidget *build_history_menu(FilerWindow *filer_window)
 {
 	GtkWidget *menu;
@@ -807,6 +863,7 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 	g_return_val_if_fail(history_hash != NULL, menu);
 	g_return_val_if_fail(history_tail != NULL, menu);
 
+	int count = 0;
 	for (next = history; next; next = next->next)
 	{
 		GtkWidget *item;
@@ -816,42 +873,41 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 		if (!(next->prev) && strcmp(path, filer_window->sym_path) == 0)
 			continue;
 
-		if (next->next)
-		{
-			GtkWidget *label, *fix;
-			PangoLayout *layout;
-			int i = 0, width;
-			char *pathp, *bpath, *nn = (char *) next->next->data;
-			pathp = path;
+		GtkWidget *label, *fix;
+		PangoLayout *layout;
+		int i = 0, width, height;
+		char *pathp, *bpath, *nn = next->next ? (char *) next->next->data : "";
+		pathp = path;
 
-			while ((nn+=1) && (pathp+=1) && (++i))
-				if (*nn != *pathp)
-					break;
+		while ((nn+=1) && (pathp+=1) && (++i))
+			if (*nn != *pathp)
+				break;
 
-			bpath = g_strndup(path, i);
+		bpath = g_strndup(path, i);
+		item = gtk_menu_item_new();
 
-			item = gtk_menu_item_new();
+		fix = gtk_fixed_new();
+		void **links = g_new(void *, 3);
+		links[0] = fix;
+		links[2] = g_strdup(path);
+		labelshist = g_list_append(labelshist, links);
 
-			fix = gtk_fixed_new();
-			label =  gtk_label_new(bpath);
+		label =  gtk_label_new(bpath);
 
-			gtk_widget_modify_fg(label,
-					GTK_STATE_NORMAL,
-					&label->style->text[GTK_STATE_INSENSITIVE]);
+		gtk_widget_modify_fg(label,
+				GTK_STATE_NORMAL,
+				&label->style->text[GTK_STATE_INSENSITIVE]);
 
-			layout = gtk_label_get_layout(GTK_LABEL(label));
-			pango_layout_get_pixel_size(layout, &width, NULL);
+		layout = gtk_label_get_layout(GTK_LABEL(label));
+		pango_layout_get_pixel_size(layout, &width, &height);
 
-			gtk_fixed_put(GTK_FIXED(fix), label, 0, 0);
-			label =  gtk_label_new(pathp);
-			gtk_fixed_put(GTK_FIXED(fix), label, width, 0);
+		gtk_fixed_put(GTK_FIXED(fix), label, height * 1.4, 0);
+		label =  gtk_label_new(pathp);
+		gtk_fixed_put(GTK_FIXED(fix), label, width + height * 1.4, 0);
 
-			gtk_container_add(GTK_CONTAINER(item), fix);
+		gtk_container_add(GTK_CONTAINER(item), fix);
 
-			g_free(bpath);
-		}
-		else
-			item = gtk_menu_item_new_with_label(path);
+		g_free(bpath);
 
 		copy=g_strdup(path);
 		g_object_set_data(G_OBJECT(item), "bookmark-path", copy);
@@ -866,7 +922,10 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 					filer_window);
 
 		gtk_widget_show_all(item);
-		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+
+		//attach with 0,2 removes margin
+		gtk_menu_attach(GTK_MENU(menu), item, 0, 2, count, count + 1);
+		count++;
 	}
 
 	return menu;
@@ -877,12 +936,13 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
  */
 static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 {
+	resetlabels();
+
 	GtkWidget *menu;
 	GtkWidget *item;
 	xmlNode *node;
 	gboolean need_separator = TRUE;
 	int maxwidth = 0, count = 4;
-	GList *labels = NULL;
 
 	menu = gtk_menu_new();
 
@@ -913,7 +973,6 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 	for (node = node->xmlChildrenNode; node; node = node->next)
 	{
 		gchar *mark, *title, *path, *dirname;
-		GtkWidget **links;
 		GtkWidget *label, *fix;
 		PangoLayout *layout;
 		int width, height;
@@ -954,17 +1013,19 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		}
 
 		fix = gtk_fixed_new();
-		links = g_new(GtkWidget *, 2);
+		void **links = g_new(void *, 3);
 		links[0] = fix;
+		links[2] = g_strdup(path);
+		labels = g_list_append(labels, links);
 
 		label =  gtk_label_new_with_mnemonic(title);
 
 		layout = gtk_label_get_layout(GTK_LABEL(label));
 		pango_layout_get_pixel_size(layout, &width, &height);
-		if (width > maxwidth)
-			maxwidth = width + height;
+		if (width + height * 2 > maxwidth)
+			maxwidth = width + height * 2;
 
-		gtk_fixed_put(GTK_FIXED(fix), label, 4, 0);
+		gtk_fixed_put(GTK_FIXED(fix), label, height * 1.6, 0);
 
 		dirname = g_path_get_dirname(mark);
 		label = gtk_label_new(dirname);
@@ -982,8 +1043,6 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		gtk_container_add(GTK_CONTAINER(item), fix);
 		gtk_menu_attach(GTK_MENU(menu), item, 0, 2, count, count + 1);
 
-		labels = g_list_append(labels, links);
-
 		gtk_widget_show_all(item);
 
 		count++;
@@ -995,13 +1054,13 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		g_free(dirname);
 	}
 
-	while (labels)
-	{
-		gtk_fixed_move(((GtkFixed **)(labels->data))[0],
-				((GtkWidget **)(labels->data))[1], maxwidth, 0);
-		g_free(labels->data);
-		labels = g_list_delete_link(labels, labels);
-	}
+	for (GList *next = labels; next; next = next->next)
+		gtk_fixed_move(((GtkFixed **)(next->data))[0],
+				((GtkWidget **)(next->data))[1], maxwidth, 0);
+
+	labels = g_list_concat(labels, labelshist);
+	labelshist = NULL;
+	labelprocs = g_idle_add(labelproc, NULL);
 
 	return menu;
 }

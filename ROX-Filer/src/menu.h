@@ -19,6 +19,7 @@ typedef enum menu_icon_style {
 extern GtkAccelGroup	*filer_keys;
 
 void menu_init(void);
+MenuIconStyle get_menu_icon_style(void);
 
 typedef void (*MenuCB)();
 typedef void (*MenuCB1)(
@@ -33,6 +34,7 @@ GtkWidget *menu_start(gchar *label, GtkWidget *parent);
 void menu_set_items_shaded(GtkWidget *menu, gboolean shaded, int from, int n);
 void position_menu(GtkMenu *menu, gint *x, gint *y,
 		   gboolean  *push_in, gpointer data);
+GtkWidget *menu_make_image(DirItem *ditem, MenuIconStyle style);
 void show_popup_menu(GtkWidget *menu, GdkEvent *event, int item);
 
 gboolean ensure_filer_menu(void);
