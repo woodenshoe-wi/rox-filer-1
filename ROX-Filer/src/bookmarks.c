@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <gtk/gtk.h>
 #include <string.h>
+#include <sys/param.h>
 
 #include "global.h"
 
@@ -109,7 +110,12 @@ static gboolean labelproc(gpointer p)
 	gchar *path = ((void **)labels->data)[2];
 
 	DirItem *ditem = diritem_new("");
-	diritem_restat(path, ditem, NULL, TRUE);
+	char real[MAXPATHLEN];
+	if (realpath(path, real))
+		diritem_restat(path, ditem, NULL, TRUE);
+	else
+		ditem->base_type = TYPE_ERROR;
+
 	GtkWidget *img = menu_make_image(ditem, style);
 	diritem_free(ditem);
 
