@@ -459,6 +459,12 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean not
 	}
 }
 
+static gboolean acceptfocuscb(FilerWindow *fw)
+{
+	if (filer_exists(fw))
+		gtk_window_set_accept_focus(GTK_WINDOW(fw->window), TRUE);
+	return FALSE;
+}
 void filer_link(FilerWindow *left, FilerWindow *right)
 {
 	GdkRectangle frect = {0, 0, 0, 0};
@@ -467,7 +473,9 @@ void filer_link(FilerWindow *left, FilerWindow *right)
 			frect.x + frect.width,
 			frect.y);
 
+	gtk_window_set_accept_focus(GTK_WINDOW(right->window), FALSE);
 	gdk_window_raise(right->window->window);
+	g_timeout_add(100, (GSourceFunc)acceptfocuscb, right);
 }
 
 /* Look through all items we want to display, and queue a recheck on any
