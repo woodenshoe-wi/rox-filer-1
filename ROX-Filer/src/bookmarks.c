@@ -100,28 +100,12 @@ static void resetlabels()
 	g_list_free_full(labels, g_free);
 	labels = NULL;
 }
-static gboolean checkmount(gchar *path)
-{
-	gboolean ret = strlen(path) > 1 && (
-			checkmount(g_path_get_dirname(path)) || (
-				g_hash_table_lookup(fstab_mounts, path) &&
-				!mount_is_mounted(path, NULL, NULL)
-			));
-	g_free(path);
-	return ret;
-}
 static gboolean labelproc(gpointer p)
 {
 	gchar *path = ((void **)labels->data)[2];
 
 	DirItem *ditem = diritem_new("");
-	//currently not works on sym
-	//though realpath demands mount
-	if (checkmount(g_path_get_dirname(path)))
-		ditem->base_type = TYPE_ERROR;
-	else
-		diritem_restat(path, ditem, NULL, TRUE);
-
+	diritem_restat(path, ditem, NULL, TRUE);
 	GtkWidget *img = menu_make_image(ditem, style);
 	diritem_free(ditem);
 
