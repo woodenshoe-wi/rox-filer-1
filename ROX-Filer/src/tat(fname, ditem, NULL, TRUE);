@@ -1,2 +1,0 @@
-./bookmarks.c:		ditem = diritem_new("");
-./menu.c:		ditem = diritem_new("");
