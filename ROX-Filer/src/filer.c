@@ -545,6 +545,16 @@ void filer_autosize(FilerWindow *fw) {
 		view_autosize(fw->view, FALSE);
 }
 
+static void set_icon(FilerWindow *fw, GdkPixbuf *src)
+{
+	GdkPixbuf *lined = fw->dir_colour ?
+		pixmap_make_lined(src, fw->dir_colour) : NULL;
+
+	gtk_window_set_icon(GTK_WINDOW(fw->window), lined ?: src);
+
+	if (lined)
+		g_object_unref(lined);
+}
 static void update_display(Directory *dir,
 			DirAction	action,
 			GPtrArray	*items,
@@ -606,8 +616,7 @@ static void update_display(Directory *dir,
 						make_path(filer_window->real_path, ".DirIcon"),
 						FSCACHE_LOOKUP_ONLY_NEW, NULL);
 
-			gtk_window_set_icon(GTK_WINDOW(filer_window->window),
-							fi ? fi->src_pixbuf : NULL);
+			set_icon(filer_window, fi ? fi->src_pixbuf : NULL);
 
 			filer_window->dir_icon = fi;
 
@@ -653,8 +662,7 @@ static void update_display(Directory *dir,
 						FSCACHE_LOOKUP_ONLY_NEW, NULL);
 
 				if (filer_window->dir_icon)
-					gtk_window_set_icon(GTK_WINDOW(filer_window->window),
-								filer_window->dir_icon->src_pixbuf);
+					set_icon(filer_window, filer_window->dir_icon->src_pixbuf);
 			}
 
 			if (filer_window->view_type != VIEW_TYPE_COLLECTION)

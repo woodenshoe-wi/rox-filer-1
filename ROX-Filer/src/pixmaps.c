@@ -1141,9 +1141,9 @@ MaskedPixmap *masked_pixmap_new(GdkPixbuf *src)
 }
 
 /* Load all the standard pixmaps. Also sets the default window icon. */
+static GdkPixbuf *winicon;
 static void load_default_pixmaps(void)
 {
-	GdkPixbuf *pixbuf;
 	GError *error = NULL;
 
 	im_error = mp_from_stock(GTK_STOCK_DIALOG_WARNING,
@@ -1154,27 +1154,14 @@ static void load_default_pixmaps(void)
 	im_dirs = load_pixmap("dirs");
 	im_appdir = load_pixmap("application");
 
-	pixbuf = gtk_icon_theme_load_icon(
- 		gtk_icon_theme_get_default(),
- 		"rox",
- 		thumb_size,
- 		0,
- 		NULL
- 		);
+	winicon = gtk_icon_theme_load_icon(
+		gtk_icon_theme_get_default(), "rox", thumb_size, 0, NULL);
 
- 	if (!pixbuf)
-		pixbuf = gdk_pixbuf_new_from_file(
+	if (!winicon)
+		winicon = gdk_pixbuf_new_from_file(
 			make_path(app_dir, ".DirIcon"), &error);
-	if (pixbuf)
-	{
-		GList *icon_list;
-
-		icon_list = g_list_append(NULL, pixbuf);
-		gtk_window_set_default_icon_list(icon_list);
-		g_list_free(icon_list);
-
-		g_object_unref(G_OBJECT(pixbuf));
-	}
+	if (winicon)
+		gtk_window_set_default_icon(winicon);
 	else
 	{
 		g_warning("%s\n", error->message);
@@ -1391,3 +1378,55 @@ static GdkPixbuf *extract_tiff_thumbnail(const gchar *path)
     return buf;
 }
 
+
+static cairo_status_t suf_to_bufcb(void *p,
+		const unsigned char *data, unsigned int len)
+{
+	g_memory_input_stream_add_data((GMemoryInputStream *)p,
+			g_memdup(data, len), len, g_free);
+	return CAIRO_STATUS_SUCCESS;
+}
+static GdkPixbuf *suf_to_buf(cairo_surface_t *suf)
+{
+	GInputStream *st = g_memory_input_stream_new();
+	cairo_surface_write_to_png_stream(suf, suf_to_bufcb, st);
+	GdkPixbuf *ret = gdk_pixbuf_new_from_stream(st, NULL, NULL);
+	g_object_unref(st);
+	return ret;
+}
+GdkPixbuf *pixmap_make_lined(GdkPixbuf *src, GdkColor *colour)
+{
+	if (!(src = src ?: winicon)) return NULL;
+
+	int height = gdk_pixbuf_get_height(src);
+	int width  = gdk_pixbuf_get_width(src);
+
+	cairo_surface_t *suf = cairo_image_surface_create(
+			CAIRO_FORMAT_ARGB32, width, height);
+
+	cairo_t *cr = cairo_create(suf);
+
+	gdk_cairo_set_source_pixbuf(cr, src, 0, 0);
+	cairo_paint(cr);
+
+	gdouble base = height / 14.0;
+	gdk_cairo_set_source_color(cr, colour);
+	cairo_set_line_width(cr, base * 2);
+	cairo_move_to(cr, 0    , height - base * 1.2);
+	cairo_line_to(cr, width, height - base * 1.2);
+	cairo_stroke(cr);
+
+	cairo_set_line_width(cr, base);
+	cairo_move_to(cr, 0    , height - base * 3.4);
+	cairo_line_to(cr, width, height - base * 3.4);
+
+	cairo_stroke(cr);
+
+//	GdkPixbuf *ret = gdk_pixbuf_get_from_surface(suf);
+	GdkPixbuf *ret = suf_to_buf(suf);
+
+	cairo_destroy(cr);
+	cairo_surface_destroy(suf);
+
+	return ret;
+}

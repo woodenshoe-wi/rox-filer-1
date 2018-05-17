@@ -79,5 +79,6 @@ GdkPixbuf *scale_pixbuf(GdkPixbuf *src, int max_w, int max_h);
 gint pixmap_check_thumb(const gchar *path);
 GdkPixbuf *pixmap_load_thumb(const gchar *path);
 char *pixmap_make_thumb_path(const char *path);
+GdkPixbuf *pixmap_make_lined(GdkPixbuf *src, GdkColor *colour);
 
 #endif /* _PIXMAP_H */

@@ -412,48 +412,6 @@ void position_menu(GtkMenu *menu, gint *x, gint *y,
 	*push_in = TRUE;
 }
 
-static cairo_status_t suf_to_bufcb(void *p,
-		const unsigned char *data, unsigned int len)
-{
-	g_memory_input_stream_add_data((GMemoryInputStream *)p,
-			g_memdup(data, len), len, g_free);
-	return CAIRO_STATUS_SUCCESS;
-}
-static GdkPixbuf *suf_to_buf(cairo_surface_t *suf)
-{
-	GInputStream *st = g_memory_input_stream_new();
-	cairo_surface_write_to_png_stream(suf, suf_to_bufcb, st);
-	GdkPixbuf *ret = gdk_pixbuf_new_from_stream(st, NULL, NULL);
-	g_object_unref(st);
-	return ret;
-}
-static GdkPixbuf *make_lined_pix(GdkPixbuf *src, GdkColor *colour)
-{
-	int height = gdk_pixbuf_get_height(src);
-	int width  = gdk_pixbuf_get_width(src);
-
-	cairo_surface_t *suf = cairo_image_surface_create(
-			CAIRO_FORMAT_ARGB32, width, height);
-
-	cairo_t *cr = cairo_create(suf);
-
-	gdk_cairo_set_source_pixbuf(cr, src, 0, 0);
-	cairo_paint(cr);
-
-	gdk_cairo_set_source_color(cr, colour);
-	cairo_set_line_width(cr, 4);
-	cairo_move_to(cr, 0    , height - 2);
-	cairo_line_to(cr, width, height - 2);
-	cairo_stroke(cr);
-
-//	GdkPixbuf *ret = gdk_pixbuf_get_from_surface(suf);
-	GdkPixbuf *ret = suf_to_buf(suf);
-
-	cairo_destroy(cr);
-	cairo_surface_destroy(suf);
-
-	return ret;
-}
 GtkWidget *menu_make_image(DirItem *ditem, MenuIconStyle style)
 {
 	if (style != MIS_NONE && di_image(ditem))
@@ -476,7 +434,7 @@ GtkWidget *menu_make_image(DirItem *ditem, MenuIconStyle style)
 		}
 
 		GdkPixbuf *new = ditem->label ?
-			(pixbuf = make_lined_pix(pixbuf, ditem->label)) : NULL;
+			(pixbuf = pixmap_make_lined(pixbuf, ditem->label)) : NULL;
 
 		GtkWidget *ret = gtk_image_new_from_pixbuf(pixbuf);
 
