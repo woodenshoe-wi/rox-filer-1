@@ -46,6 +46,14 @@ extern Option o_use_background_colour;
 extern Option o_background_colour;
 extern int huge_size;
 extern int monospace_width;
+extern Option o_display_show_name;
+extern Option o_display_show_type;
+extern Option o_display_show_size;
+extern Option o_display_show_permissions;
+extern Option o_display_show_owner;
+extern Option o_display_show_group;
+extern Option o_display_show_last_modified;
+extern Option o_display_show_last_changed;
 
 /* Prototypes */
 void display_init(void);
