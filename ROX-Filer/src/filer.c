@@ -205,6 +205,7 @@ Option o_create_sub_dir_thumbs;
 static Option o_thumb_processes_num;
 Option o_window_link;
 Option o_scroll_speed;
+static Option o_hide_root_msg;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 
@@ -223,6 +224,7 @@ void filer_init(void)
 	option_add_int(&o_filer_view_type, "filer_view_type", VIEW_TYPE_COLLECTION);
 	option_add_int(&o_window_link, "window_link", 1);
 	option_add_int(&o_scroll_speed, "scroll_speed", 6);
+	option_add_int(&o_hide_root_msg, "hide_root_msg", FALSE);
 
 	option_add_int(&o_right_gap, "right_gap", 0);
 	option_add_int(&o_bottom_gap, "bottom_gap", 0);
@@ -2237,13 +2239,10 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 	/* If there's a message that should be displayed in each window (eg
 	 * 'Running as root'), add it here.
 	 */
-	if (show_user_message)
-	{
-		filer_window->message = gtk_label_new(show_user_message);
-		gtk_box_pack_start(GTK_BOX(vbox), filer_window->message,
-				   FALSE, TRUE, 0);
+	filer_window->message = gtk_label_new(show_user_message);
+	gtk_box_pack_start(GTK_BOX(vbox), filer_window->message, FALSE, TRUE, 0);
+	if (show_user_message && !(o_hide_root_msg.int_value && euid == 0))
 		gtk_widget_show(filer_window->message);
-	}
 
 	hbox = gtk_hbox_new(FALSE, 0);
 	filer_window->view_hbox = GTK_BOX(hbox);
@@ -3164,6 +3163,17 @@ static void filer_options_changed(void)
 		pango_font_description_free(current_font);
 		current_font = NULL;
 		set_font(((FilerWindow *) all_filer_windows->data)->window);
+	}
+
+
+	if (all_filer_windows && o_hide_root_msg.has_changed)
+		for (GList *next = all_filer_windows; next; next = next->next)
+	{
+		GtkWidget *msg = ((FilerWindow *)next->data)->message;
+		if (show_user_message && !(o_hide_root_msg.int_value && euid == 0))
+			gtk_widget_show(msg);
+		else
+			gtk_widget_hide(msg);
 	}
 
 	if (all_filer_windows &&
