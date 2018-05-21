@@ -321,7 +321,7 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean not
 
 		if (o_toolbar.int_value != TOOLBAR_NONE)
 			h += filer_window->toolbar->allocation.height;
-		if (filer_window->message)
+		if (gtk_widget_get_visible(filer_window->message))
 			h += filer_window->message->allocation.height;
 	}
 

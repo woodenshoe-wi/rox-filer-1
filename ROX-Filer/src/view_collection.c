@@ -2060,7 +2060,7 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 	 */
 	if (o_toolbar.int_value != TOOLBAR_NONE)
 		t = filer_window->toolbar->allocation.height;
-	if (filer_window->message)
+	if (gtk_widget_get_visible(filer_window->message))
 		t += filer_window->message->allocation.height;
 
 	n = collection->number_of_items;
