@@ -17,7 +17,7 @@ int save_xml_file(xmlDocPtr doc, const gchar *filename);
 xmlDocPtr soap_new(xmlNodePtr *ret_body);
 char *pathdup(const char *path);
 const guchar *make_path(const char *dir, const char *leaf);
-const char *our_host_name(void);
+const char *our_host_name(gboolean fullname);
 const char *our_host_name_for_dnd(void);
 void debug_free_string(void *data);
 const char *user_name(uid_t uid);

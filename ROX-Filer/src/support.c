@@ -157,11 +157,11 @@ const char *our_host_name_for_dnd(void)
 {
 	if (o_dnd_no_hostnames.int_value)
 		return "";
-	return our_host_name();
+	return our_host_name(TRUE);
 }
 
 /* Return our complete host name, unconditionally */
-const char *our_host_name(void)
+const char *our_host_name(gboolean fullname)
 {
 	static char *name = NULL;
 
@@ -172,10 +172,13 @@ const char *our_host_name(void)
 		if (gethostname(buffer, 4096) == 0)
 		{
 			/* gethostname doesn't always return the full name... */
-			struct hostent *ent;
+			struct hostent *ent = NULL;
 
 			buffer[4095] = '\0';
-			ent = gethostbyname(buffer);
+			if (fullname)
+				//because gethostbyname takes a lot of times
+				//do only if the flag is set
+				ent = gethostbyname(buffer);
 			name = g_strdup(ent ? ent->h_name : buffer);
 		}
 		else
@@ -462,7 +465,7 @@ static gboolean is_local_address(char *address)
 
 	ent = gethostbyname(address);
 
-	return strcmp(our_host_name(), ent ? ent->h_name : address) == 0;
+	return strcmp(our_host_name(TRUE), ent ? ent->h_name : address) == 0;
 }
 
 /* Convert a URI to a local pathname (or NULL if it isn't local).

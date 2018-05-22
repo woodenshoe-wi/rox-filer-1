@@ -209,12 +209,32 @@ static Option o_hide_root_msg;
 
 #define ROX_RESPONSE_EJECT 99 /**< User clicked on Eject button */
 
+static gpointer checklocal(gpointer p)
+{
+	/* Is the display on the local machine, or are we being
+	 * run remotely? See filer_set_title().
+	 */
+	const gchar *ohost   = our_host_name(TRUE);
+	      gchar *dpyhost = g_strdup(gdk_get_display());
+	gchar *sep = strchr(dpyhost, ':');
+	if (sep) *sep = '\0';
+
+	if (dpyhost[0] && strcmp(ohost, dpyhost) != 0)
+	{
+		/* Try the cannonical name for dpyhost (see our_host_name()
+		 * in support.c).
+		 */
+		struct hostent *ent = gethostbyname(dpyhost);
+		if (!ent || strcmp(ohost, ent->h_name) != 0)
+			not_local = TRUE;
+	}
+	g_free(dpyhost);
+
+	return NULL;
+}
+
 void filer_init(void)
 {
-	const gchar *ohost;
-	const gchar *dpy;
-	gchar *dpyhost, *tmp;
-
 	option_add_int(&o_filer_size_limit, "filer_size_limit", 60);
 	option_add_int(&o_filer_width_limit, "filer_width_limit", 0);
 	option_add_int(&o_filer_auto_resize, "filer_auto_resize", RESIZE_ALWAYS);
@@ -245,29 +265,7 @@ void filer_init(void)
 	window_with_id = g_hash_table_new_full(g_str_hash, g_str_equal,
 					       NULL, NULL);
 
-	/* Is the display on the local machine, or are we being
-	 * run remotely? See filer_set_title().
-	 */
-	ohost = our_host_name();
-	dpy = gdk_get_display();
-	dpyhost = g_strdup(dpy);
-	tmp = strchr(dpyhost, ':');
-	if (tmp)
-	        *tmp = '\0';
-
-	if (dpyhost[0] && strcmp(ohost, dpyhost) != 0)
-	{
-		/* Try the cannonical name for dpyhost (see our_host_name()
-		 * in support.c).
-		 */
-	        struct hostent *ent;
-
-		ent = gethostbyname(dpyhost);
-		if (!ent || strcmp(ohost, ent->h_name) != 0)
-		        not_local = TRUE;
-	}
-
-	g_free(dpyhost);
+	g_thread_new(NULL, checklocal, NULL);
 
 	load_settings();
 	load_learnt_mounts();
@@ -2700,7 +2698,7 @@ void filer_set_title(FilerWindow *filer_window)
 	}
 
 	if (not_local)
-	        title = g_strconcat("//", our_host_name(),
+	        title = g_strconcat("//", our_host_name(TRUE),
 			    filer_window->sym_path, flags, NULL);
 
 	if (!title)
