@@ -2125,18 +2125,7 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 
 	/* Limit x */
 	if (x < min_x)
-	{
-		if (n * w > min_x)
-		{
-			cols = MAX(min_x / w, 1);
-			x = cols * w;
-			if (min_x != x)
-				x += w;
-		}
-		else
-			x = n * w;
-	}
-
+		x = min_x;
 	if (x > max_x)
 		x = max_x;
 
