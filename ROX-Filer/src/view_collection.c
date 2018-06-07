@@ -1325,13 +1325,13 @@ static void style_set(Collection 	*collection,
 
 /* Return the size needed for this item */
 //if reached max size then return true;
-static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
+static gfloat calc_size(FilerWindow *fw, CollectionItem *colitem,
 		int *mwidth, int *mheight, gint number_of_items)
 {
-	DisplayStyle style = filer_window->display_style;
-	DetailsType  type  = filer_window->details_type;
+	DisplayStyle style = fw->display_style;
+	DetailsType  type  = fw->details_type;
 	ViewData     *view = (ViewData *) colitem->view_data;
-	gfloat       scale = filer_window->icon_scale;
+	gfloat       scale = fw->icon_scale;
 
 	int w, h;
 	gboolean max_h = FALSE;
@@ -1347,10 +1347,10 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		if (type == DETAILS_NONE)
 		{
 			w = nw;
-			if (w >= o_small_width.int_value * filer_window->name_scale)
+			if (w >= o_small_width.int_value)
 			{
 				max_w = TRUE;
-				w = o_small_width.int_value * filer_window->name_scale;
+				w = o_small_width.int_value;
 			}
 			w += small_width * 1.2;
 			h = small_height;
@@ -1358,12 +1358,12 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		else
 		{
 			w = small_width * 1.2 + view->details_width;
-			if (nw >= o_small_width.int_value * filer_window->name_scale)
+			if (nw >= o_small_width.int_value)
 			{
 				if (type != DETAILS_TYPE)
 					max_w = TRUE;
 
-				w += o_small_width.int_value * filer_window->name_scale;
+				w += o_small_width.int_value;
 			}
 			else
 				w += nw;
@@ -1380,7 +1380,7 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 		int ml = 0;
 
 		if (o_max_length.int_value)
-			nw = MIN(nw, ml = o_max_length.int_value * filer_window->name_scale);
+			nw = MIN(nw, ml = o_max_length.int_value);
 
 		if (type == DETAILS_NONE || style == HUGE_ICONS)
 		{
@@ -1414,7 +1414,7 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 			if (max_h && type != DETAILS_TYPE)
 			{
 				w = MAX(pix_size,
-						o_large_width.int_value * filer_window->name_scale);
+						o_large_width.int_value);
 
 				if (style == HUGE_ICONS)
 					w = MAX(w, huge_size);
@@ -1447,6 +1447,12 @@ static gfloat calc_size(FilerWindow *filer_window, CollectionItem *colitem,
 
 	*mwidth = MAX(*mwidth, w);
 	*mheight = MAX(*mheight, h);
+
+	if (fw->name_scale != 1.0)
+	{
+		*mwidth  = fw->name_scale_itemw * fw->name_scale;
+		max_w = TRUE;
+	}
 
 	return max_h && max_w ? scale : .0;
 }
@@ -1506,6 +1512,9 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 
 	if (flags != VIEW_UPDATE_VIEWDATA)
 		col->reached_scale = .0;
+
+	if (flags & VIEW_UPDATE_NAME && !(flags & VIEW_UPDATE_SCALE))
+		filer_window->name_scale = 1.0;
 
 	if (n == 0 && filer_window->display_style != SMALL_ICONS)
 		height = ICON_HEIGHT;

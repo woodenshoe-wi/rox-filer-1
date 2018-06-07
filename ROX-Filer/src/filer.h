@@ -138,6 +138,7 @@ struct _FilerWindow
 
 	gint		resize_drag_width; //window width
 	gfloat		name_scale_start;
+	gint		name_scale_itemw;
 	gfloat		name_scale; /* temporary scale */
 
 

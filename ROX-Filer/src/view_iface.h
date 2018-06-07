@@ -107,6 +107,7 @@ enum {
 	VIEW_UPDATE_VIEWDATA	= 1 << 0,
 	VIEW_UPDATE_NAME	= 1 << 1,
 	VIEW_UPDATE_HEADERS	= 1 << 2,
+	VIEW_UPDATE_SCALE	= 1 << 3,
 };
 
 GType view_iface_get_type(void);

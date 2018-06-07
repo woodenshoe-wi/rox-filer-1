@@ -2304,17 +2304,23 @@ static gboolean configure_cb(
 				fw->window->window, NULL, NULL,
 				&cw,
 				NULL, NULL);
-		fw->name_scale = cw * fw->name_scale_start / fw->resize_drag_width;
-		if (fw->name_scale > 1.0)
-		{
-			fw->name_scale -= 0.06; //margin
-			if (fw->name_scale < 1.0)
-				fw->name_scale = 1.0;
-		}
-		else
-			fw->name_scale -= 0.06; //margin
 
-		view_style_changed(fw->view, VIEW_UPDATE_NAME);
+		if (fw->name_scale == 1.0) //just, toolbar doesn't know collection
+			fw->name_scale_itemw =
+				VIEW_COLLECTION(fw->view)->collection->item_width;
+
+		fw->name_scale = cw * fw->name_scale_start / fw->resize_drag_width;
+		if (fw->name_scale_start == 1.0)
+		{
+			if (fw->name_scale > 1.03)
+				fw->name_scale -= 0.03; //margin
+			else if (fw->name_scale > 1.0)
+				fw->name_scale = 1.0;
+			else
+				fw->name_scale -= 0.03; //margin
+		}
+
+		view_style_changed(fw->view, VIEW_UPDATE_NAME | VIEW_UPDATE_SCALE);
 	}
 
 	if (fw->right_link)
