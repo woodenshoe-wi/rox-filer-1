@@ -116,13 +116,15 @@ static MIME_type *type_change = NULL;
 static gboolean o_force = FALSE;
 static gboolean o_brief = FALSE;
 static gboolean o_recurse = FALSE;
+static gboolean o_merge = FALSE;
 static gboolean o_newer = FALSE;
+static gboolean o_ignore = FALSE;
 static gboolean o_seqno = FALSE;
 
 static Option o_action_copy, o_action_move, o_action_link;
 static Option o_action_delete, o_action_mount;
 static Option o_action_force, o_action_brief, o_action_recurse;
-static Option o_action_newer;
+static Option o_action_merge, o_action_newer, o_action_ignore;
 
 static Option o_action_mount_command;
 static Option o_action_umount_command;
@@ -650,8 +652,14 @@ static void process_flag(char flag)
 		case 'B':
 			o_brief = !o_brief;
 			break;
+		case 'M':
+			o_merge = !o_merge;
+			break;
 		case 'W':
 			o_newer = !o_newer;
+			break;
+		case 'I':
+			o_ignore = !o_ignore;
 			break;
 		case 'E':
 			read_new_entry_text();
@@ -794,7 +802,7 @@ static void destroy_action_window(GtkWidget *widget, gpointer data)
  * (NULL on failure). The child calls func().
  */
 static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
-			      int force, int brief, int recurse, int newer)
+		int force, int brief, int recurse, int merge, int newer, int ignore)
 {
 
 	gboolean	autoq;
@@ -825,7 +833,9 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 	o_force = force;
 	o_brief = brief;
 	o_recurse = recurse;
+	o_merge = merge;
 	o_newer = newer;
+	o_ignore = ignore;
 	o_seqno = FALSE;
 
 	child = fork();
@@ -1373,6 +1383,17 @@ static void do_copy2(const char *path, const char *dest)
 
 		if (o_seqno)
 			rep = 2;
+		else if (o_ignore &&
+				info.st_mtime < dest_info.st_mtime &&
+				!S_ISDIR(info.st_mode))
+		{
+			/* Ignore Older; skip */
+			return;
+		}
+		else if (merge && o_merge)
+		{
+			/* Automatic merging; keep going */
+		}
 		else
 		{
 			if (merge)
@@ -1564,6 +1585,13 @@ static void do_move2(const char *path, const char *dest)
 
 		if (o_seqno)
 			rep = 2;
+		else if (o_ignore &&
+				info2.st_mtime < info.st_mtime &&
+				!S_ISDIR(info2.st_mode))
+		{
+			/* Ignore Older; skip */
+			return;
+		}
 		else
 		{
 			printf_send("2"); //seqno
@@ -2065,7 +2093,9 @@ void action_find(GList *paths)
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2105,7 +2135,9 @@ void action_usage(GList *paths)
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2140,7 +2172,9 @@ void action_mount(GList	*paths, gboolean open_dir, gboolean mount, int quiet)
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2171,7 +2205,9 @@ void action_delete(GList *paths)
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2232,7 +2268,9 @@ void action_chmod(GList *paths, gboolean force_recurse, const char *action)
 				o_action_force.int_value,
 				o_action_brief.int_value,
 				recurse,
-				o_action_newer.int_value);
+				o_action_merge.int_value,
+				o_action_newer.int_value,
+				o_action_ignore.int_value);
 
 	if (!gui_side)
 		goto out;
@@ -2295,7 +2333,9 @@ void action_settype(GList *paths, gboolean force_recurse, const char *oldtype)
 				o_action_force.int_value,
 				o_action_brief.int_value,
 				recurse,
-				o_action_newer.int_value);
+				o_action_merge.int_value,
+				o_action_newer.int_value,
+				o_action_ignore.int_value);
 
 	if (!gui_side)
 		goto out;
@@ -2365,7 +2405,9 @@ void action_copy(GList *paths, const char *dest, const char *leaf, int quiet)
 					 FALSE,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2376,9 +2418,17 @@ void action_copy(GList *paths, const char *dest, const char *leaf, int quiet)
 		_("Force"), _("Don't confirm over-write."),
 		'F', FALSE);
 	abox_add_flag(ABOX(abox),
+		   _("Ignore Older"),
+		   _("Silently ignore if source is older than destination."),
+		   'I', o_action_ignore.int_value);
+	abox_add_flag(ABOX(abox),
 		   _("Newer"),
 		   _("Always over-write if source is newer than destination."),
 		   'W', o_action_newer.int_value);
+	abox_add_flag(ABOX(abox),
+		   _("Merge"),
+		   _("Always merge directories."),
+		   'M', o_action_merge.int_value);
 	abox_add_flag(ABOX(abox),
 		_("Brief"), _("Only log directories as they are copied"),
 		'B', o_action_brief.int_value);
@@ -2411,7 +2461,9 @@ void action_move(GList *paths, const char *dest, const char *leaf, int quiet)
 					FALSE,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2421,6 +2473,10 @@ void action_move(GList *paths, const char *dest, const char *leaf, int quiet)
 	abox_add_flag(ABOX(abox),
 		_("Force"), _("Don't confirm over-write."),
 		'F', FALSE);
+	abox_add_flag(ABOX(abox),
+		   _("Ignore Older"),
+		   _("Silently ignore if source is older than destination."),
+		   'I', o_action_ignore.int_value);
 	abox_add_flag(ABOX(abox),
 		   _("Newer"),
 		   _("Always over-write if source is newer than destination."),
@@ -2456,7 +2512,9 @@ void action_link(GList *paths, const char *dest, const char *leaf,
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2479,7 +2537,9 @@ void action_eject(GList *paths)
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2499,7 +2559,9 @@ void action_init(void)
 	option_add_int(&o_action_force, "action_force", FALSE);
 	option_add_int(&o_action_brief, "action_brief", FALSE);
 	option_add_int(&o_action_recurse, "action_recurse", FALSE);
+	option_add_int(&o_action_merge, "action_merge", FALSE);
 	option_add_int(&o_action_newer, "action_newer", FALSE);
+	option_add_int(&o_action_ignore, "action_ignore", FALSE);
 
 	option_add_string(&o_action_mount_command,
 			  "action_mount_command", "mount");
