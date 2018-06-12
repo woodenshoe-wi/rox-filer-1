@@ -161,9 +161,10 @@ const char *our_host_name_for_dnd(void)
 }
 
 /* Return our complete host name, unconditionally */
-const char *our_host_name(gboolean fullname)
+const char *our_host_name(gboolean full)
 {
 	static char *name = NULL;
+	static char *fullname = NULL;
 
 	if (!name)
 	{
@@ -171,24 +172,27 @@ const char *our_host_name(gboolean fullname)
 
 		if (gethostname(buffer, 4096) == 0)
 		{
-			/* gethostname doesn't always return the full name... */
-			struct hostent *ent = NULL;
-
 			buffer[4095] = '\0';
-			if (fullname)
-				//because gethostbyname takes a lot of times
-				//do only if the flag is set
-				ent = gethostbyname(buffer);
-			name = g_strdup(ent ? ent->h_name : buffer);
+			name = g_strdup(buffer);
 		}
 		else
 		{
 			g_warning("gethostname() failed - using localhost\n");
-			name = g_strdup("localhost");
+			fullname = name = g_strdup("localhost");
 		}
 	}
 
-	return name;
+	//because gethostbyname takes a lot of times
+	//do only if the flag is set
+	if (full && !fullname)
+	{
+		/* gethostname doesn't always return the full name... */
+		struct hostent *ent = NULL;
+		ent = gethostbyname(name);
+		fullname = ent ? g_strdup(ent->h_name) : name;
+	}
+
+	return full ? fullname : name;
 }
 
 void debug_free_string(void *data)
