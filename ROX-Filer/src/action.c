@@ -1571,38 +1571,46 @@ static void do_move2(const char *path, const char *dest)
 {
 	const char	*dest_path;
 	const char	*argv[] = {"mv", "-f", NULL, NULL, NULL};
-	struct stat	info2;
-	gboolean	is_dir;
-	char            *err;
+	struct stat 	info;
+	struct stat 	dest_info;
+	guchar		*error = NULL;
 
 	check_flags();
 
 	dest_path = make_dest_path(path, dest);
 
-	is_dir = mc_lstat(path, &info2) == 0 && S_ISDIR(info2.st_mode);
-
-	if (access(dest_path, F_OK) == 0)
+	if (mc_lstat(path, &info))
 	{
-		struct stat	info;
+		send_error();
+		return;
+	}
+
+	if (mc_lstat(dest_path, &dest_info) == 0)
+	{
 		int err = 0, rep = 0;
+		gboolean	merge;
 		gboolean	ignore_quiet;
 
-		if (mc_lstat(dest_path, &info))
-		{
-			send_error();
-			return;
-		}
+		merge = S_ISDIR(info.st_mode) && S_ISDIR(dest_info.st_mode);
 
 		if (o_ignore &&
-				info2.st_mtime <= info.st_mtime &&
-				!S_ISDIR(info2.st_mode))
+				info.st_mtime <= dest_info.st_mtime &&
+				!S_ISDIR(info.st_mode))
 		{
 			/* Ignore Older; skip */
 			return;
 		}
+		else if (merge && o_merge)
+		{
+			/* Automatic merging; keep going */
+		}
 		else
 		{
-			printf_send("2"); //seqno
+			if (merge)
+				printf_send("3"); //seqno only all
+			else
+				printf_send("2"); //seqno on
+
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
 
@@ -1614,8 +1622,8 @@ static void do_move2(const char *path, const char *dest)
 			* "Newer" checkbox probably don't want to be prompted whether
 			* to overwrite a file that has an identical mtime. */
 			else if (o_newer &&
-					info2.st_mtime >= info.st_mtime &&
-					!S_ISDIR(info2.st_mode))
+					info.st_mtime >= dest_info.st_mtime &&
+					!S_ISDIR(info.st_mode))
 			{
 				ignore_quiet = FALSE;
 			}
@@ -1631,27 +1639,31 @@ static void do_move2(const char *path, const char *dest)
 			}
 			else
 			{
-
 				if (!(rep = printf_reply(from_parent, ignore_quiet,
-				       _("?'%s' already exists - overwrite?"),
-				       dest_path)))
+					  _("?'%s' already exists - %s?"),
+					  dest_path,
+					  merge ? _("merge contents")
+					        : _("overwrite"))))
 					return;
 			}
 		}
 
-		if (rep == 2)
-			dest_path = seq_path(dest_path);
-		else if (S_ISDIR(info.st_mode))
-			err = rmdir(dest_path);
-		else
-			err = unlink(dest_path);
-
-		if (err)
+		if (!merge)
 		{
-			send_error();
-			if (errno != ENOENT)
-				return;
-			printf_send(_("'Trying move anyway...\n"));
+			if (rep == 2)
+				dest_path = seq_path(dest_path);
+			else if (S_ISDIR(dest_info.st_mode))
+				err = rmdir(dest_path);
+			else
+				err = unlink(dest_path);
+
+			if (err)
+			{
+				send_error();
+				if (errno != ENOENT)
+					return;
+				printf_send(_("'Trying move anyway...\n"));
+			}
 		}
 	}
 	else if (!quiet)
@@ -1662,24 +1674,67 @@ static void do_move2(const char *path, const char *dest)
 				  _("?Move %s as %s?"), path, dest_path))
 			return;
 	}
-	else if (!o_brief)
+	else if (!o_brief || S_ISDIR(info.st_mode))
 		printf_send(_("'Moving %s as %s\n"), path, dest_path);
 
 	argv[2] = path;
 	argv[3] = dest_path;
 
-	err = fork_exec_wait(argv);
-	if (err)
+	if (S_ISDIR(info.st_mode))
+	{
+		char *safe_path, *safe_dest;
+		struct stat 	dest_info;
+		gboolean	exists;
+
+		safe_path = g_strdup(path);
+		safe_dest = g_strdup(dest_path);
+
+		exists = !mc_lstat(dest_path, &dest_info);
+
+		if (exists && !S_ISDIR(dest_info.st_mode))
+			printf_send(_("!ERROR: Destination already exists, "
+				      "but is not a directory\n"));
+		else
+		{
+			if (exists)
+			{
+				action_leaf = NULL;
+				for_dir_contents(do_move2, safe_path, safe_dest);
+				/* Note: dest_path now invalid... */
+
+				/* If rmdir cannot delete the directory because it is not empty
+				 * it is probably because some files failed to be moved,
+				 * so not treating it as an error. */
+				rmdir(safe_path);
+			}
+			else
+			{
+				/* Do actual move. */
+				error = fork_exec_wait(argv);
+			}
+		}
+
+		g_free(safe_path);
+		g_free(safe_dest);
+	}
+	else
+	{
+		/* Do actual move. */
+		error = fork_exec_wait(argv);
+	}
+
+	if (error)
 	{
 		printf_send(_("!%s\nFailed to move %s as %s\n"),
-			    err, path, dest_path);
-		g_free(err);
+			error, path, dest_path);
+		g_free(error);
+		error = NULL;
 	}
 	else
 	{
 		send_check_path(dest_path);
 
-		if (is_dir)
+		if (S_ISDIR(info.st_mode))
 			send_mount_path(path);
 		else
 			send_check_path(path);
@@ -2439,17 +2494,17 @@ void action_copy(GList *paths, const char *dest, const char *leaf, int quiet)
 		_("Force"), _("Don't confirm over-write."),
 		'F', FALSE);
 	abox_add_flag(ABOX(abox),
-		   _("Ignore Older"),
-		   _("Silently ignore if source is older than destination."),
-		   'I', o_action_ignore.int_value);
+		_("Ignore Older"),
+		_("Silently ignore if source is older than destination."),
+		'I', o_action_ignore.int_value);
 	abox_add_flag(ABOX(abox),
-		   _("Newer"),
-		   _("Always over-write if source is newer than destination."),
-		   'W', o_action_newer.int_value);
+		_("Newer"),
+		_("Always over-write if source is newer than destination."),
+		'W', o_action_newer.int_value);
 	abox_add_flag(ABOX(abox),
-		   _("Merge"),
-		   _("Always merge directories."),
-		   'M', o_action_merge.int_value);
+		_("Merge"),
+		_("Always merge directories."),
+		'M', o_action_merge.int_value);
 	abox_add_flag(ABOX(abox),
 		_("Brief"), _("Only log directories as they are copied"),
 		'B', o_action_brief.int_value);
@@ -2495,13 +2550,17 @@ void action_move(GList *paths, const char *dest, const char *leaf, int quiet)
 		_("Force"), _("Don't confirm over-write."),
 		'F', FALSE);
 	abox_add_flag(ABOX(abox),
-		   _("Ignore Older"),
-		   _("Silently ignore if source is older than destination."),
-		   'I', o_action_ignore.int_value);
+		_("Ignore Older"),
+		_("Silently ignore if source is older than destination."),
+		'I', o_action_ignore.int_value);
 	abox_add_flag(ABOX(abox),
-		   _("Newer"),
-		   _("Always over-write if source is newer than destination."),
-		   'W', o_action_newer.int_value);
+		_("Newer"),
+		_("Always over-write if source is newer than destination."),
+		'W', o_action_newer.int_value);
+	abox_add_flag(ABOX(abox),
+		_("Merge"),
+		_("Always merge directories."),
+		'M', o_action_merge.int_value);
 	abox_add_flag(ABOX(abox),
 		_("Brief"), _("Don't log each file as it is moved"),
 		'B', o_action_brief.int_value);
