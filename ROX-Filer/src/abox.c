@@ -252,7 +252,7 @@ static void flag_toggled(GtkToggleButton *toggle, ABox *abox)
 	code = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(toggle),
 						 "abox-response"));
 
-	if (code == 'Q' || code == 'F')
+	if (code == 'Q')
 		shade(abox);
 
 	g_signal_emit_by_name(abox, "flag_toggled", code);
