@@ -116,13 +116,15 @@ static MIME_type *type_change = NULL;
 static gboolean o_force = FALSE;
 static gboolean o_brief = FALSE;
 static gboolean o_recurse = FALSE;
+static gboolean o_merge = FALSE;
 static gboolean o_newer = FALSE;
+static gboolean o_ignore = FALSE;
 static gboolean o_seqno = FALSE;
 
 static Option o_action_copy, o_action_move, o_action_link;
 static Option o_action_delete, o_action_mount;
 static Option o_action_force, o_action_brief, o_action_recurse;
-static Option o_action_newer;
+static Option o_action_merge, o_action_newer, o_action_ignore;
 
 static Option o_action_mount_command;
 static Option o_action_umount_command;
@@ -650,8 +652,14 @@ static void process_flag(char flag)
 		case 'B':
 			o_brief = !o_brief;
 			break;
+		case 'M':
+			o_merge = !o_merge;
+			break;
 		case 'W':
 			o_newer = !o_newer;
+			break;
+		case 'I':
+			o_ignore = !o_ignore;
 			break;
 		case 'E':
 			read_new_entry_text();
@@ -794,7 +802,7 @@ static void destroy_action_window(GtkWidget *widget, gpointer data)
  * (NULL on failure). The child calls func().
  */
 static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
-			      int force, int brief, int recurse, int newer)
+		int force, int brief, int recurse, int merge, int newer, int ignore)
 {
 
 	gboolean	autoq;
@@ -825,7 +833,9 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 	o_force = force;
 	o_brief = brief;
 	o_recurse = recurse;
+	o_merge = merge;
 	o_newer = newer;
+	o_ignore = ignore;
 	o_seqno = FALSE;
 
 	child = fork();
@@ -1367,15 +1377,21 @@ static void do_copy2(const char *path, const char *dest)
 	{
 		int err = 0, rep = 0;
 		gboolean	merge;
+		gboolean	ignore_quiet;
 
 		merge = S_ISDIR(info.st_mode) && S_ISDIR(dest_info.st_mode);
 
-		if (!merge && o_newer && info.st_mtime > dest_info.st_mtime)
+		if (o_ignore &&
+				info.st_mtime <= dest_info.st_mtime &&
+				!S_ISDIR(info.st_mode))
 		{
-			/* Newer; keep going */
+			/* Ignore Older; skip */
+			return;
 		}
-		else if (o_seqno)
-			rep = 2;
+		else if (merge && o_merge)
+		{
+			/* Automatic merging; keep going */
+		}
 		else
 		{
 			if (merge)
@@ -1385,12 +1401,39 @@ static void do_copy2(const char *path, const char *dest)
 
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
-			if (!(rep = printf_reply(from_parent, !o_force,
+
+			if (o_force)
+			{
+				ignore_quiet = FALSE;
+			}
+			/* Using greater than or equal because people who tick the
+			* "Newer" checkbox probably don't want to be prompted whether
+			* to overwrite a file that has an identical mtime. */
+			else if (o_newer &&
+					info.st_mtime >= dest_info.st_mtime &&
+					!S_ISDIR(info.st_mode))
+			{
+				ignore_quiet = FALSE;
+			}
+			else
+			{
+				ignore_quiet = TRUE;
+			}
+
+
+			if (o_seqno && ignore_quiet == TRUE)
+			{
+				rep = 2;
+			}
+			else
+			{
+				if (!(rep = printf_reply(from_parent, ignore_quiet,
 					  _("?'%s' already exists - %s?"),
 					  dest_path,
 					  merge ? _("merge contents")
 					        : _("overwrite"))))
-				return;
+					return;
+			}
 		}
 
 		if (!merge)
@@ -1528,57 +1571,99 @@ static void do_move2(const char *path, const char *dest)
 {
 	const char	*dest_path;
 	const char	*argv[] = {"mv", "-f", NULL, NULL, NULL};
-	struct stat	info2;
-	gboolean	is_dir;
-	char            *err;
+	struct stat 	info;
+	struct stat 	dest_info;
+	guchar		*error = NULL;
 
 	check_flags();
 
 	dest_path = make_dest_path(path, dest);
 
-	is_dir = mc_lstat(path, &info2) == 0 && S_ISDIR(info2.st_mode);
-
-	if (access(dest_path, F_OK) == 0)
+	if (mc_lstat(path, &info))
 	{
-		struct stat	info;
-		int err = 0, rep = 0;
+		send_error();
+		return;
+	}
 
-		if (mc_lstat(dest_path, &info))
+	if (mc_lstat(dest_path, &dest_info) == 0)
+	{
+		int err = 0, rep = 0;
+		gboolean	merge;
+		gboolean	ignore_quiet;
+
+		merge = S_ISDIR(info.st_mode) && S_ISDIR(dest_info.st_mode);
+
+		if (o_ignore &&
+				info.st_mtime <= dest_info.st_mtime &&
+				!S_ISDIR(info.st_mode))
 		{
-			send_error();
+			/* Ignore Older; skip */
 			return;
 		}
-
-		if (!is_dir && o_newer && info2.st_mtime > info.st_mtime)
+		else if (merge && o_merge)
 		{
-			/* Newer; keep going */
+			/* Automatic merging; keep going */
 		}
-		else if (o_seqno)
-			rep = 2;
 		else
 		{
-			printf_send("2"); //seqno
+			if (merge)
+				printf_send("3"); //seqno only all
+			else
+				printf_send("2"); //seqno on
+
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
-			if (!(rep = printf_reply(from_parent, !o_force,
-				       _("?'%s' already exists - overwrite?"),
-				       dest_path)))
-				return;
+
+			if (o_force)
+			{
+				ignore_quiet = FALSE;
+			}
+			/* Using greater than or equal because people who tick the
+			* "Newer" checkbox probably don't want to be prompted whether
+			* to overwrite a file that has an identical mtime. */
+			else if (o_newer &&
+					info.st_mtime >= dest_info.st_mtime &&
+					!S_ISDIR(info.st_mode))
+			{
+				ignore_quiet = FALSE;
+			}
+			else
+			{
+				ignore_quiet = TRUE;
+			}
+
+
+			if (o_seqno && ignore_quiet == TRUE)
+			{
+				rep = 2;
+			}
+			else
+			{
+				if (!(rep = printf_reply(from_parent, ignore_quiet,
+					  _("?'%s' already exists - %s?"),
+					  dest_path,
+					  merge ? _("merge contents")
+					        : _("overwrite"))))
+					return;
+			}
 		}
 
-		if (rep == 2)
-			dest_path = seq_path(dest_path);
-		else if (S_ISDIR(info.st_mode))
-			err = rmdir(dest_path);
-		else
-			err = unlink(dest_path);
-
-		if (err)
+		if (!merge)
 		{
-			send_error();
-			if (errno != ENOENT)
-				return;
-			printf_send(_("'Trying move anyway...\n"));
+			if (rep == 2)
+				dest_path = seq_path(dest_path);
+			else if (S_ISDIR(dest_info.st_mode))
+				err = rmdir(dest_path);
+			else
+				err = unlink(dest_path);
+
+			if (err)
+			{
+				send_error();
+				if (errno != ENOENT)
+					return;
+				printf_send(_("'Trying move anyway...\n"));
+			}
 		}
 	}
 	else if (!quiet)
@@ -1589,24 +1674,67 @@ static void do_move2(const char *path, const char *dest)
 				  _("?Move %s as %s?"), path, dest_path))
 			return;
 	}
-	else if (!o_brief)
+	else if (!o_brief || S_ISDIR(info.st_mode))
 		printf_send(_("'Moving %s as %s\n"), path, dest_path);
 
 	argv[2] = path;
 	argv[3] = dest_path;
 
-	err = fork_exec_wait(argv);
-	if (err)
+	if (S_ISDIR(info.st_mode))
+	{
+		char *safe_path, *safe_dest;
+		struct stat 	dest_info;
+		gboolean	exists;
+
+		safe_path = g_strdup(path);
+		safe_dest = g_strdup(dest_path);
+
+		exists = !mc_lstat(dest_path, &dest_info);
+
+		if (exists && !S_ISDIR(dest_info.st_mode))
+			printf_send(_("!ERROR: Destination already exists, "
+				      "but is not a directory\n"));
+		else
+		{
+			if (exists)
+			{
+				action_leaf = NULL;
+				for_dir_contents(do_move2, safe_path, safe_dest);
+				/* Note: dest_path now invalid... */
+
+				/* If rmdir cannot delete the directory because it is not empty
+				 * it is probably because some files failed to be moved,
+				 * so not treating it as an error. */
+				rmdir(safe_path);
+			}
+			else
+			{
+				/* Do actual move. */
+				error = fork_exec_wait(argv);
+			}
+		}
+
+		g_free(safe_path);
+		g_free(safe_dest);
+	}
+	else
+	{
+		/* Do actual move. */
+		error = fork_exec_wait(argv);
+	}
+
+	if (error)
 	{
 		printf_send(_("!%s\nFailed to move %s as %s\n"),
-			    err, path, dest_path);
-		g_free(err);
+			error, path, dest_path);
+		g_free(error);
+		error = NULL;
 	}
 	else
 	{
 		send_check_path(dest_path);
 
-		if (is_dir)
+		if (S_ISDIR(info.st_mode))
 			send_mount_path(path);
 		else
 			send_check_path(path);
@@ -2041,7 +2169,9 @@ void action_find(GList *paths)
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2081,7 +2211,9 @@ void action_usage(GList *paths)
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2116,7 +2248,9 @@ void action_mount(GList	*paths, gboolean open_dir, gboolean mount, int quiet)
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2147,7 +2281,9 @@ void action_delete(GList *paths)
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2208,7 +2344,9 @@ void action_chmod(GList *paths, gboolean force_recurse, const char *action)
 				o_action_force.int_value,
 				o_action_brief.int_value,
 				recurse,
-				o_action_newer.int_value);
+				o_action_merge.int_value,
+				o_action_newer.int_value,
+				o_action_ignore.int_value);
 
 	if (!gui_side)
 		goto out;
@@ -2271,7 +2409,9 @@ void action_settype(GList *paths, gboolean force_recurse, const char *oldtype)
 				o_action_force.int_value,
 				o_action_brief.int_value,
 				recurse,
-				o_action_newer.int_value);
+				o_action_merge.int_value,
+				o_action_newer.int_value,
+				o_action_ignore.int_value);
 
 	if (!gui_side)
 		goto out;
@@ -2341,7 +2481,9 @@ void action_copy(GList *paths, const char *dest, const char *leaf, int quiet)
 					 FALSE,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2352,9 +2494,17 @@ void action_copy(GList *paths, const char *dest, const char *leaf, int quiet)
 		_("Force"), _("Don't confirm over-write."),
 		'F', FALSE);
 	abox_add_flag(ABOX(abox),
-		   _("Newer"),
-		   _("Only over-write if source is newer than destination."),
-		   'W', o_action_newer.int_value);
+		_("Ignore Older"),
+		_("Silently ignore if source is older than destination."),
+		'I', o_action_ignore.int_value);
+	abox_add_flag(ABOX(abox),
+		_("Newer"),
+		_("Always over-write if source is newer than destination."),
+		'W', o_action_newer.int_value);
+	abox_add_flag(ABOX(abox),
+		_("Merge"),
+		_("Always merge directories."),
+		'M', o_action_merge.int_value);
 	abox_add_flag(ABOX(abox),
 		_("Brief"), _("Only log directories as they are copied"),
 		'B', o_action_brief.int_value);
@@ -2387,7 +2537,9 @@ void action_move(GList *paths, const char *dest, const char *leaf, int quiet)
 					FALSE,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2398,9 +2550,17 @@ void action_move(GList *paths, const char *dest, const char *leaf, int quiet)
 		_("Force"), _("Don't confirm over-write."),
 		'F', FALSE);
 	abox_add_flag(ABOX(abox),
-		   _("Newer"),
-		   _("Only over-write if source is newer than destination."),
-		   'W', o_action_newer.int_value);
+		_("Ignore Older"),
+		_("Silently ignore if source is older than destination."),
+		'I', o_action_ignore.int_value);
+	abox_add_flag(ABOX(abox),
+		_("Newer"),
+		_("Always over-write if source is newer than destination."),
+		'W', o_action_newer.int_value);
+	abox_add_flag(ABOX(abox),
+		_("Merge"),
+		_("Always merge directories."),
+		'M', o_action_merge.int_value);
 	abox_add_flag(ABOX(abox),
 		_("Brief"), _("Don't log each file as it is moved"),
 		'B', o_action_brief.int_value);
@@ -2432,7 +2592,9 @@ void action_link(GList *paths, const char *dest, const char *leaf,
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2455,7 +2617,9 @@ void action_eject(GList *paths)
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
 					 o_action_recurse.int_value,
-					 o_action_newer.int_value);
+					 o_action_merge.int_value,
+					 o_action_newer.int_value,
+					 o_action_ignore.int_value);
 	if (!gui_side)
 		return;
 
@@ -2475,7 +2639,9 @@ void action_init(void)
 	option_add_int(&o_action_force, "action_force", FALSE);
 	option_add_int(&o_action_brief, "action_brief", FALSE);
 	option_add_int(&o_action_recurse, "action_recurse", FALSE);
+	option_add_int(&o_action_merge, "action_merge", FALSE);
 	option_add_int(&o_action_newer, "action_newer", FALSE);
+	option_add_int(&o_action_ignore, "action_ignore", FALSE);
 
 	option_add_string(&o_action_mount_command,
 			  "action_mount_command", "mount");
