@@ -251,7 +251,8 @@ static void flag_toggled(GtkToggleButton *toggle, ABox *abox)
 
 	code = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(toggle),
 						 "abox-response"));
-	if (code == 'Q')
+
+	if (code == 'Q' || code == 'F')
 		shade(abox);
 
 	g_signal_emit_by_name(abox, "flag_toggled", code);
@@ -605,6 +606,7 @@ static void shade(ABox *abox)
 	else
 		gtk_dialog_set_response_sensitive(dialog,
 						  RESPONSE_QUIET, FALSE);
+
 
 	if (!on)
 	{
