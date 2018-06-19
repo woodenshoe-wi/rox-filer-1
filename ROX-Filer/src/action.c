@@ -1566,6 +1566,8 @@ static void do_copy2(const char *path, const char *dest)
 	{
 		guchar	*error;
 
+
+
 		error = copy_file(path, dest_path);
 
 		if (error)
@@ -1733,7 +1735,8 @@ static void do_move2(const char *path, const char *dest)
 
 	GError *err;
 	if (domove && !g_file_move(srcf, destf,
-			G_FILE_COPY_OVERWRITE | G_FILE_COPY_ALL_METADATA,
+			G_FILE_COPY_OVERWRITE | G_FILE_COPY_ALL_METADATA
+			| G_FILE_COPY_NOFOLLOW_SYMLINKS,
 			NULL,
 			NULL, //GFileProgressCallback progress_callback
 			NULL, //gpointer progress_callback_data
