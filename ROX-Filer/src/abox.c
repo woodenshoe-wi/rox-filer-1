@@ -284,13 +284,12 @@ static void response(GtkDialog *dialog, gint response_id)
 		g_signal_emit_by_name(abox, "abort_operation");
 	else if (response_id == RESPONSE_QUIET)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(abox->quiet),
-					     TRUE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(abox->quiet), TRUE);
 		gtk_dialog_response(dialog, GTK_RESPONSE_YES);
 	}
 	else if (response_id == GTK_RESPONSE_YES ||
 					response_id == GTK_RESPONSE_NO ||
-					response_id == 2) //seqno
+					response_id == 2 || response_id == 3) //seqno
 	{
 		abox->question = FALSE;
 		shade(abox);
@@ -606,8 +605,11 @@ static void shade(ABox *abox)
 	else
 		gtk_dialog_set_response_sensitive(dialog, RESPONSE_QUIET, FALSE);
 
-	gtk_widget_set_sensitive(abox->btn_seqno, on);
-	gtk_widget_set_sensitive(abox->btn_seqno_all, on);
+	if (!on)
+	{
+		gtk_widget_set_sensitive(abox->btn_seqno, on);
+		gtk_widget_set_sensitive(abox->btn_seqno_all, on);
+	}
 
 	/* Unsetting the focus means that set_default will put it in the
 	 * right place...

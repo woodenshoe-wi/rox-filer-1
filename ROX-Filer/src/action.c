@@ -390,8 +390,10 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 		abox_set_percentage(abox, atoi(buffer+1));
 	}
 	else if (*buffer == '2')
-		gtk_widget_set_sensitive(abox->btn_seqno_all, TRUE);
+		gtk_widget_set_sensitive(abox->btn_seqno, TRUE);
 	else if (*buffer == '3')
+		gtk_widget_set_sensitive(abox->btn_seqno_all, TRUE);
+	else if (*buffer == '4')
 		gtk_widget_set_sensitive(abox->btn_seqno_all, FALSE);
 	else
 		abox_log(abox, buffer + 1, NULL);
@@ -589,7 +591,11 @@ static void response(GtkDialog *dialog, gint response, GUIside *gui_side)
 	else if (response == 2) //seqno
 		code = '2';
 	else if (response == 3) //seqno
+	{
+		gtk_toggle_button_set_active(
+				GTK_TOGGLE_BUTTON(gui_side->abox->quiet), TRUE);
 		code = '3';
+	}
 	else
 		return;
 
@@ -646,9 +652,9 @@ static void process_flag(char flag)
 			o_force = !o_force;
 
 			if (o_force)
-				printf_send("3"); //seqno only once
+				printf_send("4"); //seqno disable all
 			else
-				printf_send("2"); //seqno on
+				printf_send("3"); //seqno all
 
 			break;
 		case 'R':
@@ -1417,9 +1423,6 @@ static void do_copy2(const char *path, const char *dest)
 		}
 		else
 		{
-			if (o_force)
-				printf_send("3"); //seqno only once
-
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
 
@@ -1450,6 +1453,13 @@ static void do_copy2(const char *path, const char *dest)
 			}
 			else
 			{
+				if (!quiet || ignore_quiet)
+				{
+					printf_send("2"); //seqno once
+					if (!o_force)
+						printf_send("3"); //seqno all
+				}
+
 				if (!(rep = printf_reply(from_parent, ignore_quiet,
 					  _("?'%s' already exists - %s?"),
 					  dest_path,
@@ -1481,6 +1491,7 @@ static void do_copy2(const char *path, const char *dest)
 	{
 		printf_send("<%s", path);
 		printf_send(">");
+		printf_send("3"); //seqno all
 		if (!printf_reply(from_parent, FALSE,
 				  _("?Copy %s as %s?"), path, dest_path))
 			return;
@@ -1642,9 +1653,6 @@ static void do_move2(const char *path, const char *dest)
 		}
 		else
 		{
-			if (o_force)
-				printf_send("3"); //seqno only once
-
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
 
@@ -1675,6 +1683,13 @@ static void do_move2(const char *path, const char *dest)
 			}
 			else
 			{
+				if (!quiet || ignore_quiet)
+				{
+					printf_send("2"); //seqno once
+					if (!o_force)
+						printf_send("3"); //seqno all
+				}
+
 				if (!(rep = printf_reply(from_parent, ignore_quiet,
 					  _("?'%s' already exists - %s?"),
 					  dest_path,
@@ -1707,6 +1722,7 @@ static void do_move2(const char *path, const char *dest)
 	{
 		printf_send("<%s", path);
 		printf_send(">");
+		printf_send("3"); //seqno all
 		if (!printf_reply(from_parent, FALSE,
 				  _("?Move %s as %s?"), path, dest_path))
 			return;
