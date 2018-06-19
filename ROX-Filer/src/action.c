@@ -1499,22 +1499,21 @@ static void do_copy2(const char *path, const char *dest)
 			}
 		}
 
-		if (!merge)
-		{
-			if (rep == 2)
-				dest_path = seq_path(dest_path);
-			else if (S_ISDIR(dest_info.st_mode))
-				err = rmdir(dest_path);
-			else
-				err = unlink(dest_path);
+		if (rep == 2)
+			dest_path = seq_path(dest_path);
+		else if (merge)
+			;
+		else if (S_ISDIR(dest_info.st_mode))
+			err = rmdir(dest_path);
+		else
+			err = unlink(dest_path);
 
-			if (err)
-			{
-				send_error();
-				if (errno != ENOENT)
-					return;
-				printf_send(_("'Trying copy anyway...\n"));
-			}
+		if (err)
+		{
+			send_error();
+			if (errno != ENOENT)
+				return;
+			printf_send(_("'Trying copy anyway...\n"));
 		}
 	}
 	else if (!quiet)
@@ -1793,22 +1792,21 @@ static void do_move2(const char *path, const char *dest)
 		}
 
 
-		if (!merge)
-		{
-			if (rep == 2)
-				dest_path = seq_path(dest_path);
-			else if (S_ISDIR(dest_info.st_mode))
-				err = rmdir(dest_path);
-			else
-				err = unlink(dest_path);
+		if (rep == 2)
+			dest_path = seq_path(dest_path);
+		else if (merge)
+			;
+		else if (S_ISDIR(dest_info.st_mode))
+			err = rmdir(dest_path);
+		else
+			err = unlink(dest_path);
 
-			if (err)
-			{
-				send_error();
-				if (errno != ENOENT)
-					return;
-				printf_send(_("'Trying move anyway...\n"));
-			}
+		if (err)
+		{
+			send_error();
+			if (errno != ENOENT)
+				return;
+			printf_send(_("'Trying move anyway...\n"));
 		}
 	}
 	else if (!quiet)
