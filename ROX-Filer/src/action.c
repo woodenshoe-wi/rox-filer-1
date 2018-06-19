@@ -1624,7 +1624,7 @@ static void do_copy2(const char *path, const char *dest)
 		GError *err;
 
 		if (!g_file_copy(srcf, destf,
-				G_FILE_COPY_OVERWRITE | G_FILE_COPY_ALL_METADATA
+				G_FILE_COPY_OVERWRITE
 				| G_FILE_COPY_NOFOLLOW_SYMLINKS,
 				NULL,
 				fprogcb,
@@ -1808,7 +1808,7 @@ static void do_move2(const char *path, const char *dest)
 	GFile *destf = g_file_new_for_path(dest_path);
 	GError *err;
 	if (domove && !g_file_move(srcf, destf,
-			G_FILE_COPY_OVERWRITE | G_FILE_COPY_ALL_METADATA
+			G_FILE_COPY_OVERWRITE
 			| G_FILE_COPY_NOFOLLOW_SYMLINKS,
 			NULL,
 			fprogcb,
