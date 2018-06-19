@@ -1841,19 +1841,17 @@ void filer_change_to(FilerWindow *fw,
  */
 GList *filer_selected_items(FilerWindow *filer_window)
 {
-	GList	*retval = NULL;
+	GQueue retq = G_QUEUE_INIT;
 	guchar	*dir = filer_window->sym_path;
 	ViewIter iter;
 	DirItem *item;
 
 	view_get_iter(filer_window->view, &iter, VIEW_ITER_SELECTED);
 	while ((item = iter.next(&iter)))
-	{
-		retval = g_list_prepend(retval,
+		g_queue_push_tail(&retq,
 				g_strdup(make_path(dir, item->leafname)));
-	}
 
-	return g_list_reverse(retval);
+	return retq.head;
 }
 
 /* Return the single selected item. Error if nothing is selected. */
