@@ -1701,8 +1701,8 @@ static void do_move2(const char *path, const char *dest)
 				dest_path = seq_path(dest_path);
 			else if (S_ISDIR(dest_info.st_mode))
 				err = rmdir(dest_path);
-//			else
-//				err = unlink(dest_path);
+			else
+				err = unlink(dest_path);
 
 			if (err)
 			{
