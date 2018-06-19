@@ -717,6 +717,7 @@ static void check_flags(void)
  * the user MUST click Yes or No, else treat quiet on as Yes.
  * If the user needs prompting then does send_msg().
  */
+static gboolean printed = FALSE;
 static int printf_reply(int fd, gboolean ignore_quiet,
 			     const char *msg, ...)
 {
@@ -736,6 +737,7 @@ static int printf_reply(int fd, gboolean ignore_quiet,
 	g_free(tmp);
 
 	send_msg();
+	printed = TRUE;
 
 	while (1)
 	{
@@ -1358,6 +1360,18 @@ static const char *make_dest_path(const char *object, const char *dir)
 	return make_path(dir, leaf);
 }
 
+static gboolean synced = FALSE;
+static void syncgui()
+{
+	if (synced) return;
+	synced = TRUE;
+	printf_send("r");
+	char c;
+	read(from_parent, &c, 1);
+	if (c != 'r') process_flag(c);
+	//g_usleep(100);
+}
+
 static const char *seq_path(const char *dest_path)
 {
 	static char *path = NULL;
@@ -1386,6 +1400,8 @@ static void do_copy2(const char *path, const char *dest)
 		return;
 	}
 
+	printed = FALSE;
+	synced = FALSE;
 	if (mc_lstat(dest_path, &dest_info) == 0)
 	{
 		int err = 0, rep = 0;
@@ -1414,6 +1430,8 @@ static void do_copy2(const char *path, const char *dest)
 
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
+
+			syncgui();
 
 			if (o_force)
 			{
@@ -1475,8 +1493,12 @@ static void do_copy2(const char *path, const char *dest)
 				  _("?Copy %s as %s?"), path, dest_path))
 			return;
 	}
-	else if (!o_brief || S_ISDIR(info.st_mode))
+
+	if (!printed && (!o_brief || S_ISDIR(info.st_mode)))
+	{
 		printf_send(_("'Copying %s as %s\n"), path, dest_path);
+		syncgui();
+	}
 
 	if (S_ISDIR(info.st_mode))
 	{
@@ -1564,20 +1586,27 @@ static void do_copy2(const char *path, const char *dest)
 	}
 	else
 	{
-		guchar	*error;
+		GFile *srcf  = g_file_new_for_path(path);
+		GFile *destf = g_file_new_for_path(dest_path);
+		GError *err;
 
+		if (!g_file_copy(srcf, destf,
+				G_FILE_COPY_OVERWRITE | G_FILE_COPY_ALL_METADATA
+				| G_FILE_COPY_NOFOLLOW_SYMLINKS,
+				NULL,
+				NULL, //GFileProgressCallback progress_callback //todo
+				NULL, //gpointer progress_callback_data
+				&err))
 
-
-		error = copy_file(path, dest_path);
-
-		if (error)
 		{
-			printf_send(_("!%s\nFailed to copy '%s'\n"),
-							error, path);
-			g_free(error);
+			printf_send(_("!%s\nFailed to copy '%s'\n"), err->message, path);
+			g_error_free(err);
 		}
 		else
 			send_check_path(dest_path);
+
+		g_object_unref(srcf);
+		g_object_unref(destf);
 	}
 }
 
@@ -1598,6 +1627,8 @@ static void do_move2(const char *path, const char *dest)
 		return;
 	}
 
+	printed = FALSE;
+	synced = FALSE;
 	if (mc_lstat(dest_path, &dest_info) == 0)
 	{
 		int err = 0, rep = 0;
@@ -1626,6 +1657,8 @@ static void do_move2(const char *path, const char *dest)
 
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
+
+			syncgui();
 
 			if (o_force)
 			{
@@ -1661,14 +1694,15 @@ static void do_move2(const char *path, const char *dest)
 			}
 		}
 
+
 		if (!merge)
 		{
 			if (rep == 2)
 				dest_path = seq_path(dest_path);
 			else if (S_ISDIR(dest_info.st_mode))
 				err = rmdir(dest_path);
-			else
-				err = unlink(dest_path);
+//			else
+//				err = unlink(dest_path);
 
 			if (err)
 			{
@@ -1687,8 +1721,12 @@ static void do_move2(const char *path, const char *dest)
 				  _("?Move %s as %s?"), path, dest_path))
 			return;
 	}
-	else if (!o_brief || S_ISDIR(info.st_mode))
+
+	if (!printed && (!o_brief || S_ISDIR(info.st_mode)))
+	{
 		printf_send(_("'Moving %s as %s\n"), path, dest_path);
+		syncgui();
+	}
 
 
 	gboolean domove = FALSE;
@@ -1732,7 +1770,6 @@ static void do_move2(const char *path, const char *dest)
 
 	GFile *srcf  = g_file_new_for_path(path);
 	GFile *destf = g_file_new_for_path(dest_path);
-
 	GError *err;
 	if (domove && !g_file_move(srcf, destf,
 			G_FILE_COPY_OVERWRITE | G_FILE_COPY_ALL_METADATA
@@ -1754,13 +1791,6 @@ static void do_move2(const char *path, const char *dest)
 			send_mount_path(path);
 		else
 			send_check_path(path);
-
-		//Sync. because it is too fast for gui side
-		printf_send("r");
-		char c;
-		read(from_parent, &c, 1);
-		if (c != 'r') process_flag(c);
-		//g_usleep(100);
 	}
 
 	g_object_unref(srcf);

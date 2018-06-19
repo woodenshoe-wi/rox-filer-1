@@ -32,7 +32,6 @@ char *get_local_path(const EscapedPath *escaped_uri);
 void close_on_exec(int fd, gboolean close);
 void set_blocking(int fd, gboolean blocking);
 char *pretty_time(const time_t *time);
-guchar *copy_file(const guchar *from, const guchar *to);
 guchar *shell_escape(const guchar *word);
 gboolean is_sub_dir(const char *sub, const char *parent);
 gboolean in_list(const guchar *item, const guchar *list);

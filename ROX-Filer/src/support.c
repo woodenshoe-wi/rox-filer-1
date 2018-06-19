@@ -590,34 +590,6 @@ char *pretty_time(const time_t *time)
 #  define O_NOFOLLOW 0x0
 #endif
 
-/* 'from' and 'to' are complete pathnames of files (not dirs or symlinks).
- * This spawns 'cp' to do the copy if lstat() succeeds, otherwise we
- * do the copy manually using vfs.
- *
- * Returns an error string, or NULL on success. g_free() the result.
- *
- * XXX: This was only used for libvfs...
- */
-guchar *copy_file(const guchar *from, const guchar *to)
-{
-#if defined(HAVE_GETXATTR) || defined(HAVE_ATTROPEN)
-//	const char *argv[] = {"cp", "-pRf", "--preserve=xattr", NULL, NULL, NULL};
-// Puppy linux's cp hasn't support of xattr.
-// So this aims same result without using 'xattr'
-	const char *argv[] = {"cp", "-af",
-		"--no-preserve=context,links", NULL, NULL, NULL};
-
-	argv[3] = from;
-	argv[4] = to;
-#else
-	const char *argv[] = {"cp", "-pRf", NULL, NULL, NULL};
-
-	argv[2] = from;
-	argv[3] = to;
-#endif
-
-	return fork_exec_wait(argv);
-}
 
 /* 'word' has all special characters escaped so that it may be inserted
  * into a shell command.
