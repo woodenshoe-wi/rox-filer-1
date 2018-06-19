@@ -1621,7 +1621,7 @@ static void do_copy2(const char *path, const char *dest)
 	{
 		GFile *srcf  = g_file_new_for_path(path);
 		GFile *destf = g_file_new_for_path(dest_path);
-		GError *err;
+		GError *err = NULL;
 
 		if (!g_file_copy(srcf, destf,
 				G_FILE_COPY_OVERWRITE | G_FILE_COPY_NOFOLLOW_SYMLINKS,
