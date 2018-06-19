@@ -339,7 +339,12 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 {
 	ABox *abox = gui_side->abox;
 
-	if (*buffer == '?')
+	if (*buffer == 'r')
+	{
+		fputc('r', gui_side->to_child);
+		fflush(gui_side->to_child);
+	}
+	else if (*buffer == '?')
 		abox_ask(abox, buffer + 1);
 	else if (*buffer == 's')
 		dir_check_this(buffer + 1);	/* Update this item */
@@ -669,6 +674,8 @@ static void process_flag(char flag)
 			break;
 		case 'E':
 			read_new_entry_text();
+			break;
+		case 'r':
 			break;
 		default:
 			printf_send("!ERROR: Bad message '%c'\n", flag);
@@ -1576,10 +1583,8 @@ static void do_copy2(const char *path, const char *dest)
 static void do_move2(const char *path, const char *dest)
 {
 	const char	*dest_path;
-	const char	*argv[] = {"mv", "-f", NULL, NULL, NULL};
 	struct stat 	info;
 	struct stat 	dest_info;
-	guchar		*error = NULL;
 
 	check_flags();
 
@@ -1683,8 +1688,8 @@ static void do_move2(const char *path, const char *dest)
 	else if (!o_brief || S_ISDIR(info.st_mode))
 		printf_send(_("'Moving %s as %s\n"), path, dest_path);
 
-	argv[2] = path;
-	argv[3] = dest_path;
+
+	gboolean domove = FALSE;
 
 	if (S_ISDIR(info.st_mode))
 	{
@@ -1714,27 +1719,29 @@ static void do_move2(const char *path, const char *dest)
 				rmdir(safe_path);
 			}
 			else
-			{
-				/* Do actual move. */
-				error = fork_exec_wait(argv);
-			}
+				domove = TRUE;
 		}
 
 		g_free(safe_path);
 		g_free(safe_dest);
 	}
 	else
-	{
-		/* Do actual move. */
-		error = fork_exec_wait(argv);
-	}
+		domove = TRUE;
 
-	if (error)
+	GFile *srcf  = g_file_new_for_path(path);
+	GFile *destf = g_file_new_for_path(dest_path);
+
+	GError *err;
+	if (domove && !g_file_move(srcf, destf,
+			G_FILE_COPY_OVERWRITE | G_FILE_COPY_ALL_METADATA,
+			NULL,
+			NULL, //GFileProgressCallback progress_callback
+			NULL, //gpointer progress_callback_data
+			&err))
 	{
 		printf_send(_("!%s\nFailed to move %s as %s\n"),
-			error, path, dest_path);
-		g_free(error);
-		error = NULL;
+				err->message, path, dest_path);
+		g_error_free(err);
 	}
 	else
 	{
@@ -1744,7 +1751,17 @@ static void do_move2(const char *path, const char *dest)
 			send_mount_path(path);
 		else
 			send_check_path(path);
+
+		//Sync. because it is too fast for gui side
+		printf_send("r");
+		char c;
+		read(from_parent, &c, 1);
+		if (c != 'r') process_flag(c);
+		//g_usleep(100);
 	}
+
+	g_object_unref(srcf);
+	g_object_unref(destf);
 }
 
 /* Copy path to dest.
