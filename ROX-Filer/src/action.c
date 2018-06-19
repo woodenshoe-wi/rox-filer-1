@@ -390,15 +390,9 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 		abox_set_percentage(abox, atoi(buffer+1));
 	}
 	else if (*buffer == '2')
-	{
-		gtk_widget_set_sensitive(abox->btn_seqno, TRUE);
 		gtk_widget_set_sensitive(abox->btn_seqno_all, TRUE);
-	}
 	else if (*buffer == '3')
-	{
-		gtk_widget_set_sensitive(abox->btn_seqno, TRUE);
 		gtk_widget_set_sensitive(abox->btn_seqno_all, FALSE);
-	}
 	else
 		abox_log(abox, buffer + 1, NULL);
 }
@@ -1425,8 +1419,6 @@ static void do_copy2(const char *path, const char *dest)
 		{
 			if (o_force)
 				printf_send("3"); //seqno only once
-			else
-				printf_send("2"); //seqno on
 
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);
@@ -1652,8 +1644,6 @@ static void do_move2(const char *path, const char *dest)
 		{
 			if (o_force)
 				printf_send("3"); //seqno only once
-			else
-				printf_send("2"); //seqno on
 
 			printf_send("<%s", path);
 			printf_send(">%s", dest_path);

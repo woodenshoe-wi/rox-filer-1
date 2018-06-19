@@ -604,15 +604,10 @@ static void shade(ABox *abox)
 	if (on && !quiet)
 		gtk_dialog_set_response_sensitive(dialog, RESPONSE_QUIET, TRUE);
 	else
-		gtk_dialog_set_response_sensitive(dialog,
-						  RESPONSE_QUIET, FALSE);
+		gtk_dialog_set_response_sensitive(dialog, RESPONSE_QUIET, FALSE);
 
-
-	if (!on)
-	{
-		gtk_widget_set_sensitive(abox->btn_seqno, FALSE);
-		gtk_widget_set_sensitive(abox->btn_seqno_all, FALSE);
-	}
+	gtk_widget_set_sensitive(abox->btn_seqno, on);
+	gtk_widget_set_sensitive(abox->btn_seqno_all, on);
 
 	/* Unsetting the focus means that set_default will put it in the
 	 * right place...
