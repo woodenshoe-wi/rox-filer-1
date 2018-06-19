@@ -988,7 +988,7 @@ static void got_uri_list(GtkWidget 		*widget,
 	}
 	else
 	{
-		GList *local_paths = NULL;
+		GQueue lq = G_QUEUE_INIT;
 
 		/* Either one local URI, or a list. If everything in the list
 		 * isn't local then we are stuck.
@@ -1003,13 +1003,14 @@ static void got_uri_list(GtkWidget 		*widget,
 			  path? path: "NULL");*/
 
 			if (path)
-				local_paths = g_list_append(local_paths,
-								path);
+				g_queue_push_tail(&lq, path);
 			else
 				error = _("Some of these files are on a "
 					"different machine - they will be "
 					"ignored - sorry");
 		}
+
+		GList *local_paths = lq.head;
 
 		if (!local_paths)
 		{
@@ -1018,7 +1019,10 @@ static void got_uri_list(GtkWidget 		*widget,
 				"remote files - sorry.");
 		}
 		else if (context->action == GDK_ACTION_ASK)
+		{
 			prompt_action(local_paths, dest_path);
+			goto skipdestroy;
+		}
 		else if (context->action == GDK_ACTION_MOVE)
 			action_move(local_paths, dest_path, NULL, -1);
 		else if (context->action == GDK_ACTION_COPY)
@@ -1030,6 +1034,7 @@ static void got_uri_list(GtkWidget 		*widget,
 
 		destroy_glist(&local_paths);
 	}
+	skipdestroy:
 
 	if (error)
 	{
@@ -1073,7 +1078,6 @@ static void menuitem_response(gpointer data, guint action, GtkWidget *widget)
  */
 static void prompt_action(GList *paths, gchar *dest)
 {
-	GList		*next;
 	GdkEvent	*event;
 
 	if (prompt_local_paths)
@@ -1081,11 +1085,8 @@ static void prompt_action(GList *paths, gchar *dest)
 		destroy_glist(&prompt_local_paths);
 		null_g_free(&prompt_dest_path);
 	}
+	prompt_local_paths = paths;
 
-	/* Make a copy of the arguments */
-	for (next = paths; next; next = next->next)
-		prompt_local_paths = g_list_append(prompt_local_paths,
-						g_strdup((gchar *) next->data));
 	prompt_dest_path = g_strdup(dest);
 
 	if (!dnd_menu)
