@@ -1624,11 +1624,9 @@ static void do_copy2(const char *path, const char *dest)
 		GError *err;
 
 		if (!g_file_copy(srcf, destf,
-				G_FILE_COPY_OVERWRITE
-				| G_FILE_COPY_NOFOLLOW_SYMLINKS,
+				G_FILE_COPY_OVERWRITE | G_FILE_COPY_NOFOLLOW_SYMLINKS,
 				NULL,
-				fprogcb,
-				NULL, //gpointer progress_callback_data
+				fprogcb, NULL,
 				&err))
 
 		{
@@ -1642,6 +1640,71 @@ static void do_copy2(const char *path, const char *dest)
 		g_object_unref(destf);
 	}
 }
+
+
+static int mover(const char *src, const char *dest)
+{
+	int err = 0;
+	GError *gerr = NULL;
+
+	struct stat info;
+	if (mc_lstat(src, &info))
+	{
+		send_error();
+		return 1;
+	}
+	int dir = S_ISDIR(info.st_mode);
+	if (dir)
+		mkdir(dest, 0700 | info.st_mode);
+
+	printf_send(_("'Copying %s as %s\n"), src, dest);
+	GFile *srcf  = g_file_new_for_path(src);
+	GFile *destf = g_file_new_for_path(dest);
+	err = dir ?
+		!g_file_copy_attributes(srcf, destf,
+				G_FILE_COPY_ALL_METADATA, NULL, &gerr)
+		:
+		!g_file_copy(srcf, destf,
+				G_FILE_COPY_NOFOLLOW_SYMLINKS | G_FILE_COPY_ALL_METADATA,
+				NULL,
+				fprogcb, NULL,
+				&gerr)
+		;
+
+	if (err) goto out;
+	if (dir)
+	{
+		GDir *gd = g_dir_open(src, 0, NULL);
+		const char *name;
+		while ((name = g_dir_read_name(gd)))
+		{
+			char *dsrc  = g_build_filename(src , name, NULL);
+			char *ddest = g_build_filename(dest, name, NULL);
+
+			err |= mover(dsrc, ddest);
+
+			g_free(dsrc);
+			g_free(ddest);
+		}
+		g_dir_close(gd);
+	}
+
+	if (!err)
+		err = !g_file_delete(srcf, NULL, &gerr);
+
+out:
+	if (gerr)
+	{
+		printf_send(_("!%s\nFailed to move %s as %s\n"),
+				gerr->message, src, dest);
+		g_error_free(gerr);
+	}
+
+	g_object_unref(srcf);
+	g_object_unref(destf);
+	return err;
+}
+
 
 /* If action_leaf is not NULL it specifies the new leaf name */
 static void do_move2(const char *path, const char *dest)
@@ -1769,57 +1832,40 @@ static void do_move2(const char *path, const char *dest)
 
 	if (S_ISDIR(info.st_mode))
 	{
-		char *safe_path, *safe_dest;
-		struct stat 	dest_info;
-		gboolean	exists;
-
-		safe_path = g_strdup(path);
-		safe_dest = g_strdup(dest_path);
-
-		exists = !mc_lstat(dest_path, &dest_info);
+		struct stat dest_info;
+		gboolean exists = !mc_lstat(dest_path, &dest_info);
 
 		if (exists && !S_ISDIR(dest_info.st_mode))
 			printf_send(_("!ERROR: Destination already exists, "
 				      "but is not a directory\n"));
-		else
+		else if (exists)
 		{
-			if (exists)
-			{
-				action_leaf = NULL;
-				for_dir_contents(do_move2, safe_path, safe_dest);
-				/* Note: dest_path now invalid... */
+			char *safe_path = g_strdup(path);
+			char *safe_dest = g_strdup(dest_path);
 
-				/* If rmdir cannot delete the directory because it is not empty
-				 * it is probably because some files failed to be moved,
-				 * so not treating it as an error. */
-				rmdir(safe_path);
-			}
-			else
-				domove = TRUE;
+			action_leaf = NULL;
+			for_dir_contents(do_move2, safe_path, safe_dest);
+			/* Note: dest_path now invalid... */
+
+			/* If rmdir cannot delete the directory because it is not empty
+			 * it is probably because some files failed to be moved,
+			 * so not treating it as an error. */
+			rmdir(safe_path);
+
+			g_free(safe_path);
+			g_free(safe_dest);
 		}
-
-		g_free(safe_path);
-		g_free(safe_dest);
+		else
+			domove = TRUE;
 	}
 	else
 		domove = TRUE;
 
-	GFile *srcf  = g_file_new_for_path(path);
-	GFile *destf = g_file_new_for_path(dest_path);
-	GError *err;
-	if (domove && !g_file_move(srcf, destf,
-			G_FILE_COPY_OVERWRITE
-			| G_FILE_COPY_NOFOLLOW_SYMLINKS,
-			NULL,
-			fprogcb,
-			NULL, //gpointer progress_callback_data
-			&err))
-	{
-		printf_send(_("!%s\nFailed to move %s as %s\n"),
-				err->message, path, dest_path);
-		g_error_free(err);
-	}
-	else
+	int err = 0;
+	if (domove && rename(path, dest_path) != 0)
+		err = mover(path, dest_path);
+
+	if (!err)
 	{
 		send_check_path(dest_path);
 
@@ -1828,9 +1874,6 @@ static void do_move2(const char *path, const char *dest)
 		else
 			send_check_path(path);
 	}
-
-	g_object_unref(srcf);
-	g_object_unref(destf);
 }
 
 /* Copy path to dest.
