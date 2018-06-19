@@ -386,9 +386,9 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 		abox_show_compare(abox, TRUE);
 	}
 	else if (*buffer == '%')
-	{
 		abox_set_percentage(abox, atoi(buffer+1));
-	}
+	else if (*buffer == 'f')
+		abox_set_file_percentage(abox, atoi(buffer+1));
 	else if (*buffer == '2')
 		gtk_widget_set_sensitive(abox->btn_seqno, TRUE);
 	else if (*buffer == '3')
@@ -1371,7 +1371,37 @@ static void syncgui()
 	if (c != 'r') process_flag(c);
 	//g_usleep(100);
 }
+static void fprogcb(goffset current, goffset total, gpointer p)
+{
+#define SHOWTIME 100 * 1000
+	if (total < 1) return;
+	static gboolean started = FALSE;
+	static gint64 start = 0;
+	static gboolean showing = FALSE;
+	if (!started)
+	{
+		start = g_get_monotonic_time();
+		started = TRUE;
+		return;
+	}
 
+	if (current == total)
+	{
+		if (showing)
+			printf_send("f%d", -1);
+
+		started = FALSE;
+		showing = FALSE;
+		return;
+	}
+
+	if (g_get_monotonic_time() - start > SHOWTIME)
+		showing = TRUE;
+
+	if (showing)
+		printf_send("f%d", current * 100 / total);
+
+}
 static const char *seq_path(const char *dest_path)
 {
 	static char *path = NULL;
@@ -1597,7 +1627,7 @@ static void do_copy2(const char *path, const char *dest)
 				G_FILE_COPY_OVERWRITE | G_FILE_COPY_ALL_METADATA
 				| G_FILE_COPY_NOFOLLOW_SYMLINKS,
 				NULL,
-				NULL, //GFileProgressCallback progress_callback //todo
+				fprogcb,
 				NULL, //gpointer progress_callback_data
 				&err))
 
@@ -1781,7 +1811,7 @@ static void do_move2(const char *path, const char *dest)
 			G_FILE_COPY_OVERWRITE | G_FILE_COPY_ALL_METADATA
 			| G_FILE_COPY_NOFOLLOW_SYMLINKS,
 			NULL,
-			NULL, //GFileProgressCallback progress_callback
+			fprogcb,
 			NULL, //gpointer progress_callback_data
 			&err))
 	{

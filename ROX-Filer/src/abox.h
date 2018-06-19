@@ -41,6 +41,7 @@ struct _ABox
 	GtkWidget       *cmp_arrow;
 
 	GtkWidget       *progress;      /* Progress bar, NULL until set */
+	GtkWidget       *fileprog;
 
 	gchar		*next_dir;	/* NULL => no timer active */
 	gint		next_timer;
@@ -88,5 +89,6 @@ void	abox_show_compare		(ABox *abox, gboolean show);
 void	abox_set_file			(ABox *abox, int file,
 					 const gchar *path);
 void    abox_set_percentage             (ABox *abox, int per);
+void    abox_set_file_percentage        (ABox *abox, int per);
 
 #endif /* __ABOX_H__ */

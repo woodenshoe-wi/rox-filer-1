@@ -700,21 +700,31 @@ void abox_set_file(ABox *abox, int i, const gchar *path)
 	diritem_free(item);
 }
 
-void    abox_set_percentage(ABox *abox, int per)
+static void _abox_set_percentage(ABox *abox, GtkWidget **prog, int per)
 {
-	if(!abox->progress) {
-		GtkDialog *dialog = GTK_DIALOG(abox);
+	if(!*prog) {
+		*prog = gtk_progress_bar_new();
 
-		abox->progress=gtk_progress_bar_new ();
-		gtk_box_pack_start(GTK_BOX(dialog->vbox),
-				abox->progress, FALSE, FALSE, 2);
-		gtk_widget_show(abox->progress);
+		gtk_box_pack_start(GTK_BOX(GTK_DIALOG(abox)->vbox),
+				*prog, FALSE, FALSE, 2);
+		gtk_widget_show(*prog);
 	}
 	if(per<0 || per>100) {
-		gtk_widget_hide(abox->progress);
+		gtk_widget_hide(*prog);
 		return;
 	}
-	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(abox->progress),
-				      per/100.);
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(*prog), per/100.);
 }
+void abox_set_percentage(ABox *abox, int per)
+{
+	_abox_set_percentage(abox, &abox->progress, per);
+}
+void abox_set_file_percentage(ABox *abox, int per)
+{
+	if(!abox->progress)
+		abox_set_percentage(abox, -1);
 
+	if (abox->fileprog)
+		gtk_widget_show(abox->fileprog);
+	_abox_set_percentage(abox, &abox->fileprog, per);
+}
