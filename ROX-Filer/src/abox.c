@@ -41,6 +41,8 @@
 // RESPONSE_SEQNO 2
 // RESPONSE_SEQNO_ALL 3
 
+#define PROG_HEIGHT 14
+
 /* Static prototypes */
 static void abox_class_init(GObjectClass *gclass, gpointer data);
 static void abox_init(GTypeInstance *object, gpointer gclass);
@@ -226,6 +228,11 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 	gtk_box_pack_end(GTK_BOX(dialog->vbox),
 				abox->flag_box, FALSE, TRUE, 2);
 
+	abox->fileprog = gtk_progress_bar_new();
+	gtk_widget_set_size_request(abox->fileprog, -1, PROG_HEIGHT * (1./2.));
+	gtk_box_pack_end(GTK_BOX(GTK_DIALOG(abox)->vbox),
+				abox->fileprog, FALSE, TRUE, 2);
+
 	button = button_new_mixed(GTK_STOCK_GOTO_LAST, _("_Quiet"));
 	gtk_widget_set_can_default(button, TRUE);
 	gtk_dialog_add_action_widget(dialog, button, RESPONSE_QUIET);
@@ -233,6 +240,7 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 
 	gtk_widget_show_all(dialog->vbox);
 	gtk_widget_hide(abox->cmp_area);
+	gtk_widget_hide(abox->fileprog);
 	gtk_widget_hide(abox->btn_close);
 	gtk_widget_hide(abox->btn_seqno);
 	gtk_widget_hide(abox->btn_seqno_all);
@@ -703,7 +711,7 @@ static void _abox_set_percentage(ABox *abox, GtkWidget **prog, int per)
 {
 	if(!*prog) {
 		*prog = gtk_progress_bar_new();
-
+		gtk_widget_set_size_request(*prog, -1, PROG_HEIGHT);
 		gtk_box_pack_start(GTK_BOX(GTK_DIALOG(abox)->vbox),
 				*prog, FALSE, FALSE, 2);
 		gtk_widget_show(*prog);
@@ -720,10 +728,5 @@ void abox_set_percentage(ABox *abox, int per)
 }
 void abox_set_file_percentage(ABox *abox, int per)
 {
-	if(!abox->progress)
-		abox_set_percentage(abox, -1);
-
-	if (abox->fileprog)
-		gtk_widget_show(abox->fileprog);
 	_abox_set_percentage(abox, &abox->fileprog, per);
 }

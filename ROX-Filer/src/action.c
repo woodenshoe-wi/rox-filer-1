@@ -1388,7 +1388,7 @@ static void fprogcb(goffset current, goffset total, gpointer p)
 	if (current == total)
 	{
 		if (showing)
-			printf_send("f%d", -1);
+			printf_send("f%d", 0);
 
 		started = FALSE;
 		showing = FALSE;
@@ -1643,6 +1643,8 @@ static void do_copy2(const char *path, const char *dest)
 
 static int mover(const char *src, const char *dest)
 {
+	check_flags();
+
 	int err = 0;
 	GError *gerr = NULL;
 
@@ -1656,7 +1658,9 @@ static int mover(const char *src, const char *dest)
 	if (dir)
 		mkdir(dest, 0700 | info.st_mode);
 
-	printf_send(_("'Copying %s as %s\n"), src, dest);
+	if (!o_brief)
+		printf_send(_("'Copying %s as %s\n"), src, dest);
+
 	GFile *srcf  = g_file_new_for_path(src);
 	GFile *destf = g_file_new_for_path(dest);
 	err = dir ?
@@ -2622,6 +2626,7 @@ void action_copy(GList *paths, const char *dest, const char *leaf, int quiet)
 
 	gtk_widget_show(ABOX(abox)->btn_seqno);
 	gtk_widget_show(ABOX(abox)->btn_seqno_all);
+	gtk_widget_show(ABOX(abox)->fileprog);
 
 	abox_add_flag(ABOX(abox),
 		_("Force"), _("Don't confirm over-write."),
@@ -2678,6 +2683,7 @@ void action_move(GList *paths, const char *dest, const char *leaf, int quiet)
 
 	gtk_widget_show(ABOX(abox)->btn_seqno);
 	gtk_widget_show(ABOX(abox)->btn_seqno_all);
+	gtk_widget_show(ABOX(abox)->fileprog);
 
 	abox_add_flag(ABOX(abox),
 		_("Force"), _("Don't confirm over-write."),
