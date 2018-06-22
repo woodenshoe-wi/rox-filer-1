@@ -42,8 +42,8 @@ void show_filer_menu(FilerWindow *filer_window,
 		     GdkEvent *event,
 		     ViewIter *item);
 void menu_popdown(void);
-MIME_type *menu_paths_type(GList *paths);
-GList *menu_sendto_for_type(GList *paths);
+MIME_type *menu_selection_type(FilerWindow *fw);
+GList *menu_sendto_for_type(GList *paths, MIME_type *type);
 
 /* Public menu handlers */
 void menu_rox_help(gpointer data, guint action, GtkWidget *widget);

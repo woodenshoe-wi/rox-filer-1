@@ -54,7 +54,7 @@
 static void apprun_menu(GtkWidget *item, gpointer data);
 static GtkWidget *create_menu_item(xmlNode *node);
 static void show_app_help(GtkWidget *item, gpointer data);
-static void build_menu_for_type(GList *paths, const gchar *app_dir, MIME_type *type);
+static void build_menu_for_type(GList *paths, MIME_type *type);
 static gboolean build_app_menu(const char *app_dir, DirItem *app_item);
 static void mnt_eject(GtkWidget *item, gpointer data);
 
@@ -93,7 +93,7 @@ void appmenu_remove(void)
  * Returns number of entries added.
  * Call appmenu_remove() to undo the effect.
  */
-int appmenu_add(GList *paths, const gchar *app_dir, DirItem *app_item, GtkWidget *menu)
+int appmenu_add(FilerWindow *slctwin, const gchar *app_dir, DirItem *app_item, GtkWidget *menu)
 {
 	GList	*next;
 	GtkWidget *sep;
@@ -105,8 +105,14 @@ int appmenu_add(GList *paths, const gchar *app_dir, DirItem *app_item, GtkWidget
 	g_return_val_if_fail(current_menu == NULL, 0);
 	g_return_val_if_fail(current_items == NULL, 0);
 
-	if (paths || !build_app_menu(app_dir, app_item))
-		build_menu_for_type(paths, app_dir, app_item ? app_item->mime_type : NULL);
+	if (slctwin || !build_app_menu(app_dir, app_item))
+	{
+		GList *paths =    slctwin ? filer_selected_items(slctwin) :
+			g_list_append(NULL, g_strdup(app_dir));
+		MIME_type *type = slctwin ? menu_selection_type(slctwin) :
+			app_item->mime_type;
+		build_menu_for_type(paths, type);
+	}
 
 	if (app_item && app_item->flags & ITEM_FLAG_MOUNT_POINT)
 	{
@@ -313,18 +319,14 @@ static void customise_type(GtkWidget *item, MIME_type *type)
 			"type (%s/%s)."), type->media_type ?: "*", type->subtype ?: "*");
 }
 
-static void build_menu_for_type(GList *paths, const gchar *app_dir, MIME_type *type)
+static void build_menu_for_type(GList *paths, MIME_type *type)
 {
+	if (!paths) return;
 	GtkWidget *item;
-	GList *widgets = menu_sendto_for_type( /* path eaten */
-			paths ?: g_list_append(NULL, g_strdup(app_dir)));
 
+	GList *widgets = menu_sendto_for_type(paths, type);
 	widgets = g_list_reverse(widgets);
 	current_items = g_list_concat(widgets, current_items);
-
-	if (!type && paths)
-		type = menu_paths_type(paths);
-	if (!type) return;
 
 	item = gtk_menu_item_new_with_label(_("Customise Menu..."));
 	current_items = g_list_prepend(current_items, item);

@@ -121,7 +121,7 @@ static gboolean rename_cb(GObject *savebox,
 static void select_nth_item(GtkMenuShell *shell, int n);
 static void new_file_type(gchar *templ);
 static void do_send_to(gchar *templ);
-static void show_send_to_menu(GList *paths, GdkEvent *event);
+static void show_send_to_menu(FilerWindow *fw, GdkEvent *event);
 static void show_dir_send_to_menu(GdkEvent *event);
 static GList *set_keys_button(Option *option, xmlNode *node, guchar *label);
 
@@ -873,7 +873,7 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 		}
 
 		/* (paths eaten) */
-		show_send_to_menu(filer_selected_items(filer_window), event);
+		show_send_to_menu(filer_window, event);
 		return;
 	}
 
@@ -964,7 +964,7 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 				appmenu_add(NULL, make_path(filer_window->sym_path, file_item->leafname),
 							file_item, filer_file_menu)
 				:
-				appmenu_add(filer_selected_items(filer_window), NULL, NULL, filer_file_menu);
+				appmenu_add(filer_window, NULL, NULL, filer_file_menu);
 	}
 
 	update_new_files_menu();
@@ -1920,14 +1920,16 @@ static void add_sendto(GList **list, const gchar *type, const gchar *subtype)
 }
 
 
-MIME_type *menu_paths_type(GList *paths)
+MIME_type *menu_selection_type(FilerWindow *fw)
 {
 	MIME_type *type=NULL;
 	gboolean same=TRUE, same_media=TRUE;
-	DirItem *item = diritem_new("");
-	for(GList *rover=paths; rover; rover=g_list_next(rover))
+
+	ViewIter iter;
+	DirItem *item;
+	view_get_iter(fw->view, &iter, VIEW_ITER_SELECTED);
+	while ((item = iter.next(&iter)))
 	{
-		diritem_restat(rover->data, item, NULL, TRUE);
 		if(!type)
 			type=item->mime_type;
 		else
@@ -1950,38 +1952,26 @@ MIME_type *menu_paths_type(GList *paths)
 	if(type)
 	{
 		if(same)
-			ret.subtype = item->mime_type->subtype;
+			ret.subtype    = type->subtype;
 		if(same_media)
-			ret.media_type = item->mime_type->media_type;
+			ret.media_type = type->media_type;
 	}
-	diritem_free(item);
 	return &ret;
 }
 
 //don't free paths
-GList *menu_sendto_for_type(GList *paths)
+GList *menu_sendto_for_type(GList *paths, MIME_type *type)
 {
 	GList *ret = NULL;
 	if (!paths)
 		;
-	if (g_list_length(paths) == 1)
+	if (!paths->next)
 	{
-		DirItem	*item;
-
-		item = diritem_new("");
-		diritem_restat(paths->data, item, NULL, TRUE);
-
-		add_sendto(&ret,
-			   item->mime_type->media_type,
-			   item->mime_type->subtype);
-
-		add_sendto(&ret, item->mime_type->media_type, NULL);
-
-		diritem_free(item);
+		add_sendto(&ret, type->media_type, type->subtype);
+		add_sendto(&ret, type->media_type, NULL);
 	}
 	else
 	{
-		MIME_type *type = menu_paths_type(paths);
 		if(type->subtype)
 			add_sendto(&ret, type->media_type, type->subtype);
 		if(type->media_type)
@@ -1994,7 +1984,6 @@ GList *menu_sendto_for_type(GList *paths)
 
 	if (send_to_paths) destroy_glist(&send_to_paths);
 	send_to_paths = paths;
-
 	return ret;
 }
 
@@ -2002,13 +1991,14 @@ GList *menu_sendto_for_type(GList *paths)
  * The 'paths' list and every path in it is claimed, and will be
  * freed later -- don't free it yourself!
  */
-static void show_send_to_menu(GList *paths, GdkEvent *event)
+static void show_send_to_menu(FilerWindow *fw, GdkEvent *event)
 {
 	GtkWidget	*menu, *item;
 
 	menu = gtk_menu_new();
 
-	GList *list = menu_sendto_for_type(paths);
+	GList *list = menu_sendto_for_type(
+			filer_selected_items(fw), menu_selection_type(fw));
 	add_sendto(&list, NULL, NULL);
 
 	for (; list; list = g_list_delete_link(list, list))
@@ -2055,7 +2045,7 @@ static void send_to(FilerWindow *filer_window)
 {
 	GdkEvent *event = gtk_get_current_event();
 	/* Eats paths */
-	show_send_to_menu(filer_selected_items(filer_window), event);
+	show_send_to_menu(filer_window, event);
 	if (event)
 		gdk_event_free(event);
 }
