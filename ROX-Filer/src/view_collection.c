@@ -261,7 +261,7 @@ static void view_collection_class_init(gpointer gclass, gpointer data)
 	GTK_OBJECT_CLASS(object)->destroy = view_collection_destroy;
 }
 
-static gboolean set_bg_src(cairo_t *cr)
+static gboolean set_bg_src(cairo_t *cr, GtkWidget *widget)
 {
 	static const float p = 65535.0;
 	if (o_use_background_colour.int_value)
@@ -286,6 +286,14 @@ static gboolean set_bg_src(cairo_t *cr)
 				(100 - o_view_alpha.int_value) / 100.0);
 		return TRUE;
 	}
+
+	GdkColor base = widget->style->base[GTK_STATE_NORMAL];
+	cairo_set_source_rgba(cr,
+			base.red / p,
+			base.green / p,
+			base.blue / p,
+			(100 - o_view_alpha.int_value) / 100.0);
+
 	return FALSE;
 }
 static gboolean transparent_expose(GtkWidget *widget,
@@ -308,12 +316,8 @@ static gboolean transparent_expose(GtkWidget *widget,
 	}
 	else
 	{
-		if (o_use_background_colour.int_value ||
-			o_display_colour_types.int_value)
-		{
-			set_bg_src(cr);
+		if (set_bg_src(cr, widget))
 			cairo_paint(cr);
-		}
 		else if (o_view_alpha.int_value)
 		{
 			cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
@@ -477,17 +481,7 @@ static void draw_dir_mark(cairo_t *cr,
 	cairo_line_to(cr, right - size, mid);
 	cairo_line_to(cr, right, mid - size);
 
-	if (!set_bg_src(cr))
-	{
-		static const float p = 65535.0;
-		GdkColor base;
-		base = widget->style->base[GTK_STATE_NORMAL];
-		cairo_set_source_rgba(cr,
-				base.red / p,
-				base.green / p,
-				base.blue / p,
-				(100 - o_view_alpha.int_value) / 100.0);
-	}
+	set_bg_src(cr, widget);
 	cairo_fill(cr);
 
 	size -= 1.4;
