@@ -1053,23 +1053,6 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 	gtk_tree_selection_set_select_function(view_details->selection,
 			test_can_change_selection, view_details, NULL);
 
-	if (o_use_background_colour.int_value ||
-			o_display_colour_types.int_value)
-	{
-		GdkColor base;
-		if (o_use_background_colour.int_value)
-			gdk_color_parse(o_background_colour.value, &base);
-		else
-		{
-			GdkColor fc = type_colours[TYPE_FILE];
-			base.red   = 65535 - fc.red;
-			base.green = 65535 - fc.green;
-			base.blue  = 65535 - fc.blue;
-		}
-		gtk_widget_modify_base(GTK_WIDGET(view_details),
-				GTK_STATE_NORMAL, &base);
-	}
-
 	/* Sorting */
 	view_details->sort_fn = NULL;
 
@@ -1204,6 +1187,32 @@ static void view_details_style_changed(ViewIface *view, int flags)
 		}
 		gtk_tree_model_row_changed(model, path, &iter);
 		gtk_tree_path_next(path);
+	}
+
+	if (o_use_background_colour.int_value ||
+			o_display_colour_types.int_value)
+	{
+		GdkColor base;
+		if (o_use_background_colour.int_value)
+			gdk_color_parse(o_background_colour.value, &base);
+		else if (o_display_colour_types.int_value)
+		{
+			GdkColor fc = type_colours[TYPE_FILE];
+			base.red   = 65535 - fc.red;
+			base.green = 65535 - fc.green;
+			base.blue  = 65535 - fc.blue;
+		}
+
+		gtk_widget_modify_base(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &base);
+		gtk_widget_modify_fg(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &type_colours[TYPE_FILE]);
+	} else {
+		GtkStyle *style = view_details->filer_window->window->style;
+		gtk_widget_modify_base(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &style->base[GTK_STATE_NORMAL]);
+		gtk_widget_modify_fg(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &style->fg[GTK_STATE_NORMAL]);
 	}
 
 	gtk_tree_path_free(path);
