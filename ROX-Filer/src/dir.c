@@ -89,8 +89,6 @@ static int in_callback = 0;
 
 GFSCache *dir_cache = NULL;
 
-static GMutex m_dir;
-
 static Option o_purge_dir_cache;
 
 /* Static prototypes */
@@ -402,9 +400,9 @@ DirItem *dir_update_item(Directory *dir, const gchar *leafname)
 void dir_queue_recheck(Directory *dir, DirItem *item)
 {
 	item->flags &= ~ITEM_FLAG_NEED_RESCAN_QUEUE;
-	g_mutex_lock(&m_dir);
+	g_mutex_lock(&dir->mutex);
 	g_queue_push_head(dir->recheck_list, g_strdup(item->leafname));
-	g_mutex_unlock(&m_dir);
+	g_mutex_unlock(&dir->mutex);
 }
 
 static void free_recheck_list(Directory *dir)
@@ -487,16 +485,9 @@ void dir_stop(void)
 	g_hash_table_foreach(dir_cache->inode_to_stats, stop_scan, NULL);
 }
 
-static GMutex m_make_path2;
-static const guchar *make_path2(const char *dir, const char *leaf)
+static const guchar *make_path_to_buf(GString *buffer, const char *dir, const char *leaf)
 {
-	static GString *buffer = NULL;
-
-	if (!buffer)
-		buffer = g_string_new(NULL);
-
-	if (buffer->str != dir)
-		g_string_assign(buffer, dir);
+	g_string_assign(buffer, dir);
 
 	if (dir[0] != '/' || dir[1] != '\0')
 		g_string_append_c(buffer, '/');	/* For anything except "/" */
@@ -551,9 +542,9 @@ static gboolean do_recheck(gpointer data)
 
 	if (!g_queue_is_empty(dir->recheck_list))
 	{
-		g_mutex_lock(&m_dir);
+		g_mutex_lock(&dir->mutex);
 		leaf = g_queue_pop_tail(dir->recheck_list);
-		g_mutex_unlock(&m_dir);
+		g_mutex_unlock(&dir->mutex);
 
 		DirItem *item = insert_item(dir, leaf, FALSE);
 		if (item && item->flags & ITEM_FLAG_DIR_NEED_EXAMINE)
@@ -573,16 +564,14 @@ static gboolean do_recheck(gpointer data)
 
 		if (item->flags & ITEM_FLAG_DIR_NEED_EXAMINE)
 		{
-			g_mutex_lock(&m_make_path2);
+			g_mutex_lock(&dir->mutex);
 			if (diritem_examine_dir(
-						make_path2(dir->pathname, item->leafname), item))
+						make_path_to_buf(dir->strbuf, dir->pathname, item->leafname), item))
 			{
-				g_mutex_lock(&m_dir);
 				g_ptr_array_add(dir->up_items, item);
-				g_mutex_unlock(&m_dir);
 				delayed_notify(dir, FALSE);
 			}
-			g_mutex_unlock(&m_make_path2);
+			g_mutex_unlock(&dir->mutex);
 		}
 
 		if (!g_queue_is_empty(dir->examine_list))
@@ -616,8 +605,10 @@ static gboolean recheck_callback(gpointer data)
 
 	g_thread_yield();
 
-	g_mutex_lock(&m_dir); //waiting for attach until dir->idle_callback is set
-	g_mutex_unlock(&m_dir);
+	//waiting for attach until dir->idle_callback is set
+	g_mutex_lock(&dir->mutex);
+	g_mutex_unlock(&dir->mutex);
+
 
 	g_source_remove(dir->idle_callback);
 	dir->idle_callback = 0;
@@ -675,16 +666,16 @@ static gboolean recheck_callback(gpointer data)
 
 static void attach_callback(Directory *dir)
 {
+	g_mutex_lock(&dir->mutex);
 	if (!dir->idle_callback)
 	{
 		g_object_ref(dir);
 		GSource *src = g_idle_source_new();
 		g_source_set_callback(src, recheck_callback, dir, NULL);
-		g_mutex_lock(&m_dir);
 		dir->idle_callback = g_source_attach(src, NULL);
 		g_source_unref(src);
-		g_mutex_unlock(&m_dir);
 	}
+	g_mutex_unlock(&dir->mutex);
 }
 
 static gpointer scan_thread(gpointer data)
@@ -730,13 +721,13 @@ static GPtrArray *swap_ptra(GPtrArray *src){
  */
 void dir_merge_new(Directory *dir)
 {
-	g_mutex_lock(&m_dir);
+	g_mutex_lock(&dir->mutex);
 
 	GPtrArray *new = swap_ptra(dir->new_items);
 	GPtrArray *up = swap_ptra(dir->up_items);
 	GPtrArray *gone = swap_ptra(dir->gone_items);
 
-	g_mutex_unlock(&m_dir);
+	g_mutex_unlock(&dir->mutex);
 
 	GList	  *list;
 	guint	  i, j;
@@ -858,8 +849,9 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 		(leafname[1] == '.' && leafname[2] == '\n')))
 		return NULL;
 
-	g_mutex_lock(&m_make_path2);
-	full_path = make_path2(dir->pathname, leafname);
+	//this called from multi threads e.g. dir_check_this
+	g_mutex_lock(&dir->mutex);
+	full_path = make_path_to_buf(dir->strbuf, dir->pathname, leafname);
 
 	item = g_hash_table_lookup(dir->known_items, leafname);
 
@@ -880,10 +872,8 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 		if (item->base_type == TYPE_ERROR && item->lstat_errno == ENOENT)
 		{
 			/* Item has been deleted */
-			g_mutex_lock(&m_dir);
 			if (g_hash_table_remove(dir->known_items, item->leafname))
 				g_ptr_array_add(dir->gone_items, item);
-			g_mutex_unlock(&m_dir);
 
 			item = NULL;
 		}
@@ -895,9 +885,7 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 			if (do_compare && compare_items(item, &old))
 				goto out;
 
-			g_mutex_lock(&m_dir);
 			g_ptr_array_add(dir->up_items, item);
-			g_mutex_unlock(&m_dir);
 		}
 	}
 	else
@@ -911,15 +899,13 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 			goto out;
 		}
 
-		g_mutex_lock(&m_dir);
 		if (g_hash_table_insert(dir->known_items, item->leafname, item))
 			g_ptr_array_add(dir->new_items, item);
-		g_mutex_unlock(&m_dir);
 	}
 
 	delayed_notify(dir, examine_now);
 out:
-	g_mutex_unlock(&m_make_path2);
+	g_mutex_unlock(&dir->mutex);
 	return item;
 }
 
@@ -1057,6 +1043,9 @@ static void dir_finialize(GObject *object)
 	free_items_array(items);
 	g_hash_table_destroy(dir->known_items);
 
+	g_string_free(dir->strbuf, TRUE);
+	g_mutex_clear(&dir->mutex);
+
 	g_free(dir->error);
 	g_free(dir->pathname);
 
@@ -1075,6 +1064,9 @@ static void directory_class_init(gpointer gclass, gpointer data)
 static void directory_init(GTypeInstance *object, gpointer gclass)
 {
 	Directory *dir = (Directory *) object;
+
+	g_mutex_init(&dir->mutex);
+	dir->strbuf = g_string_new(NULL);
 
 	dir->known_items = g_hash_table_new(g_str_hash, g_str_equal);
 	dir->recheck_list = g_queue_new();

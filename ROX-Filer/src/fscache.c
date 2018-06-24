@@ -83,6 +83,7 @@ GFSCache *g_fscache_new(GFSLoadFunc load,
 
 	cache = g_new(GFSCache, 1);
 	cache->inode_to_stats = g_hash_table_new(hash_key, cmp_stats);
+	g_mutex_init(&cache->mutex);
 	cache->load = load;
 	cache->update = update;
 	cache->user_data = user_data;
@@ -96,6 +97,7 @@ void g_fscache_destroy(GFSCache *cache)
 
 	g_hash_table_foreach(cache->inode_to_stats, destroy_hash_entry, NULL);
 	g_hash_table_destroy(cache->inode_to_stats);
+	g_mutex_clear(&cache->mutex);
 
 	g_free(cache);
 }
@@ -192,6 +194,7 @@ void g_fscache_may_update(GFSCache *cache, const char *pathname)
 	key.device = info.st_dev;
 	key.inode = info.st_ino;
 
+	g_mutex_lock(&cache->mutex);
 	data = g_hash_table_lookup(cache->inode_to_stats, &key);
 
 	if (data && !UPTODATE(data, info))
@@ -202,6 +205,7 @@ void g_fscache_may_update(GFSCache *cache, const char *pathname)
 		data->length = info.st_size;
 		data->mode = info.st_mode;
 	}
+	g_mutex_unlock(&cache->mutex);
 }
 
 /* Call the update() function on this item iff it's in the cache. */
@@ -221,6 +225,7 @@ void g_fscache_update(GFSCache *cache, const char *pathname)
 	key.device = info.st_dev;
 	key.inode = info.st_ino;
 
+	g_mutex_lock(&cache->mutex);
 	data = g_hash_table_lookup(cache->inode_to_stats, &key);
 
 	if (data)
@@ -231,6 +236,7 @@ void g_fscache_update(GFSCache *cache, const char *pathname)
 		data->length = info.st_size;
 		data->mode = info.st_mode;
 	}
+	g_mutex_unlock(&cache->mutex);
 }
 
 void g_fscache_remove(GFSCache *cache, const char *pathname)
@@ -248,12 +254,15 @@ void g_fscache_remove(GFSCache *cache, const char *pathname)
 	key.device = info.st_dev;
 	key.inode = info.st_ino;
 
+	g_mutex_lock(&cache->mutex);
 	data = (GFSCacheData *) g_hash_table_lookup(cache->inode_to_stats, &key);
+	g_hash_table_remove(cache->inode_to_stats, &key);
+	g_mutex_unlock(&cache->mutex);
+
 	if (data && data->data)
 		g_object_unref(data->data);
 	g_free(data);
 
-	g_hash_table_remove(cache->inode_to_stats, &key);
 }
 
 /* Remove all cache entries last accessed more than 'age' seconds
@@ -269,8 +278,10 @@ void g_fscache_purge(GFSCache *cache, gint age)
 	info.cache = cache;
 	info.now = time(NULL);
 
+	g_mutex_lock(&cache->mutex);
 	g_hash_table_foreach_remove(cache->inode_to_stats, purge_hash_entry,
 			(gpointer) &info);
+	g_mutex_unlock(&cache->mutex);
 }
 
 
@@ -349,7 +360,9 @@ static GFSCacheData *lookup_internal(GFSCache *cache, const char *pathname,
 	key.device = info.st_dev;
 	key.inode = info.st_ino;
 
+	g_mutex_lock(&cache->mutex);
 	data = g_hash_table_lookup(cache->inode_to_stats, &key);
+	g_mutex_unlock(&cache->mutex);
 
 	if (data)
 	{
@@ -393,7 +406,9 @@ static GFSCacheData *lookup_internal(GFSCache *cache, const char *pathname,
 		data = g_new(GFSCacheData, 1);
 		data->data = NULL;
 
+		g_mutex_lock(&cache->mutex);
 		g_hash_table_insert(cache->inode_to_stats, new_key, data);
+		g_mutex_unlock(&cache->mutex);
 	}
 
 init:

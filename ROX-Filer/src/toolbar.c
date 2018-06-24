@@ -261,7 +261,9 @@ void toolbar_update_info(FilerWindow *filer_window)
 			int	   tally = 0;
 
 			filer_window_being_counted=filer_window;
+			g_mutex_lock(&filer_window->directory->mutex);
 			g_hash_table_foreach(hash, tally_items, &tally);
+			g_mutex_unlock(&filer_window->directory->mutex);
 
 			if (tally)
 				s = g_strdup_printf(_(" (%u hidden)"), tally);

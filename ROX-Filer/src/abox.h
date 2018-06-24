@@ -43,9 +43,6 @@ struct _ABox
 	GtkWidget       *progress;      /* Progress bar, NULL until set */
 	GtkWidget       *fileprog;
 
-	gchar		*next_dir;	/* NULL => no timer active */
-	gint		next_timer;
-
 	gboolean	question;	/* Asking a question? */
 };
 

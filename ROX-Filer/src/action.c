@@ -80,6 +80,7 @@ struct _GUIside
 
 	int 		from_child;	/* File descriptor */
 	FILE		*to_child;
+	gint		sync;
 	int 		input_tag;	/* gdk_input_add() */
 	pid_t		child;		/* Process ID */
 	int		errors;		/* Number of errors so far */
@@ -335,15 +336,20 @@ static void show_settype_help(gpointer data)
 	gtk_widget_show_all(help);
 }
 
+static gboolean syncchild(GUIside *gui_side)
+{
+	fputc('r', gui_side->to_child);
+	fflush(gui_side->to_child);
+	gui_side->sync = 0;
+	return FALSE;
+}
+
 static void process_message(GUIside *gui_side, const gchar *buffer)
 {
 	ABox *abox = gui_side->abox;
 
 	if (*buffer == 'r')
-	{
-		fputc('r', gui_side->to_child);
-		fflush(gui_side->to_child);
-	}
+		gui_side->sync = g_idle_add((GSourceFunc)syncchild, gui_side);
 	else if (*buffer == '?')
 		abox_ask(abox, buffer + 1);
 	else if (*buffer == 's')
@@ -804,6 +810,8 @@ static void destroy_action_window(GtkWidget *widget, gpointer data)
 	{
 		kill(-gui_side->child, SIGTERM);
 		fclose(gui_side->to_child);
+		if (gui_side->sync)
+			g_source_remove(gui_side->sync);
 		close(gui_side->from_child);
 		g_source_remove(gui_side->input_tag);
 	}
@@ -892,6 +900,7 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 	gui_side = g_new(GUIside, 1);
 	gui_side->from_child = filedes[0];
 	gui_side->to_child = fdopen(filedes[3], "wb");
+	gui_side->sync = 0;
 	gui_side->child = child;
 	gui_side->errors = 0;
 	gui_side->show_info = FALSE;
@@ -915,6 +924,18 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 						gui_side, NULL);
 
 	return gui_side;
+}
+
+static gboolean synced = FALSE;
+static void syncgui()
+{
+	if (synced) return;
+	synced = TRUE;
+	printf_send("r");
+	char c;
+	read(from_parent, &c, 1);
+	if (c != 'r') process_flag(c);
+	//g_usleep(100);
 }
 
 /* 			ACTIONS ON ONE ITEM 			*/
@@ -970,6 +991,7 @@ static void do_delete(const char *src_path, const char *unused)
 		return;
 	}
 
+	printed = FALSE;
 	write_prot = S_ISLNK(info.st_mode) ? FALSE
 					   : access(src_path, W_OK) != 0;
 	if (write_prot || !quiet)
@@ -986,8 +1008,12 @@ static void do_delete(const char *src_path, const char *unused)
 		if (!res)
 			return;
 	}
-	else if (!o_brief)
+
+	if (!printed && !o_brief)
+	{
 		printf_send(_("'Deleting '%s'\n"), src_path);
+		syncgui();
+	}
 
 	safe_path = g_strdup(src_path);
 
@@ -1360,17 +1386,6 @@ static const char *make_dest_path(const char *object, const char *dir)
 	return make_path(dir, leaf);
 }
 
-static gboolean synced = FALSE;
-static void syncgui()
-{
-	if (synced) return;
-	synced = TRUE;
-	printf_send("r");
-	char c;
-	read(from_parent, &c, 1);
-	if (c != 'r') process_flag(c);
-	//g_usleep(100);
-}
 static void fprogcb(goffset current, goffset total, gpointer p)
 {
 #define SHOWTIME 100 * 1000

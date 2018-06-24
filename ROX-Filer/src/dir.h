@@ -74,6 +74,9 @@ struct _Directory
 	gboolean	in_scan_thread, req_scan_off, req_notify;
 	GThread		*t_scan;
 
+	GMutex		mutex;
+	GString		*strbuf;
+
 	GHashTable 	*known_items;	/* What our users know about */
 	GPtrArray	*new_items;	/* New items to add in */
 	GPtrArray	*up_items;	/* Items to redraw */

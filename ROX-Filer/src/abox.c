@@ -130,8 +130,6 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 	gtk_widget_set_size_request(abox->dir_label, 8, -1);
 	abox->results = NULL;
 	abox->entry = NULL;
-	abox->next_dir = NULL;
-	abox->next_timer = 0;
 	abox->question = FALSE;
 	gtk_misc_set_alignment(GTK_MISC(abox->dir_label), 0.5, 0.5);
 	gtk_box_pack_start(GTK_BOX(dialog->vbox),
@@ -353,13 +351,6 @@ void abox_log(ABox *abox, const gchar *message, const gchar *style)
 static void abox_finalise(GObject *object)
 {
 	GObjectClass *parent_class;
-	ABox *abox = ABOX(object);
-
-	if (abox->next_dir)
-	{
-		null_g_free(&abox->next_dir);
-		g_source_remove(abox->next_timer);
-	}
 
 	parent_class = g_type_class_peek(GTK_TYPE_DIALOG);
 
@@ -367,40 +358,13 @@ static void abox_finalise(GObject *object)
 		(*G_OBJECT_CLASS(parent_class)->finalize)(object);
 }
 
-static gboolean show_next_dir(gpointer data)
-{
-	ABox	*abox = ABOX(data);
-
-	g_return_val_if_fail(IS_ABOX(abox), FALSE);
-
-	gtk_label_set_text(GTK_LABEL(abox->dir_label), abox->next_dir);
-	null_g_free(&abox->next_dir);
-
-	return FALSE;
-}
-
-/* Display this message in the current-object area.
- * The display won't update too fast, even if you call this very often.
- */
 void abox_set_current_object(ABox *abox, const gchar *message)
 {
 	g_return_if_fail(abox != NULL);
 	g_return_if_fail(message != NULL);
 	g_return_if_fail(IS_ABOX(abox));
 
-	/* If a string is already set then replace it, but assume the
-	 * timer is already running...
-	 */
-
-	if (abox->next_dir)
-		g_free(abox->next_dir);
-	else
-	{
-		gtk_label_set_text(GTK_LABEL(abox->dir_label), message);
-		abox->next_timer = g_timeout_add(500, show_next_dir, abox);
-	}
-
-	abox->next_dir = g_strdup(message);
+	gtk_label_set_text(GTK_LABEL(abox->dir_label), message);
 }
 
 static void lost_preview(GtkWidget *window, ABox *abox)

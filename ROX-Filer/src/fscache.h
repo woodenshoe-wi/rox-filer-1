@@ -29,6 +29,7 @@ typedef enum {
 struct _GFSCache
 {
 	GHashTable    *inode_to_stats;
+	GMutex        mutex;
 	GFSLoadFunc   load;
 	GFSUpdateFunc update;
 	gpointer      user_data;
