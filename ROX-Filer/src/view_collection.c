@@ -663,7 +663,7 @@ static void draw_item(GtkWidget *widget,
 		if (
 				fw->display_style != HUGE_ICONS ||
 				fw->scanning ||
-				(vc->collection->vadj->value == 0 && !fw->update))
+				vc->collection->vadj->value == 0)
 		{
 			g_queue_push_head(vc->thumbs_queue, GUINT_TO_POINTER(idx));
 

@@ -377,6 +377,7 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 		return;
 	}
 
+
 	/* Is it currently being created? */
 	image = g_fscache_lookup_full(thumb_cache, path,
 					FSCACHE_LOOKUP_ONLY_NEW, &found);
@@ -386,7 +387,15 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 		/* Thumbnail is known, or being created */
 		if (image)
 			g_object_unref(image);
-		callback(data, image? (gpointer)path: NULL);
+
+		//append to last
+		info = g_new(ChildThumbnail, 1);
+		info->path = g_strdup(path);
+		info->callback = callback;
+		info->data = data;
+		info->timeout = 0;
+		info->order = ordered_num++;
+		thumbnail_done(info);
 		return;
 	}
 
