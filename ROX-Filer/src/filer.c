@@ -676,7 +676,9 @@ static void update_display(Directory *dir,
 
 			break;
 		case DIR_UPDATE_ICON:
+			filer_window->onlyicon=TRUE;
 			view_update_items(view, items);
+			filer_window->onlyicon=FALSE;
 			filer_set_pointer(filer_window);
 			break;
 		case DIR_ERROR_CHANGED:
@@ -1911,6 +1913,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->under_init = TRUE;
 	filer_window->first_scan = TRUE;
 	filer_window->new_win_first_scan = TRUE;
+	filer_window->onlyicon = FALSE;
 	filer_window->req_sort = FALSE;
 	filer_window->may_resize = FALSE;
 	filer_window->presented = FALSE;
@@ -2984,16 +2987,16 @@ static gboolean filer_next_thumb_real(GObject *window)
 				g_thread_unref(scd);
 			}
 		}
+		filer_next_thumb(window, NULL);
+		goto out;
 	case 1:
 		filer_next_thumb(window, path);
-		g_free(path);
-		return FALSE;
+		goto out;
 	case 0:
 		break;
 	}
 
 	pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
-	g_free(path);
 
 	if (!gtk_widget_get_visible(filer_window->thumb_bar))
 	{
@@ -3009,6 +3012,8 @@ static gboolean filer_next_thumb_real(GObject *window)
 			GTK_PROGRESS_BAR(filer_window->thumb_progress),
 			done / (float) total);
 
+out:
+	g_free(path);
 	return FALSE;
 }
 

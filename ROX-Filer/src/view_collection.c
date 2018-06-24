@@ -660,11 +660,11 @@ static void draw_item(GtkWidget *widget,
 	{
 		//delay loading in scroll is not good,
 		//because half of view is blank and also too blink.
-		if (
+		if (!view->thumb && ( //if already thumb is, that is reload of thumb
 				fw->display_style != HUGE_ICONS ||
 				fw->scanning ||
 				vc->collection->vadj->value == 0)
-		{
+		) {
 			g_queue_push_head(vc->thumbs_queue, GUINT_TO_POINTER(idx));
 
 			if (!vc->thumb_func)
@@ -682,6 +682,7 @@ static void draw_item(GtkWidget *widget,
 			view->may_thumb = FALSE;
 			gchar *path = pathdup(
 					make_path(fw->real_path, item->leafname));
+			g_clear_object(&view->thumb);
 			view->thumb = pixmap_load_thumb(path);
 			g_free(path);
 		}
@@ -1462,6 +1463,13 @@ static void update_item(ViewCollection *view_collection, int i)
 
 	g_return_if_fail(i >= 0 && i < collection->number_of_items);
 	colitem = &collection->items[i];
+
+	if (filer_window->onlyicon)
+	{
+		((ViewData *) colitem->view_data)->may_thumb = TRUE;
+		collection_draw_item(collection, i, TRUE);
+		return;
+	}
 
 	display_update_view(filer_window,
 			(DirItem *) colitem->data,
