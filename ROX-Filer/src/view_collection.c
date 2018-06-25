@@ -557,16 +557,8 @@ static gboolean next_thumb(ViewCollection *vc)
 			view->thumb = pixmap_load_thumb(path);
 			g_free(path);
 
-			if (!view->image || view->thumb)
-			{
-				if (!view->thumb && !view->image)
-				{
-					view->image = di_image(item);
-					if (view->image)
-						g_object_ref(view->image);
-				}
+			if (view->thumb || fw->display_style == HUGE_ICONS)
 				collection_draw_item(vc->collection, idx, TRUE);
-			}
 		}
 	}
 
@@ -619,8 +611,9 @@ static void draw_item(GtkWidget *widget,
 		goto end_image;
 	}
 
-	if (!view->may_thumb && !view->thumb && !view->image)
+	if (!view->image)
 	{
+		view->may_thumb = FALSE;
 		view->image = get_globicon(
 				make_path(fw->sym_path, item->leafname));
 
@@ -638,6 +631,10 @@ static void draw_item(GtkWidget *widget,
 
 			if (!view->image)
 			{
+				view->image = di_image(item);
+				if (view->image)
+					g_object_ref(view->image);
+
 				if (fw->show_thumbs &&
 						!(item->flags & ITEM_FLAG_APPDIR) &&
 						(item->base_type == TYPE_FILE ||
@@ -645,12 +642,6 @@ static void draw_item(GtkWidget *widget,
 						  o_display_show_dir_thumbs.int_value == 1)))
 				{
 					view->may_thumb = TRUE;
-				}
-				else
-				{
-					view->image = di_image(item);
-					if (view->image)
-						g_object_ref(view->image);
 				}
 			}
 		}
@@ -660,13 +651,12 @@ static void draw_item(GtkWidget *widget,
 	{
 		//delay loading in scroll is not good,
 		//because half of view is blank and also too blink.
-		if (!view->thumb && ( //if already thumb is, that is reload of thumb
+		if (!view->thumb && (
 				fw->display_style != HUGE_ICONS ||
 				fw->scanning ||
 				vc->collection->vadj->value == 0)
 		) {
 			g_queue_push_head(vc->thumbs_queue, GUINT_TO_POINTER(idx));
-
 			if (!vc->thumb_func)
 			{
 				g_object_ref(vc);
@@ -680,9 +670,8 @@ static void draw_item(GtkWidget *widget,
 		else
 		{
 			view->may_thumb = FALSE;
-			gchar *path = pathdup(
-					make_path(fw->real_path, item->leafname));
 			g_clear_object(&view->thumb);
+			gchar *path = pathdup(make_path(fw->real_path, item->leafname));
 			view->thumb = pixmap_load_thumb(path);
 			g_free(path);
 		}
@@ -1466,7 +1455,7 @@ static void update_item(ViewCollection *view_collection, int i)
 
 	if (filer_window->onlyicon)
 	{
-		((ViewData *) colitem->view_data)->may_thumb = TRUE;
+		g_clear_object(&((ViewData *) colitem->view_data)->image);
 		collection_draw_item(collection, i, TRUE);
 		return;
 	}

@@ -2961,7 +2961,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 	case -1:
 		if (o_display_show_dir_thumbs.int_value == 1)
 		{
-			struct stat	info;
+			struct stat info;
 			if (mc_lstat(path, &info) != -1 &&
 				mode_to_base_type(info.st_mode) == TYPE_DIRECTORY)
 			{
