@@ -850,6 +850,7 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 		return NULL;
 
 	//this called from multi threads e.g. dir_check_this
+	g_thread_yield();
 	g_mutex_lock(&dir->mutex);
 	full_path = make_path_to_buf(dir->strbuf, dir->pathname, leafname);
 
