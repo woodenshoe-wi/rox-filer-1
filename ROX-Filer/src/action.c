@@ -350,6 +350,7 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 
 	if (*buffer == 'r')
 		gui_side->sync = g_idle_add((GSourceFunc)syncchild, gui_side);
+//		syncchild(gui_side);
 	else if (*buffer == '?')
 		abox_ask(abox, buffer + 1);
 	else if (*buffer == 's')
@@ -443,6 +444,8 @@ static void message_from_child(gpointer 	  data,
 
 	fclose(gui_side->to_child);
 	gui_side->to_child = NULL;
+	if (gui_side->sync)
+		g_source_remove(gui_side->sync);
 	close(gui_side->from_child);
 	g_source_remove(gui_side->input_tag);
 	abox_cancel_ask(gui_side->abox);
