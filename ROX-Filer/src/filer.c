@@ -2261,24 +2261,12 @@ static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class)
 
 	/* And the thumbnail progress bar (also hidden) */
 	{
-		GtkWidget *cancel;
+		filer_window->thumb_bar = gtk_progress_bar_new();
+		gtk_widget_set_size_request(filer_window->thumb_bar,
+				-1, small_height * (1./3.));
 
-		filer_window->thumb_bar = gtk_hbox_new(FALSE, 2);
 		gtk_box_pack_end(GTK_BOX(vbox), filer_window->thumb_bar,
 				FALSE, TRUE, 0);
-
-		filer_window->thumb_progress = gtk_progress_bar_new();
-
-		gtk_box_pack_start(GTK_BOX(filer_window->thumb_bar),
-				filer_window->thumb_progress, TRUE, TRUE, 0);
-
-		cancel = gtk_button_new_with_label(_("Cancel"));
-		gtk_widget_set_can_focus(cancel, FALSE);
-		gtk_box_pack_start(GTK_BOX(filer_window->thumb_bar),
-				cancel, FALSE, TRUE, 0);
-		g_signal_connect_swapped(cancel, "clicked",
-				G_CALLBACK(filer_cancel_thumbnails),
-				filer_window);
 	}
 
 	gtk_widget_show(vbox);
@@ -3009,7 +2997,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 	done = total - g_queue_get_length(filer_window->thumb_queue);
 
 	gtk_progress_bar_set_fraction(
-			GTK_PROGRESS_BAR(filer_window->thumb_progress),
+			GTK_PROGRESS_BAR(filer_window->thumb_bar),
 			done / (float) total);
 
 out:
