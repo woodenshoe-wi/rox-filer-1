@@ -568,7 +568,9 @@ static gboolean do_recheck(gpointer data)
 			if (diritem_examine_dir(
 						make_path_to_buf(dir->strbuf, dir->pathname, item->leafname), item))
 			{
+				g_mutex_lock(&dir->mergem);
 				g_ptr_array_add(dir->up_items, item);
+				g_mutex_unlock(&dir->mergem);
 				delayed_notify(dir, FALSE);
 			}
 			g_mutex_unlock(&dir->mutex);
@@ -599,19 +601,18 @@ static void dir_rescan_later(Directory *dir)
 			(g_get_monotonic_time() - dir->last_scan_time) / 1000 * 4 + 600,
 			rescan_timeout_cb, dir);
 }
+
+static GMutex callbackm;
 static gboolean recheck_callback(gpointer data)
 {
 	Directory *dir = (Directory *) data;
 
-	g_thread_yield();
-
 	//waiting for attach until dir->idle_callback is set
-	g_mutex_lock(&dir->mutex);
-	g_mutex_unlock(&dir->mutex);
-
-
+	g_thread_yield();
+	g_mutex_lock(&callbackm);
 	g_source_remove(dir->idle_callback);
 	dir->idle_callback = 0;
+	g_mutex_unlock(&callbackm);
 
 	GThread *t = dir->t_scan;
 	g_object_unref(dir);
@@ -666,7 +667,7 @@ static gboolean recheck_callback(gpointer data)
 
 static void attach_callback(Directory *dir)
 {
-	g_mutex_lock(&dir->mutex);
+	g_mutex_lock(&callbackm);
 	if (!dir->idle_callback)
 	{
 		g_object_ref(dir);
@@ -675,7 +676,8 @@ static void attach_callback(Directory *dir)
 		dir->idle_callback = g_source_attach(src, NULL);
 		g_source_unref(src);
 	}
-	g_mutex_unlock(&dir->mutex);
+	g_mutex_unlock(&callbackm);
+	g_thread_yield();
 }
 
 static gpointer scan_thread(gpointer data)
@@ -721,13 +723,14 @@ static GPtrArray *swap_ptra(GPtrArray *src){
  */
 void dir_merge_new(Directory *dir)
 {
-	g_mutex_lock(&dir->mutex);
+	g_mutex_lock(&dir->mergem);
 
 	GPtrArray *new = swap_ptra(dir->new_items);
 	GPtrArray *up = swap_ptra(dir->up_items);
 	GPtrArray *gone = swap_ptra(dir->gone_items);
 
-	g_mutex_unlock(&dir->mutex);
+	g_mutex_unlock(&dir->mergem);
+	g_thread_yield();
 
 	GList	  *list;
 	guint	  i, j;
@@ -850,7 +853,6 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 		return NULL;
 
 	//this called from multi threads e.g. dir_check_this
-	g_thread_yield();
 	g_mutex_lock(&dir->mutex);
 	full_path = make_path_to_buf(dir->strbuf, dir->pathname, leafname);
 
@@ -874,7 +876,11 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 		{
 			/* Item has been deleted */
 			if (g_hash_table_remove(dir->known_items, item->leafname))
+			{
+				g_mutex_lock(&dir->mergem);
 				g_ptr_array_add(dir->gone_items, item);
+				g_mutex_unlock(&dir->mergem);
+			}
 
 			item = NULL;
 		}
@@ -886,7 +892,9 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 			if (do_compare && compare_items(item, &old))
 				goto out;
 
+			g_mutex_lock(&dir->mergem);
 			g_ptr_array_add(dir->up_items, item);
+			g_mutex_unlock(&dir->mergem);
 		}
 	}
 	else
@@ -901,12 +909,17 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 		}
 
 		if (g_hash_table_insert(dir->known_items, item->leafname, item))
+		{
+			g_mutex_lock(&dir->mergem);
 			g_ptr_array_add(dir->new_items, item);
+			g_mutex_unlock(&dir->mergem);
+		}
 	}
 
 	delayed_notify(dir, examine_now);
 out:
 	g_mutex_unlock(&dir->mutex);
+	g_thread_yield();
 	return item;
 }
 
@@ -1046,6 +1059,7 @@ static void dir_finialize(GObject *object)
 
 	g_string_free(dir->strbuf, TRUE);
 	g_mutex_clear(&dir->mutex);
+	g_mutex_clear(&dir->mergem);
 
 	g_free(dir->error);
 	g_free(dir->pathname);
@@ -1067,6 +1081,7 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 	Directory *dir = (Directory *) object;
 
 	g_mutex_init(&dir->mutex);
+	g_mutex_init(&dir->mergem);
 	dir->strbuf = g_string_new(NULL);
 
 	dir->known_items = g_hash_table_new(g_str_hash, g_str_equal);

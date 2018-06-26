@@ -75,6 +75,7 @@ struct _Directory
 	GThread		*t_scan;
 
 	GMutex		mutex;
+	GMutex		mergem;
 	GString		*strbuf;
 
 	GHashTable 	*known_items;	/* What our users know about */
