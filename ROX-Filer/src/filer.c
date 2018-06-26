@@ -3309,7 +3309,6 @@ void filer_perform_action(FilerWindow *fw, GdkEventButton *event)
 		fw->temp_item_selected = FALSE;
 
 		filer_selection_changed(fw, event->time);
-		return;
 	}
 
 	if (fw->target_cb)
