@@ -1478,8 +1478,11 @@ static void update_item(ViewCollection *view_collection, int i)
 
 	if (filer_window->onlyicon)
 	{
-		((ViewData *) colitem->view_data)->iconstatus = -1;
-		collection_draw_item(collection, i, TRUE);
+		if (((ViewData *) colitem->view_data)->iconstatus != 0)
+		{
+			((ViewData *) colitem->view_data)->iconstatus = -1;
+			collection_draw_item(collection, i, TRUE);
+		}
 		return;
 	}
 

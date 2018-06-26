@@ -1119,7 +1119,7 @@ void display_update_view(FilerWindow *fw,
 
 	view->base_type = item->base_type;
 
-	if (!update_name_layout)
+	if (!update_name_layout && view->iconstatus != 0)
 		view->iconstatus = -1;
 
 	if (view->details)
