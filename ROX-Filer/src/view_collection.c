@@ -548,17 +548,29 @@ static gboolean next_thumb(ViewCollection *vc)
 			DirItem        *item = (DirItem *) colitem->data;
 			ViewData       *view = (ViewData *) colitem->view_data;
 
-			if (!view->may_thumb)
+			if (view->iconstatus != 3)
 				continue;
 
-			view->may_thumb = FALSE;
-			gchar *path = pathdup(
-					make_path(fw->real_path, item->leafname));
-			view->thumb = pixmap_load_thumb(path);
-			g_free(path);
+			if (!view->thumb)
+			{
+				gchar *path = pathdup(
+						make_path(fw->real_path, item->leafname));
+				view->thumb = pixmap_load_thumb(path);
+				g_free(path);
+			}
 
-			if (view->thumb || fw->display_style == HUGE_ICONS)
+			if (!view->image || view->thumb)
+			{
+				if (!view->image)
+				{
+					view->image = di_image(item);
+					if (view->image)
+						g_object_ref(view->image);
+				}
 				collection_draw_item(vc->collection, idx, TRUE);
+			}
+
+			view->iconstatus = 1;
 		}
 	}
 
@@ -611,9 +623,14 @@ static void draw_item(GtkWidget *widget,
 		goto end_image;
 	}
 
-	if (!view->image)
+	if (view->iconstatus < 1)
 	{
-		view->may_thumb = FALSE;
+		gboolean re = view->iconstatus == -1;
+		view->iconstatus = 1;
+
+		g_clear_object(&view->image);
+		g_clear_object(&view->thumb);
+
 		view->image = get_globicon(
 				make_path(fw->sym_path, item->leafname));
 
@@ -628,34 +645,40 @@ static void draw_item(GtkWidget *widget,
 					item->base_type == TYPE_FILE)
 				view->image = g_fscache_lookup_full(pixmap_cache, path,
 						FSCACHE_LOOKUP_ONLY_NEW, NULL);
+		}
 
-			if (!view->image)
+		if (!view->image)
+		{
+			if (fw->show_thumbs &&
+					!(item->flags & ITEM_FLAG_APPDIR) &&
+					(item->base_type == TYPE_FILE ||
+					 (item->base_type == TYPE_DIRECTORY &&
+					  o_display_show_dir_thumbs.int_value == 1)))
+			{
+				//delay loading in scroll is not good,
+				//because half of view is blank and also too blink.
+				if (!re && (
+						fw->display_style != HUGE_ICONS ||
+						fw->scanning ||
+						vc->collection->vadj->value == 0
+				))
+					view->iconstatus = 3;
+				else
+					view->iconstatus = 2;
+			}
+			else
 			{
 				view->image = di_image(item);
 				if (view->image)
 					g_object_ref(view->image);
-
-				if (fw->show_thumbs &&
-						!(item->flags & ITEM_FLAG_APPDIR) &&
-						(item->base_type == TYPE_FILE ||
-						 (item->base_type == TYPE_DIRECTORY &&
-						  o_display_show_dir_thumbs.int_value == 1)))
-				{
-					view->may_thumb = TRUE;
-				}
 			}
 		}
 	}
 
-	if (view->may_thumb)
+	if (view->iconstatus > 1)
 	{
-		//delay loading in scroll is not good,
-		//because half of view is blank and also too blink.
-		if (!view->thumb && (
-				fw->display_style != HUGE_ICONS ||
-				fw->scanning ||
-				vc->collection->vadj->value == 0)
-		) {
+		if (view->iconstatus == 3)
+		{
 			g_queue_push_head(vc->thumbs_queue, GUINT_TO_POINTER(idx));
 			if (!vc->thumb_func)
 			{
@@ -667,9 +690,9 @@ static void draw_item(GtkWidget *widget,
 
 			if (fw->display_style == HUGE_ICONS) return;
 		}
-		else
+		else if (view->iconstatus == 2)
 		{
-			view->may_thumb = FALSE;
+			view->iconstatus = 1;
 			g_clear_object(&view->thumb);
 			gchar *path = pathdup(make_path(fw->real_path, item->leafname));
 			view->thumb = pixmap_load_thumb(path);
@@ -1455,7 +1478,7 @@ static void update_item(ViewCollection *view_collection, int i)
 
 	if (filer_window->onlyicon)
 	{
-		g_clear_object(&((ViewData *) colitem->view_data)->image);
+		((ViewData *) colitem->view_data)->iconstatus = -1;
 		collection_draw_item(collection, i, TRUE);
 		return;
 	}

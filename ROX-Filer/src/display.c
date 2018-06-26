@@ -1120,11 +1120,7 @@ void display_update_view(FilerWindow *fw,
 	view->base_type = item->base_type;
 
 	if (!update_name_layout)
-	{
-		g_clear_object(&view->thumb);
-		g_clear_object(&view->image);
-		view->may_thumb = FALSE;
-	}
+		view->iconstatus = -1;
 
 	if (view->details)
 	{

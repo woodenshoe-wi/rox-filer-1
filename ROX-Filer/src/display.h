@@ -25,7 +25,7 @@ struct _ViewData
 
 	MaskedPixmap *image;		/* Image; not thumbnail */
 	GdkPixbuf *thumb;
-	gboolean may_thumb;
+	int iconstatus; //0:init, 1:done, 2:may thumb, 3:delay, -1:re
 	int base_type; /* for time lag */
 	gboolean recent;
 };
