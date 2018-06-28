@@ -201,4 +201,7 @@ typedef enum
 /* Re-use an existing icon for a slightly different purpose */
 #define ROX_STOCK_BOOKMARKS    GTK_STOCK_JUMP_TO
 
+#define D(f, ...) g_print("#"#f"\n", __VA_ARGS__);
+#define DD(a) g_print("#"#a"\n");
+
 #include <libxml/tree.h>
