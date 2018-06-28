@@ -1032,11 +1032,12 @@ static gboolean may_rescan(FilerWindow *filer_window, gboolean warning)
 	/* We do a fresh lookup (rather than update) because the inode may
 	 * have changed.
 	 */
-	dir = g_fscache_lookup(dir_cache, filer_window->real_path);
+	char *real = pathdup(filer_window->sym_path);
+	dir = g_fscache_lookup(dir_cache, real);
+	g_free(real);
 	if (!dir)
 	{
-		if (!filer_window->directory->error) //for rename
-			filer_change_to(filer_window, filer_window->sym_path, NULL);
+		filer_change_to(filer_window, filer_window->sym_path, NULL);
 		return FALSE;
 	}
 
@@ -3442,19 +3443,35 @@ void filer_perform_action(FilerWindow *fw, GdkEventButton *event)
 			if (fw->directory->error)
 			{
 				dnd_motion_ungrab();
-				char *current = g_strdup(fw->real_path);
+				char *current = g_strdup(fw->sym_path);
 				do {
 					char *parent = g_path_get_dirname(current);
-					filer_close_recursive(current);
 					DIR *d;
 					struct stat info;
-					current = parent;
-					if (!mc_stat(current, &info) && (d = mc_opendir(current)))
+					if (!mc_stat(parent, &info) && (d = mc_opendir(parent)))
 					{
+						g_free(parent);
 						mc_closedir(d);
 						break;
 					}
+					g_free(current);
+					current = parent;
 				} while (1);
+
+
+				int len = strlen(current);
+				for (GList *next = all_filer_windows; next;)
+				{
+					FilerWindow *lfw = (void *)next->data;
+					next = next->next; //have to get before destroy
+
+					if (!strncmp(current, lfw->sym_path, len))
+					{
+						char s = lfw->sym_path[len];
+						if (s == '/' || s == '\0')
+							gtk_widget_destroy(lfw->window);
+					}
+				}
 				g_free(current);
 			}
 			else
