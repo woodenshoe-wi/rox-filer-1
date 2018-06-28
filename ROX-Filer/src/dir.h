@@ -112,6 +112,7 @@ struct _Directory
 };
 
 void dir_init(void);
+Directory *dir_new(const char *pathname);
 void dir_attach(Directory *dir, DirCallback callback, gpointer data);
 void dir_detach(Directory *dir, DirCallback callback, gpointer data);
 void dir_update(Directory *dir, gchar *pathname);

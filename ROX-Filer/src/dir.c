@@ -100,7 +100,6 @@ static void dir_recheck(Directory *dir,
 static GPtrArray *hash_to_array(GHashTable *hash);
 static void dir_force_update_item(Directory *dir,
 		const gchar *leaf, gboolean thumb);
-static Directory *dir_new(const char *pathname);
 static void dir_scan(Directory *dir);
 
 #ifdef USE_NOTIFY
@@ -1140,7 +1139,7 @@ static GType dir_get_type(void)
 	return type;
 }
 
-static Directory *dir_new(const char *pathname)
+Directory *dir_new(const char *pathname)
 {
 	Directory *dir;
 

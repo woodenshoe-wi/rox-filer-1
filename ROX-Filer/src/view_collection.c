@@ -313,6 +313,12 @@ static gboolean transparent_expose(GtkWidget *widget,
 	{
 		cairo_set_source_rgba(cr, 0.9, .0, .0, .6);
 		cairo_paint(cr);
+
+		cairo_set_font_size(cr, small_height * 3/4.);
+		cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+		cairo_select_font_face(cr, "sans-serif", 0, CAIRO_FONT_WEIGHT_BOLD);
+		cairo_move_to(cr, 2, small_height * 3/4.);
+		cairo_show_text(cr, view->filer_window->directory->error);
 	}
 	else
 	{

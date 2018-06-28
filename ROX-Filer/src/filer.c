@@ -528,6 +528,7 @@ static void filer_set_pointer(FilerWindow *fw)
 }
 
 void filer_autosize(FilerWindow *fw) {
+
 	if (!fw->directory) return;
 
 	if (fw->may_resize)
@@ -716,10 +717,6 @@ static void attach(FilerWindow *filer_window)
 			g_printerr(_("Error scanning '%s':\n%s\n"),
 				filer_window->sym_path,
 				filer_window->directory->error);
-		else if (filer_window->view_type != VIEW_TYPE_COLLECTION)
-			delayed_error(_("Error scanning '%s':\n%s"),
-					filer_window->sym_path,
-					filer_window->directory->error);
 	}
 
 	if (!filer_window->scanning)
@@ -1037,12 +1034,7 @@ static gboolean may_rescan(FilerWindow *filer_window, gboolean warning)
 	 */
 	dir = g_fscache_lookup(dir_cache, filer_window->real_path);
 	if (!dir)
-	{
-		if (warning)
-			info_message(_("Directory missing/deleted"));
-		gtk_widget_destroy(filer_window->window);
 		return FALSE;
-	}
 
 	g_object_unref(dir);
 	if (dir != filer_window->directory)
@@ -1747,16 +1739,8 @@ void filer_change_to(FilerWindow *fw,
 
 	sym_path = g_strdup(path);
 	real_path = pathdup(path);
-	new_dir  = g_fscache_lookup(dir_cache, real_path);
-
-	if (!new_dir)
-	{
-		delayed_error(_("Directory '%s' is not accessible"),
-				sym_path);
-		g_free(real_path);
-		g_free(sym_path);
-		return;
-	}
+	new_dir = g_fscache_lookup(dir_cache, real_path) ?:
+		dir_new(real_path); //dummy dir
 
 	fw->under_init = TRUE;
 	fw->first_scan = TRUE;
@@ -1958,15 +1942,8 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	 * a new one if needed. This does not cause a scan to start,
 	 * so if a new entry is created then it will be empty.
 	 */
-	filer_window->directory = g_fscache_lookup(dir_cache, real_path);
-	if (!filer_window->directory)
-	{
-		delayed_error(_("Directory '%s' not found."), path);
-		g_free(filer_window->real_path);
-		g_free(filer_window->sym_path);
-		g_free(filer_window);
-		return NULL;
-	}
+	filer_window->directory = g_fscache_lookup(dir_cache, real_path) ?:
+		dir_new(real_path); //dummy dir
 
 	filer_window->temp_item_selected = FALSE;
 	filer_window->flags = (FilerFlags) 0;
