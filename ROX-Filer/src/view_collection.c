@@ -311,7 +311,7 @@ static gboolean transparent_expose(GtkWidget *widget,
 
 	if (view->filer_window->directory->error)
 	{
-		cairo_set_source_rgba(cr, 0.9, .0, .0, .7);
+		cairo_set_source_rgba(cr, 0.9, .0, .0, .6);
 		cairo_paint(cr);
 	}
 	else
