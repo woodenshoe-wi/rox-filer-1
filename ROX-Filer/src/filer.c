@@ -1034,16 +1034,15 @@ static gboolean may_rescan(FilerWindow *filer_window, gboolean warning)
 	 */
 	dir = g_fscache_lookup(dir_cache, filer_window->real_path);
 	if (!dir)
+	{
+		if (!filer_window->directory->error) //for rename
+			filer_change_to(filer_window, filer_window->sym_path, NULL);
 		return FALSE;
+	}
 
 	g_object_unref(dir);
 	if (dir != filer_window->directory)
-	{
-		detach(filer_window);
-		filer_window->directory =
-			g_fscache_lookup(dir_cache, filer_window->real_path);
-		attach(filer_window);
-	}
+		filer_change_to(filer_window, filer_window->sym_path, NULL);
 
 	return TRUE;
 }
@@ -2518,13 +2517,14 @@ void filer_check_mounted(const char *real_path)
 }
 
 /* Close all windows displaying 'path' or subdirectories of 'path' */
-void filer_close_recursive(const char *path)
+gboolean filer_close_recursive(char *path)
 {
 	GList	*next = all_filer_windows;
 	gchar	*real;
 	int	len;
 
 	real = pathdup(path);
+	g_free(path);
 	len = strlen(real);
 
 	while (next)
@@ -2541,6 +2541,7 @@ void filer_close_recursive(const char *path)
 				gtk_widget_destroy(filer_window->window);
 		}
 	}
+	return FALSE;
 }
 
 /* Like minibuffer_show(), except that:
@@ -3438,7 +3439,26 @@ void filer_perform_action(FilerWindow *fw, GdkEventButton *event)
 			view_start_lasso_box(view, event);
 			break;
 		case ACT_RESIZE:
-			view_autosize(fw->view, TRUE);
+			if (fw->directory->error)
+			{
+				dnd_motion_ungrab();
+				char *current = g_strdup(fw->real_path);
+				do {
+					char *parent = g_path_get_dirname(current);
+					filer_close_recursive(current);
+					DIR *d;
+					struct stat info;
+					current = parent;
+					if (!mc_stat(current, &info) && (d = mc_opendir(current)))
+					{
+						mc_closedir(d);
+						break;
+					}
+				} while (1);
+				g_free(current);
+			}
+			else
+				view_autosize(fw->view, TRUE);
 			break;
 		default:
 			g_warning("Unsupported action : %d\n", action);
