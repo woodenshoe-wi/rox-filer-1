@@ -305,26 +305,25 @@ static void free_recheck_list(Directory *dir)
 	dir->recheck_list = NULL;
 }
 
+static void tousers(Directory *dir, DirAction action, GPtrArray *items)
+{
+	in_callback++;
+	for (GList *next = dir->users; next; next = next->next)
+	{
+		DirUser *user = (void *) next->data;
+		user->callback(dir, action, items, user->data);
+	}
+	in_callback--;
+}
+
 /* If scanning state has changed then notify all filer windows */
 static void dir_set_scanning(Directory *dir, gboolean scanning)
 {
-	GList	*next;
-
 	if (scanning == dir->scanning)
 		return;
 
-	in_callback++;
-
 	dir->scanning = scanning;
-
-	for (next = dir->users; next; next = next->next)
-	{
-		DirUser *user = (DirUser *) next->data;
-
-		user->callback(dir,
-				scanning ? DIR_START_SCAN : DIR_END_SCAN,
-				NULL, user->data);
-	}
+	tousers(dir, scanning ? DIR_START_SCAN : DIR_END_SCAN, NULL);
 
 #if 0
 	/* Useful for profiling */
@@ -334,25 +333,12 @@ static void dir_set_scanning(Directory *dir, gboolean scanning)
 		exit(0);
 	}
 #endif
-
-	in_callback--;
 }
 
 /* Notify everyone that the error status of the directory has changed */
 static void dir_error_changed(Directory *dir)
 {
-	GList	*next;
-
-	in_callback++;
-
-	for (next = dir->users; next; next = next->next)
-	{
-		DirUser *user = (DirUser *) next->data;
-
-		user->callback(dir, DIR_ERROR_CHANGED, NULL, user->data);
-	}
-
-	in_callback--;
+	tousers(dir, DIR_ERROR_CHANGED, NULL);
 }
 
 static void stop_scan_t(Directory *dir)
@@ -826,32 +812,14 @@ static void set_idle_callback(Directory *dir)
 static void dir_force_update_item(Directory *dir,
 		const gchar *leaf, gboolean icon)
 {
-	GList *list;
-	GPtrArray *items;
-	DirItem *item;
+	DirItem *item = g_hash_table_lookup(dir->known_items, leaf);
+	if (!item) return;
 
-	items = g_ptr_array_new();
-
-	item = g_hash_table_lookup(dir->known_items, leaf);
-	if (!item)
-		goto out;
-
+	GPtrArray *items = g_ptr_array_new();
 	g_ptr_array_add(items, item);
 
-	in_callback++;
+	tousers(dir, icon ? DIR_UPDATE_ICON : DIR_UPDATE, items);
 
-	for (list = dir->users; list; list = list->next)
-	{
-		DirUser *user = (DirUser *) list->data;
-		if (icon)
-			user->callback(dir, DIR_UPDATE_ICON, items, user->data);
-		else
-			user->callback(dir, DIR_UPDATE, items, user->data);
-	}
-
-	in_callback--;
-
-out:
 	g_ptr_array_free(items, TRUE);
 }
 
@@ -1109,16 +1077,7 @@ static void dir_scan(Directory *dir)
 	 * the recheck list. Typically, this means we don't waste time
 	 * scanning hidden items.
 	 */
-	in_callback++;
-	GList *next;
-	for (next = dir->users; next; next = next->next)
-	{
-		DirUser *user = (DirUser *) next->data;
-		user->callback(dir,
-				DIR_QUEUE_INTERESTING,
-				NULL, user->data);
-	}
-	in_callback--;
+	tousers(dir, DIR_QUEUE_INTERESTING, NULL);
 
 	dir->have_scanned = TRUE;
 
