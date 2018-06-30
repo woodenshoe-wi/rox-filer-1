@@ -13,17 +13,6 @@
 #include <signal.h>
 #include <fcntl.h>
 
-/* Check for [id]notify support */
-#if defined(HAVE_SYS_INOTIFY_H)
-# define USE_INOTIFY
-#elif defined(DN_MULTISHOT) && defined(SIGRTMIN)
-# define USE_DNOTIFY
-#endif
-#if defined(USE_INOTIFY) || defined(USE_DNOTIFY)
-#define USE_NOTIFY
-extern gboolean dnotify_wakeup_flag;
-#endif
-
 #define DIR_NOTIFY_TIME_FOR_SORT_DATA 1111
 #define DIR_NOTIFY_TIME 111
 
@@ -103,12 +92,7 @@ struct _Directory
 
 	gint64 last_scan_time;
 
-#ifdef USE_NOTIFY
-	int		notify_fd;	/* -1 if not watching */
-#endif
-#ifdef USE_INOTIFY
-        guint           inotify_source;
-#endif
+	GFileMonitor *monitor;
 };
 
 void dir_init(void);
@@ -121,9 +105,6 @@ void dir_check_this(const guchar *path);
 DirItem *dir_update_item(Directory *dir, const gchar *leafname);
 void dir_merge_new(Directory *dir);
 void dir_force_update_path(const gchar *path, gboolean icon);
-#if defined(USE_DNOTIFY)
-void dnotify_wakeup(void);
-#endif
 void dir_drop_all_notifies(void);
 void dir_queue_recheck(Directory *dir, DirItem *item);
 void dir_stop(void); /* stop all scan thread */
