@@ -20,6 +20,7 @@
         <vbox>
           <toggle name='filer_short_flag_names' label='Short titlebar flags'>Use single letters instead of words for Scanning, All and Thumbs indicators in the titlebar.</toggle>
           <toggle name='filer_unique_windows' label='Unique windows'>If you open a directory and that directory is already displayed in another window, then this option causes the other window to be closed.</toggle>
+          <toggle name='close_dir_when_missing' label='Close window when dir missing'>If a directory that is open in a window disappears, (deleted or unmounted) automatically close window.</toggle>
           <toggle name='window_link' label='Window Link'>If this is on and you open a directory by middle button, the new window and the source window are toggled into link mode. In link mode, left-click a directory to open it in a window placed to the right of the source window. If this value is off, ctrl + middle button toggles the linked window.</toggle>
         </vbox>
         <vbox>

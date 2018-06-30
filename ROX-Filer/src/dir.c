@@ -61,6 +61,7 @@
 #include "diritem.h"
 #include "support.h"
 #include "dir.h"
+#include "filer.h"
 #include "fscache.h"
 #include "mount.h"
 #include "pixmaps.h"
@@ -74,6 +75,7 @@ static int in_callback = 0;
 GFSCache *dir_cache = NULL;
 
 static Option o_purge_dir_cache;
+static Option o_close_dir_when_missing;
 
 /* Static prototypes */
 static void update(Directory *dir, gchar *pathname, gpointer data);
@@ -90,6 +92,7 @@ static void dir_scan(Directory *dir);
 void dir_init(void)
 {
 	option_add_int(&o_purge_dir_cache, "purge_dir_cache", FALSE);
+	option_add_int(&o_close_dir_when_missing, "close_dir_when_missing", FALSE);
 
 	dir_cache = g_fscache_new((GFSLoadFunc) dir_new,
 				(GFSUpdateFunc) update, NULL);
@@ -1013,9 +1016,14 @@ static void dir_scan(Directory *dir)
 	/* Saves statting the parent for each item... */
 	if (mc_stat(pathname, &dir->stat_info))
 	{
-		dir->error = g_strdup_printf(_("Can't stat directory: %s"),
-				g_strerror(errno));
-		dir_error_changed(dir);
+		if (o_close_dir_when_missing.int_value)
+			g_idle_add((GSourceFunc)filer_close_recursive, g_strdup(dir->pathname));
+		else
+		{
+			dir->error = g_strdup_printf(_("Can't stat directory: %s"),
+					g_strerror(errno));
+			dir_error_changed(dir);
+		}
 		return;		/* Report on attach */
 	}
 
