@@ -92,7 +92,7 @@ struct _Directory
 
 	gint64 last_scan_time;
 
-	GFileMonitor *monitor;
+	GSList *monitors;
 };
 
 void dir_init(void);

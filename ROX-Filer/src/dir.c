@@ -109,15 +109,27 @@ static gint rescan_timeout_cb(gpointer data)
 	return FALSE;
 }
 
+static void rescan_soon(Directory *dir)
+{
+	dir->needs_update = TRUE;
+	if (dir->rescan_timeout != -1) return;
+	dir->rescan_timeout = g_timeout_add(300, rescan_timeout_cb, dir);
+}
 static void monitorcb(GFileMonitor *m, GFile *f,
 		GFile *o, GFileMonitorEvent e, Directory *dir)
 {
 	//don't rescan untile G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT
-	if (e == G_FILE_MONITOR_EVENT_CHANGED) return;
-
-	dir->needs_update = TRUE;
-	if (dir->rescan_timeout != -1) return;
-	dir->rescan_timeout = g_timeout_add(300, rescan_timeout_cb, dir);
+	if (e != G_FILE_MONITOR_EVENT_CHANGED)
+		rescan_soon(dir);
+}
+static void pmonitorcb(GFileMonitor *m, GFile *f,
+		GFile *o, GFileMonitorEvent e, Directory *dir)
+{
+	if (e == G_FILE_MONITOR_EVENT_DELETED
+	||  e == G_FILE_MONITOR_EVENT_UNMOUNTED
+	||  e == G_FILE_MONITOR_EVENT_MOVED
+	)
+		rescan_soon(dir);
 }
 
 /* Periodically calls callback to notify about changes to the contents
@@ -143,11 +155,23 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 	if (!dir->users)
 	{
 		GFile *gf = g_file_new_for_path(dir->pathname);
-		dir->monitor = g_file_monitor_directory(gf,
+		GFileMonitor *gm = g_file_monitor_directory(gf,
 				G_FILE_MONITOR_WATCH_MOUNTS, //doesn't work?
 				NULL, NULL);
-		g_signal_connect(dir->monitor, "changed", G_CALLBACK(monitorcb), dir);
-		g_object_unref(gf);
+		g_signal_connect(gm, "changed", G_CALLBACK(monitorcb), dir);
+		dir->monitors = g_slist_append(NULL, gm);
+
+		do {
+			GFile *tmp = g_file_get_parent(gf);
+			g_object_unref(gf);
+			gf = tmp;
+			if (!gf || !g_file_has_parent(gf, NULL)) break;
+
+			//as file, we haven't interest for others
+			gm = g_file_monitor_file(gf, 0, NULL, NULL);
+			g_signal_connect(gm, "changed", G_CALLBACK(pmonitorcb), dir);
+			dir->monitors = g_slist_prepend(dir->monitors, gm);
+		} while (1);
 	}
 
 	dir->users = g_list_prepend(dir->users, user);
@@ -198,7 +222,7 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 
 
 			if (!dir->users)
-				g_clear_object(&dir->monitor);
+				g_slist_free_full(dir->monitors, g_object_unref);
 
 			if (o_purge_dir_cache.int_value && !dir->users)
 				g_fscache_remove(dir_cache, dir->pathname);
