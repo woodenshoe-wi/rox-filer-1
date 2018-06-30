@@ -109,6 +109,9 @@ static gint rescan_timeout_cb(gpointer data)
 static void monitorcb(GFileMonitor *m, GFile *f,
 		GFile *o, GFileMonitorEvent e, Directory *dir)
 {
+	//don't rescan untile G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT
+	if (e == G_FILE_MONITOR_EVENT_CHANGED) return;
+
 	dir->needs_update = TRUE;
 	if (dir->rescan_timeout != -1) return;
 	dir->rescan_timeout = g_timeout_add(300, rescan_timeout_cb, dir);
