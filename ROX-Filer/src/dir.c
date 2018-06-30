@@ -160,7 +160,10 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 	g_ptr_array_free(items, TRUE);
 
 	if ((dir->needs_update || dir->error) && !dir->scanning)
+	{
+		dir->needs_update = FALSE;
 		dir_scan(dir);
+	}
 	else
 		callback(dir, DIR_QUEUE_INTERESTING, NULL, data);
 
@@ -1005,8 +1008,10 @@ static void dir_scan(Directory *dir)
 	dir->last_scan_time = g_get_monotonic_time();
 
 	const char *pathname = dir->pathname;
+	gboolean isupdate = dir->needs_update && !dir->error;
 	dir->needs_update = FALSE;
 	mount_update(FALSE);
+
 	if (dir->error)
 	{
 		null_g_free(&dir->error);
@@ -1016,7 +1021,7 @@ static void dir_scan(Directory *dir)
 	/* Saves statting the parent for each item... */
 	if (mc_stat(pathname, &dir->stat_info))
 	{
-		if (o_close_dir_when_missing.int_value)
+		if (o_close_dir_when_missing.int_value && isupdate)
 			g_idle_add((GSourceFunc)filer_close_recursive, g_strdup(dir->pathname));
 		else
 		{
