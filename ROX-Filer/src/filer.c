@@ -3542,23 +3542,24 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	DirItem		*item;
 
 
-	static gdouble colldragx = -1;
-	static gdouble colldragy = -1;
+	FilerWindow *fw = filer_window;
+	static gdouble edragx = -1;
+	static gdouble edragy = -1;
 	if (view_count_items(view) == 0
 	&&  event->state & GDK_BUTTON1_MASK
 	&&  motion_state == MOTION_DISABLED
+	&&  fw->configured
 	) {
-		FilerWindow *fw = filer_window;
 		gint x, y;
 		gtk_window_get_position(GTK_WINDOW(fw->window), &x, &y);
 		gtk_window_move(GTK_WINDOW(fw->window),
-				x + event->x_root - colldragx,
-				y + event->y_root - colldragy);
+				x + event->x_root - edragx,
+				y + event->y_root - edragy);
 
 		focus_in_cb(NULL, NULL, fw);
 	}
-	colldragx = event->x_root;
-	colldragy = event->y_root;
+	edragx = event->x_root;
+	edragy = event->y_root;
 
 
 	view_get_iter_at_point(view, &iter, event->window, event->x, event->y);
