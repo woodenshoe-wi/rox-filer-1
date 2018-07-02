@@ -2685,8 +2685,7 @@ void filer_set_title(FilerWindow *filer_window)
 	if (filer_window->directory->error)
 	{
 		gchar *old = title;
-		title = g_strconcat(old, ": ", filer_window->directory->error,
-				    NULL);
+		title = g_strconcat(old, " !", NULL);
 		g_free(old);
 	}
 

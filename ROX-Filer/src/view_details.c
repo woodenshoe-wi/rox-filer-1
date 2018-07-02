@@ -801,6 +801,7 @@ static gboolean view_details_expose(GtkWidget *widget, GdkEventExpose *event)
 	GtkTreePath *path = NULL;
 	GdkRectangle focus_rectangle;
 	ViewDetails *view_details = (ViewDetails *) widget;
+	ViewDetails *view = view_details;
 
 	gboolean had_cursor = (GTK_WIDGET_FLAGS(widget) & GTK_HAS_FOCUS) != 0;
 
@@ -814,9 +815,25 @@ static gboolean view_details_expose(GtkWidget *widget, GdkEventExpose *event)
 	if (had_cursor)
 		GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
 
-
 	if (event->window != gtk_tree_view_get_bin_window(tree))
 		return FALSE;	/* Not the main area */
+
+	if (view->filer_window->directory->error)
+	{
+		cairo_t *cr = gdk_cairo_create(event->window);
+		cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+		cairo_set_source_rgba(cr, 0.9, .0, .0, 1);
+		cairo_paint(cr);
+
+		cairo_set_font_size(cr, small_height * 3/4.);
+		cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+		cairo_select_font_face(cr, "sans-serif", 0, CAIRO_FONT_WEIGHT_BOLD);
+		cairo_move_to(cr, 2, small_height * 3/4.);
+		cairo_show_text(cr, view->filer_window->directory->error);
+
+		cairo_destroy(cr);
+		return TRUE;
+	}
 
 	if (view_details->lasso_box)
 	{
@@ -836,7 +853,7 @@ static gboolean view_details_expose(GtkWidget *widget, GdkEventExpose *event)
 
 		if (width && height)
 			gdk_draw_rectangle(event->window,
-				widget->style->fg_gc[GTK_STATE_NORMAL],
+				widget->style->text_gc[GTK_STATE_NORMAL],
 				FALSE, x, y, width - 1, height - 1);
 	}
 
@@ -971,6 +988,7 @@ static void view_details_class_init(gpointer gclass, gpointer data)
 					   "monospace",
 					   G_PARAM_READABLE));
 
+
 }
 
 static gboolean block_focus(GtkWidget *button, GtkDirectionType dir,
@@ -1005,6 +1023,37 @@ static void selection_changed(GtkTreeSelection *selection,
 		filer_lost_selection(view_details->filer_window,
 				gtk_get_current_event_time());
 }
+
+
+static void setcolour(ViewDetails *view_details)
+{
+	if (o_use_background_colour.int_value ||
+			o_display_colour_types.int_value)
+	{
+		GdkColor base;
+		if (o_use_background_colour.int_value)
+			gdk_color_parse(o_background_colour.value, &base);
+		else if (o_display_colour_types.int_value)
+		{
+			GdkColor fc = type_colours[TYPE_FILE];
+			base.red   = 65535 - fc.red;
+			base.green = 65535 - fc.green;
+			base.blue  = 65535 - fc.blue;
+		}
+
+		gtk_widget_modify_base(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &base);
+		gtk_widget_modify_text(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &type_colours[TYPE_FILE]);
+	} else {
+		GtkStyle *style = view_details->filer_window->window->style;
+		gtk_widget_modify_base(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &style->base[GTK_STATE_NORMAL]);
+		gtk_widget_modify_text(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &style->text[GTK_STATE_NORMAL]);
+	}
+}
+
 
 /*
  * Set the font used for a treeview column to that given for the
@@ -1052,6 +1101,8 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 				GTK_SELECTION_MULTIPLE);
 	gtk_tree_selection_set_select_function(view_details->selection,
 			test_can_change_selection, view_details, NULL);
+
+	setcolour(view_details);
 
 	/* Sorting */
 	view_details->sort_fn = NULL;
@@ -1155,8 +1206,8 @@ static void view_details_iface_init(gpointer giface, gpointer iface_data)
 	iface->auto_scroll_callback = view_details_auto_scroll_callback;
 }
 
-/* Implementations of the View interface. See view_iface.c for comments. */
 
+/* Implementations of the View interface. See view_iface.c for comments. */
 static void view_details_style_changed(ViewIface *view, int flags)
 {
 	ViewDetails *view_details = (ViewDetails *) view;
@@ -1189,31 +1240,7 @@ static void view_details_style_changed(ViewIface *view, int flags)
 		gtk_tree_path_next(path);
 	}
 
-	if (o_use_background_colour.int_value ||
-			o_display_colour_types.int_value)
-	{
-		GdkColor base;
-		if (o_use_background_colour.int_value)
-			gdk_color_parse(o_background_colour.value, &base);
-		else if (o_display_colour_types.int_value)
-		{
-			GdkColor fc = type_colours[TYPE_FILE];
-			base.red   = 65535 - fc.red;
-			base.green = 65535 - fc.green;
-			base.blue  = 65535 - fc.blue;
-		}
-
-		gtk_widget_modify_base(GTK_WIDGET(view_details),
-				GTK_STATE_NORMAL, &base);
-		gtk_widget_modify_fg(GTK_WIDGET(view_details),
-				GTK_STATE_NORMAL, &type_colours[TYPE_FILE]);
-	} else {
-		GtkStyle *style = view_details->filer_window->window->style;
-		gtk_widget_modify_base(GTK_WIDGET(view_details),
-				GTK_STATE_NORMAL, &style->base[GTK_STATE_NORMAL]);
-		gtk_widget_modify_fg(GTK_WIDGET(view_details),
-				GTK_STATE_NORMAL, &style->fg[GTK_STATE_NORMAL]);
-	}
+	setcolour(view_details);
 
 	gtk_tree_path_free(path);
 
