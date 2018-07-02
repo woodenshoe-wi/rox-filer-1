@@ -1593,33 +1593,77 @@ static void view_collection_sort(ViewIface *view)
 			filer_window->sort_order);
 }
 
+
+static int old_num, cutrest;
+static void updatet(CollectionItem *colitem, FilerWindow *fw)
+{
+	display_update_view(fw, colitem->data, colitem->view_data, TRUE, cutrest);
+}
+static gpointer updateloopt(ViewCollection *view)
+{
+	Collection *coll = view->collection;
+	FilerWindow *fw = view->filer_window;
+
+	GThreadPool *pool = g_thread_pool_new((GFunc)updatet,
+			fw, g_get_num_processors(), TRUE, NULL);
+
+	for (int i = old_num; i < coll->number_of_items; i++)
+		if (cutrest)
+			//pool_push is heavy
+			updatet(&coll->items[i], fw);
+		else
+			g_thread_pool_push(pool, &coll->items[i], NULL);
+
+	g_thread_pool_free(pool, FALSE, TRUE);
+	return NULL;
+}
 static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 {
 	ViewCollection	*view_collection = VIEW_COLLECTION(view);
 	Collection	*collection = view_collection->collection;
 	FilerWindow	*filer_window = view_collection->filer_window;
-	int old_num, i, reti;
 	int old_w = collection->item_width;
 	int old_h = collection->item_height;
 	int mw = old_w, mh = old_h;
 
 	old_num = collection->number_of_items;
 	gint total = collection->number_of_items + items->len;
-	for (i = 0; i < items->len; i++)
+
+
+	cutrest = 0;
+	for (int i = 0; i < items->len; i++)
 	{
 		DirItem *item = (DirItem *) items->pdata[i];
-
 		if (!filer_match_filter(filer_window, item))
 			continue;
 
-		reti = collection_insert(collection, item,
-					display_create_viewdata(filer_window, item,
-						collection->reached_scale != 0));
+		collection_insert(collection, item,
+				display_create_viewdata(filer_window, item,
+					collection->reached_scale != 0));
+	}
+
+	GThread *loopt = g_thread_new("addloop", (GThreadFunc)updateloopt, view_collection);
+	g_thread_yield();
+
+	for (int i = old_num; i < collection->number_of_items; i++)
+	{
+		CollectionItem *colitem = &collection->items[i];
+		ViewData *view = (ViewData *)colitem->view_data;
+		while (!view->name_width) g_thread_yield();
 
 		if (collection->reached_scale == .0)
 			collection->reached_scale =
-				calc_size(filer_window, &collection->items[reti], &mw, &mh, total);
+				calc_size(filer_window, colitem, &mw, &mh, total);
+		else
+		{
+			cutrest = 1;
+			break;
+		}
 	}
+
+	g_thread_yield();
+	g_thread_join(loopt);
+
 	if (mw > old_w || mh > old_h)
 		collection_set_item_size(collection,
 					 MAX(old_w, mw),

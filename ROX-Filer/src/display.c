@@ -795,7 +795,7 @@ ViewData *display_create_viewdata(
 	ViewData *view = g_new0(ViewData, 1);
 	view->base_type = TYPE_UNKNOWN;
 
-	display_update_view(filer_window, item, view, TRUE, clear);
+//	display_update_view(filer_window, item, view, TRUE, clear);
 
 	return view;
 }
@@ -976,10 +976,15 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 	PangoLayout *ret;
 	PangoAttrList *list = NULL;
 
+	//instead of gtk_widget_create_pango_layout for multi thread
+	PangoContext *pctx = gtk_widget_create_pango_context(fw->window);
+	ret = pango_layout_new(pctx);
+	g_object_unref(pctx);
+
 	if (g_utf8_validate(item->leafname, -1, NULL))
 	{
-		ret = gtk_widget_create_pango_layout(
-				fw->window, item->leafname);
+		pango_layout_set_text(ret, item->leafname, -1);
+//		ret = gtk_widget_create_pango_layout(fw->window, item->leafname);
 		pango_layout_set_auto_dir(ret, FALSE);
 	}
 	else
@@ -988,8 +993,10 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 		gchar *utf8;
 
 		utf8 = to_utf8(item->leafname);
-		ret = gtk_widget_create_pango_layout(
-				fw->window, utf8);
+
+		pango_layout_set_text(ret, utf8, -1);
+//		ret = gtk_widget_create_pango_layout(fw->window, utf8);
+
 		g_free(utf8);
 
 		attr = pango_attr_foreground_new(0xffff, 0, 0);
@@ -998,7 +1005,6 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 
 		list = pango_attr_list_new();
 		pango_attr_list_insert(list, attr);
-
 	}
 
 	if (item->flags & ITEM_FLAG_RECENT)
@@ -1057,24 +1063,41 @@ void make_details_layout(
 
 	if (view->details) return;
 
+	static GMutex m;
 	if (!monospace) {
-		monospace = pango_font_description_from_string("monospace");
-		PangoLayout *layout =
-			gtk_widget_create_pango_layout(fw->window, " ");
-		pango_layout_set_font_description(layout, monospace);
-		pango_layout_get_size(layout, &monospace_width, NULL);
-		monospace_width /= PANGO_SCALE;
-		g_object_unref(layout);
+		g_mutex_lock(&m);
+		if (!monospace)
+		{
+			monospace = pango_font_description_from_string("monospace");
+
+			PangoContext *pctx = gtk_widget_create_pango_context(fw->window);
+			PangoLayout *layout = pango_layout_new(pctx);
+			g_object_unref(pctx);
+			pango_layout_set_text(layout, " ", -1);
+
+			pango_layout_set_font_description(layout, monospace);
+			pango_layout_get_size(layout, &monospace_width, NULL);
+			monospace_width /= PANGO_SCALE;
+			g_object_unref(layout);
+		}
+		g_mutex_unlock(&m);
 	}
 
+	g_mutex_lock(&m);
 	str = getdetails(fw, item);
+	g_mutex_unlock(&m);
+
 	if (str)
 	{
 		PangoAttrList *details_list;
 		int perm_offset = -1;
 
-		view->details = gtk_widget_create_pango_layout(
-				fw->window, str);
+		PangoContext *pctx = gtk_widget_create_pango_context(fw->window);
+		view->details = pango_layout_new(pctx);
+		g_object_unref(pctx);
+
+		pango_layout_set_text(view->details, str, -1);
+//		view->details = gtk_widget_create_pango_layout(fw->window, str);
 		g_free(str);
 
 		pango_layout_set_font_description(view->details, monospace);
