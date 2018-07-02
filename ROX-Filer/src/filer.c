@@ -405,18 +405,24 @@ void filer_window_set_size(FilerWindow *filer_window, int w, int h, gboolean not
 
 			/* In start up, there is no GDK_window. Have to use GTK. */
 			gtk_window_move(GTK_WINDOW(window), x, y);
+			filer_window->configured = 0;
 		}
 		if (
 				w != currentw ||
 				h != currenth ||
 				w != filer_window->last_width ||
 				h != filer_window->last_height)
+		{
 			gtk_window_resize(GTK_WINDOW(window), w, h);
+			filer_window->configured = 0;
+		}
 	}
 	else
+	{
 		gtk_window_resize(GTK_WINDOW(window), w, h);
+		filer_window->configured = 0;
+	}
 
-	filer_window->configured = 0;
 	if (notauto)
 		filer_window->last_width = filer_window->last_height = -1;
 	else
@@ -3548,7 +3554,7 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	if (view_count_items(view) == 0
 	&&  event->state & GDK_BUTTON1_MASK
 	&&  motion_state == MOTION_DISABLED
-	&&  fw->configured
+	&&  (fw->configured || !(o_auto_move.int_value || filer_window->reqx >= 0))
 	) {
 		gint x, y;
 		gtk_window_get_position(GTK_WINDOW(fw->window), &x, &y);
