@@ -1222,10 +1222,9 @@ static gint coll_motion_notify(GtkWidget *widget,
 					x + event->x_root - colldragx,
 					y + event->y_root - colldragy);
 		}
-
-		colldragx = event->x_root;
-		colldragy = event->y_root;
 	}
+	colldragx = event->x_root;
+	colldragy = event->y_root;
 
 	return filer_motion_notify(view_collection->filer_window, event);
 }
