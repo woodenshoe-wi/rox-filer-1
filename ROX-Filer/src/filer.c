@@ -2294,10 +2294,7 @@ static gboolean configure_cb(
 
 	return FALSE;
 }
-static gboolean focus_in_cb(
-		GtkWidget *widget,
-		GdkEvent *event,
-		FilerWindow *fw)
+static gboolean focus_in_cb(GtkWidget *w, GdkEvent *e, FilerWindow *fw)
 {
 	fw->resize_drag_width = 0;
 
@@ -3543,6 +3540,26 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	ViewIface	*view = filer_window->view;
 	ViewIter	iter;
 	DirItem		*item;
+
+
+	static gdouble colldragx = -1;
+	static gdouble colldragy = -1;
+	if (view_count_items(view) == 0
+	&&  event->state & GDK_BUTTON1_MASK
+	&&  motion_state == MOTION_DISABLED
+	) {
+		FilerWindow *fw = filer_window;
+		gint x, y;
+		gtk_window_get_position(GTK_WINDOW(fw->window), &x, &y);
+		gtk_window_move(GTK_WINDOW(fw->window),
+				x + event->x_root - colldragx,
+				y + event->y_root - colldragy);
+
+		focus_in_cb(NULL, NULL, fw);
+	}
+	colldragx = event->x_root;
+	colldragy = event->y_root;
+
 
 	view_get_iter_at_point(view, &iter, event->window, event->x, event->y);
 	item = iter.peek(&iter);
