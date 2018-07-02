@@ -1661,7 +1661,6 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 		}
 	}
 
-	g_thread_yield();
 	g_thread_join(loopt);
 
 	if (mw > old_w || mh > old_h)

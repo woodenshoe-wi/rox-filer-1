@@ -202,7 +202,6 @@ Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 static Option o_disable_pointer_warp;
 Option o_create_sub_dir_thumbs;
-static Option o_thumb_processes_num;
 Option o_window_link;
 Option o_scroll_speed;
 static Option o_hide_root_msg;
@@ -252,7 +251,6 @@ void filer_init(void)
 	option_add_int(&o_disable_pointer_warp, "disable_pointer_warp", FALSE);
 	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
 	option_add_int(&o_create_sub_dir_thumbs, "create_sub_dir_thumbs", TRUE);
-	option_add_int(&o_thumb_processes_num, "thumb_processes_num", 6);
 
 	option_add_notify(filer_options_changed);
 
@@ -3004,7 +3002,7 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 	if (path)
 		dir_force_update_path(path, TRUE);
 
-	if (filer_window->trying_thumbs > o_thumb_processes_num.int_value) {
+	if (filer_window->trying_thumbs > g_get_num_processors()) {
 		filer_window->trying_thumbs--;
 		return;
 	}
@@ -3018,7 +3016,7 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 
 static void start_thumb_scanning(FilerWindow *filer_window)
 {
-	if (filer_window->trying_thumbs >= o_thumb_processes_num.int_value)
+	if (filer_window->trying_thumbs >= g_get_num_processors())
 		return;		/* Already scanning */
 
 	filer_window->trying_thumbs++;
