@@ -155,11 +155,6 @@ indicator'>If this is on then files which have one or more extended attributes s
 			When no items in a sub-directory have a thumbnail, this process tries to create a thumbnail. If you don't like the choice, visit the sub-directory and middle-click the scan button in the toolbar to choose the first item.
 		</toggle>
 		<spacer/>
-		<hbox>
-			<numentry name='thumb_processes_num' label='Max generating processes:' unit='' min='1' max='32' width='2'>
-				</numentry>
-		</hbox>
-		<spacer/>
          <launch uri="http://www.kerofin.demon.co.uk/2005/interfaces/VideoThumbnail" label="Video thumbnails" appname="VideoThumbnail"/>
       </frame>
       <frame label='Thumbnails cache'>

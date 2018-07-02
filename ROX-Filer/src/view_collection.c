@@ -1594,25 +1594,32 @@ static void view_collection_sort(ViewIface *view)
 }
 
 
-static int old_num, cutrest;
-static void updatet(CollectionItem *colitem, FilerWindow *fw)
+#define PUSHWEIGHT 44
+static int oldnum, newnum, cutrest;
+static void updatet(int start, ViewCollection *view)
 {
-	display_update_view(fw, colitem->data, colitem->view_data, TRUE, cutrest);
-}
-static gpointer updateloopt(ViewCollection *view)
-{
+	start--; //to ignore NULL it is added 1
 	Collection *coll = view->collection;
 	FilerWindow *fw = view->filer_window;
 
-	GThreadPool *pool = g_thread_pool_new((GFunc)updatet,
-			fw, g_get_num_processors(), TRUE, NULL);
+	for (int i = start; i < newnum && i < start + PUSHWEIGHT; i++)
+	{
+		CollectionItem *colitem = &coll->items[i];
+		display_update_view(fw, colitem->data, colitem->view_data, TRUE, cutrest);
+	}
 
-	for (int i = old_num; i < coll->number_of_items; i++)
+}
+static gpointer updateloopt(ViewCollection *view)
+{
+	GThreadPool *pool = g_thread_pool_new((GFunc)updatet,
+			view, g_get_num_processors(), TRUE, NULL);
+
+	for (int i = oldnum; i < newnum; i += PUSHWEIGHT)
 		if (cutrest)
 			//pool_push is heavy
-			updatet(&coll->items[i], fw);
+			updatet(i + 1, view);
 		else
-			g_thread_pool_push(pool, &coll->items[i], NULL);
+			g_thread_pool_push(pool, GINT_TO_POINTER(i + 1), NULL);
 
 	g_thread_pool_free(pool, FALSE, TRUE);
 	return NULL;
@@ -1626,9 +1633,10 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 	int old_h = collection->item_height;
 	int mw = old_w, mh = old_h;
 
-	old_num = collection->number_of_items;
+	oldnum = collection->number_of_items;
 	gint total = collection->number_of_items + items->len;
 
+	//gint64 startt = g_get_monotonic_time();
 
 	cutrest = 0;
 	for (int i = 0; i < items->len; i++)
@@ -1641,11 +1649,12 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 				display_create_viewdata(filer_window, item,
 					collection->reached_scale != 0));
 	}
+	newnum = collection->number_of_items;
 
 	GThread *loopt = g_thread_new("addloop", (GThreadFunc)updateloopt, view_collection);
 	g_thread_yield();
 
-	for (int i = old_num; i < collection->number_of_items; i++)
+	for (int i = oldnum; i < newnum; i++)
 	{
 		CollectionItem *colitem = &collection->items[i];
 		ViewData *view = (ViewData *)colitem->view_data;
@@ -1663,12 +1672,14 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 
 	g_thread_join(loopt);
 
+	//D(time %f, (g_get_monotonic_time() - startt) / 1000000.0)
+
 	if (mw > old_w || mh > old_h)
 		collection_set_item_size(collection,
 					 MAX(old_w, mw),
 					 MAX(old_h, mh));
 
-	if (old_num != collection->number_of_items)
+	if (oldnum != newnum)
 	{
 		gtk_widget_queue_resize(GTK_WIDGET(collection));
 		view_collection_sort(view);
