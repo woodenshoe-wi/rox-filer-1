@@ -1596,7 +1596,7 @@ static void view_collection_sort(ViewIface *view)
 
 #define PUSHWEIGHT 44
 static int oldnum, newnum, cutrest;
-static void updatet(int start, ViewCollection *view)
+static void addt(int start, ViewCollection *view)
 {
 	start--; //to ignore NULL it is added 1
 	Collection *coll = view->collection;
@@ -1607,17 +1607,16 @@ static void updatet(int start, ViewCollection *view)
 		CollectionItem *colitem = &coll->items[i];
 		display_update_view(fw, colitem->data, colitem->view_data, TRUE, cutrest);
 	}
-
 }
-static gpointer updateloopt(ViewCollection *view)
+static gpointer addloopt(ViewCollection *view)
 {
-	GThreadPool *pool = g_thread_pool_new((GFunc)updatet,
+	GThreadPool *pool = g_thread_pool_new((GFunc)addt,
 			view, g_get_num_processors(), TRUE, NULL);
 
 	for (int i = oldnum; i < newnum; i += PUSHWEIGHT)
 		if (cutrest)
 			//pool_push is heavy
-			updatet(i + 1, view);
+			addt(i + 1, view);
 		else
 			g_thread_pool_push(pool, GINT_TO_POINTER(i + 1), NULL);
 
@@ -1651,7 +1650,7 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 	}
 	newnum = collection->number_of_items;
 
-	GThread *loopt = g_thread_new("addloop", (GThreadFunc)updateloopt, view_collection);
+	GThread *loopt = g_thread_new("addloop", (GThreadFunc)addloopt, view_collection);
 	g_thread_yield();
 
 	for (int i = oldnum; i < newnum; i++)
