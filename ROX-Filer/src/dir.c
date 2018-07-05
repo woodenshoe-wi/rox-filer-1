@@ -153,6 +153,52 @@ static void monitor(Directory *dir)
 		dir->monitors = g_slist_prepend(dir->monitors, gm);
 	} while (1);
 }
+static Directory *peekdir(char *path)
+{
+	return g_fscache_lookup_full(dir_cache, path, FSCACHE_LOOKUP_PEEK, NULL);
+}
+static void rmmonitor(Directory *dir)
+{
+	if (!dir->monitors) return;
+
+	g_slist_free_full(dir->monitors, g_object_unref);
+	dir->monitors = NULL;
+
+	//above unref may kills sud dirs monitor
+	for (GList *next = all_filer_windows; next; next = next->next)
+	{
+		FilerWindow *fw = next->data;
+		if (g_str_has_prefix(fw->real_path, dir->pathname))
+		{
+			Directory *pdir = peekdir(fw->real_path);
+			if (pdir && pdir->monitors)
+			{
+				g_slist_free_full(pdir->monitors, g_object_unref);
+				monitor(pdir);
+				break;
+			}
+		}
+	}
+
+	//above unref may kills parent's monitor
+	char *current = g_strdup(dir->pathname);
+	char *parent = g_path_get_dirname(current);
+	while (strcmp(parent, current))
+	{
+		Directory *pdir = peekdir(parent);
+		if (pdir && pdir->monitors)
+		{
+			g_slist_free_full(pdir->monitors, g_object_unref);
+			monitor(pdir);
+			break;
+		}
+		g_free(current);
+		current = parent;
+		parent = g_path_get_dirname(current);
+	}
+	g_free(current);
+	g_free(parent);
+}
 
 /* Periodically calls callback to notify about changes to the contents
  * of the directory.
@@ -224,30 +270,7 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 			set_idle_callback(dir);
 
 			if (!dir->users)
-			{
-				g_slist_free_full(dir->monitors, g_object_unref);
-
-				//remake parent's monitor because above unref may kills them
-				char *current = g_strdup(dir->pathname);
-				char *parent = g_path_get_dirname(current);
-				while (strcmp(parent, current))
-				{
-					Directory *pdir =
-						g_fscache_lookup_full(dir_cache, parent,
-						FSCACHE_LOOKUP_PEEK, NULL);
-					if (pdir && pdir->users)
-					{
-						g_slist_free_full(pdir->monitors, g_object_unref);
-						monitor(pdir);
-						break;
-					}
-					g_free(current);
-					current = parent;
-					parent = g_path_get_dirname(current);
-				}
-				g_free(current);
-				g_free(parent);
-			}
+				rmmonitor(dir);
 
 			if (o_purge_dir_cache.int_value && !dir->users)
 				g_fscache_remove(dir_cache, dir->pathname);
