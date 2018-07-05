@@ -132,6 +132,28 @@ static void pmonitorcb(GFileMonitor *m, GFile *f,
 		rescan_soon(dir);
 }
 
+static void monitor(Directory *dir)
+{
+	GFile *gf = g_file_new_for_path(dir->pathname);
+	GFileMonitor *gm = g_file_monitor_directory(gf,
+			G_FILE_MONITOR_WATCH_MOUNTS, //doesn't work?
+			NULL, NULL);
+	g_signal_connect(gm, "changed", G_CALLBACK(monitorcb), dir);
+	dir->monitors = g_slist_append(NULL, gm);
+
+	do {
+		GFile *tmp = g_file_get_parent(gf);
+		g_object_unref(gf);
+		gf = tmp;
+		if (!gf || !g_file_has_parent(gf, NULL)) break;
+
+		//as file, we haven't interest for others
+		gm = g_file_monitor_file(gf, 0, NULL, NULL);
+		g_signal_connect(gm, "changed", G_CALLBACK(pmonitorcb), dir);
+		dir->monitors = g_slist_prepend(dir->monitors, gm);
+	} while (1);
+}
+
 /* Periodically calls callback to notify about changes to the contents
  * of the directory.
  * Before this function returns, it calls the callback once to add all
@@ -153,26 +175,7 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 	user->data = data;
 
 	if (!dir->users)
-	{
-		GFile *gf = g_file_new_for_path(dir->pathname);
-		GFileMonitor *gm = g_file_monitor_directory(gf,
-				G_FILE_MONITOR_WATCH_MOUNTS, //doesn't work?
-				NULL, NULL);
-		g_signal_connect(gm, "changed", G_CALLBACK(monitorcb), dir);
-		dir->monitors = g_slist_append(NULL, gm);
-
-		do {
-			GFile *tmp = g_file_get_parent(gf);
-			g_object_unref(gf);
-			gf = tmp;
-			if (!gf || !g_file_has_parent(gf, NULL)) break;
-
-			//as file, we haven't interest for others
-			gm = g_file_monitor_file(gf, 0, NULL, NULL);
-			g_signal_connect(gm, "changed", G_CALLBACK(pmonitorcb), dir);
-			dir->monitors = g_slist_prepend(dir->monitors, gm);
-		} while (1);
-	}
+		monitor(dir);
 
 	dir->users = g_list_prepend(dir->users, user);
 
@@ -220,9 +223,31 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 			/* May stop scanning if noone's watching */
 			set_idle_callback(dir);
 
-
 			if (!dir->users)
+			{
 				g_slist_free_full(dir->monitors, g_object_unref);
+
+				//remake parent's monitor because above unref may kills them
+				char *current = g_strdup(dir->pathname);
+				char *parent = g_path_get_dirname(current);
+				while (strcmp(parent, current))
+				{
+					Directory *pdir =
+						g_fscache_lookup_full(dir_cache, parent,
+						FSCACHE_LOOKUP_PEEK, NULL);
+					if (pdir && pdir->users)
+					{
+						g_slist_free_full(pdir->monitors, g_object_unref);
+						monitor(pdir);
+						break;
+					}
+					g_free(current);
+					current = parent;
+					parent = g_path_get_dirname(current);
+				}
+				g_free(current);
+				g_free(parent);
+			}
 
 			if (o_purge_dir_cache.int_value && !dir->users)
 				g_fscache_remove(dir_cache, dir->pathname);
