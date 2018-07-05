@@ -122,83 +122,6 @@ static void monitorcb(GFileMonitor *m, GFile *f,
 	if (e != G_FILE_MONITOR_EVENT_CHANGED)
 		rescan_soon(dir);
 }
-static void pmonitorcb(GFileMonitor *m, GFile *f,
-		GFile *o, GFileMonitorEvent e, Directory *dir)
-{
-	if (e == G_FILE_MONITOR_EVENT_DELETED
-	||  e == G_FILE_MONITOR_EVENT_UNMOUNTED
-	||  e == G_FILE_MONITOR_EVENT_MOVED
-	)
-		rescan_soon(dir);
-}
-
-static void monitor(Directory *dir)
-{
-	GFile *gf = g_file_new_for_path(dir->pathname);
-	GFileMonitor *gm = g_file_monitor_directory(gf,
-			G_FILE_MONITOR_WATCH_MOUNTS, //doesn't work?
-			NULL, NULL);
-	g_signal_connect(gm, "changed", G_CALLBACK(monitorcb), dir);
-	dir->monitors = g_slist_append(NULL, gm);
-
-	do {
-		GFile *tmp = g_file_get_parent(gf);
-		g_object_unref(gf);
-		gf = tmp;
-		if (!gf || !g_file_has_parent(gf, NULL)) break;
-
-		//as file, we haven't interest for others
-		gm = g_file_monitor_file(gf, 0, NULL, NULL);
-		g_signal_connect(gm, "changed", G_CALLBACK(pmonitorcb), dir);
-		dir->monitors = g_slist_prepend(dir->monitors, gm);
-	} while (1);
-}
-static Directory *peekdir(char *path)
-{
-	return g_fscache_lookup_full(dir_cache, path, FSCACHE_LOOKUP_PEEK, NULL);
-}
-static void rmmonitor(Directory *dir)
-{
-	if (!dir->monitors) return;
-
-	g_slist_free_full(dir->monitors, g_object_unref);
-	dir->monitors = NULL;
-
-	//above unref may kills sud dirs monitor
-	for (GList *next = all_filer_windows; next; next = next->next)
-	{
-		FilerWindow *fw = next->data;
-		if (g_str_has_prefix(fw->real_path, dir->pathname))
-		{
-			Directory *pdir = peekdir(fw->real_path);
-			if (pdir && pdir->monitors)
-			{
-				g_slist_free_full(pdir->monitors, g_object_unref);
-				monitor(pdir);
-				break;
-			}
-		}
-	}
-
-	//above unref may kills parent's monitor
-	char *current = g_strdup(dir->pathname);
-	char *parent = g_path_get_dirname(current);
-	while (strcmp(parent, current))
-	{
-		Directory *pdir = peekdir(parent);
-		if (pdir && pdir->monitors)
-		{
-			g_slist_free_full(pdir->monitors, g_object_unref);
-			monitor(pdir);
-			break;
-		}
-		g_free(current);
-		current = parent;
-		parent = g_path_get_dirname(current);
-	}
-	g_free(current);
-	g_free(parent);
-}
 
 /* Periodically calls callback to notify about changes to the contents
  * of the directory.
@@ -221,7 +144,15 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 	user->data = data;
 
 	if (!dir->users)
-		monitor(dir);
+	{
+		GFile *gf = g_file_new_for_path(dir->pathname);
+		dir->monitor = g_file_monitor_directory(gf,
+				G_FILE_MONITOR_WATCH_MOUNTS, //doesn't work?
+				NULL, NULL);
+		g_object_unref(gf);
+
+		g_signal_connect(dir->monitor, "changed", G_CALLBACK(monitorcb), dir);
+	}
 
 	dir->users = g_list_prepend(dir->users, user);
 
@@ -269,8 +200,7 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 			/* May stop scanning if noone's watching */
 			set_idle_callback(dir);
 
-			if (!dir->users)
-				rmmonitor(dir);
+			g_clear_object(&dir->monitor);
 
 			if (o_purge_dir_cache.int_value && !dir->users)
 				g_fscache_remove(dir_cache, dir->pathname);
@@ -1010,6 +940,7 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 	dir->pathname = NULL;
 	dir->error = NULL;
 	dir->rescan_timeout = -1;
+	dir->monitor = NULL;
 
 	dir->new_items = g_ptr_array_new();
 	dir->up_items = g_ptr_array_new();
