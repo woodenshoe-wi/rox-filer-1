@@ -1167,7 +1167,6 @@ void display_update_view(FilerWindow *fw,
 		return;
 	}
 
-	basic &= !(item->flags & ITEM_FLAG_RECENT);
 	basic &= (fw->display_style == SMALL_ICONS ||
 				(fw->details_type != DETAILS_NONE &&
 				 fw->display_style != HUGE_ICONS));
@@ -1177,9 +1176,12 @@ void display_update_view(FilerWindow *fw,
 		w = 0;
 		gchar *name = item->leafname;
 
+		int (*widths)[] = (item->flags & ITEM_FLAG_RECENT) ?
+			&fw_font_widthsb : &fw_font_widths;
+
 		for (; *name; name++)
 			if (*name >= 0x20 && *name <= 0x7e)
-				w += fw_font_widths[(gint) *name];
+				w += (*widths)[(int) *name];
 			else
 			{
 				basic = FALSE;

@@ -87,6 +87,7 @@ GList		*all_filer_windows = NULL;
 
 gint fw_font_height;
 gint fw_font_widths[0x7f];
+gint fw_font_widthsb[0x7f];
 static PangoFontDescription *current_font = NULL;
 
 static GHashTable *window_with_id = NULL;
@@ -2124,18 +2125,17 @@ static gint set_font(GtkWidget *widget)
 		current_font = pango_font_description_copy(desc);
 
 		PangoFont *font = pango_context_load_font(context, desc);
-
-		static cairo_scaled_font_t *fw_scaled_font = NULL;
-		if (fw_scaled_font)
-			cairo_scaled_font_destroy(fw_scaled_font);
-		fw_scaled_font =
+		cairo_scaled_font_t *scaled =
 			pango_cairo_font_get_scaled_font(PANGO_CAIRO_FONT(font));
-		cairo_scaled_font_reference(fw_scaled_font);
-
 		g_object_unref(font);
 
-//		cairo_font_extents_t fe;
-//		cairo_scaled_font_extents(fw_scaled_font, &fe);
+		PangoFontDescription *descb = pango_font_description_copy(desc);
+		pango_font_description_set_weight(descb, PANGO_WEIGHT_BOLD);
+		PangoFont *fontb = pango_context_load_font(context, descb);
+		pango_font_description_free(descb);
+		cairo_scaled_font_t *scaledb =
+			pango_cairo_font_get_scaled_font(PANGO_CAIRO_FONT(fontb));
+		g_object_unref(fontb);
 
 		if (o_fast_font_calc.int_value)
 		{
@@ -2146,13 +2146,18 @@ static gint set_font(GtkWidget *widget)
 			for (; i <= 0x7e; i++)
 			{
 				n[0] = (gchar) i;
-				cairo_scaled_font_text_extents(fw_scaled_font, n, &te);
-				fw_font_widths[i] = (gint) (te.x_advance + .5);
+				cairo_scaled_font_text_extents(scaled , n, &te);
+				fw_font_widths [i] = (gint) (te.x_advance + .5);
+				cairo_scaled_font_text_extents(scaledb, n, &te);
+				fw_font_widthsb[i] = (gint) (te.x_advance + .5);
 //g_print("caito te %s: x %f, y %f, w %f, h %f, xa %f, ya %f\n",
 //n, te.x_bearing, te.y_bearing, te.width, te.height,
 //te.x_advance, te.y_advance);
 			}
 		}
+
+		cairo_scaled_font_destroy(scaled);
+		cairo_scaled_font_destroy(scaledb);
 
 		//font height is diffrent between canro and pango
 		PangoLayout *layout =

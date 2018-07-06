@@ -160,6 +160,7 @@ extern Option		o_window_link;
 extern Option		o_scroll_speed;
 extern gint 		fw_font_height;
 extern gint 		fw_font_widths[0x7f];
+extern gint 		fw_font_widthsb[0x7f];
 
 
 /* Prototypes */
