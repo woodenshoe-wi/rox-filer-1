@@ -2127,7 +2127,6 @@ static gint set_font(GtkWidget *widget)
 		PangoFont *font = pango_context_load_font(context, desc);
 		cairo_scaled_font_t *scaled =
 			pango_cairo_font_get_scaled_font(PANGO_CAIRO_FONT(font));
-		g_object_unref(font);
 
 		PangoFontDescription *descb = pango_font_description_copy(desc);
 		pango_font_description_set_weight(descb, PANGO_WEIGHT_BOLD);
@@ -2135,7 +2134,6 @@ static gint set_font(GtkWidget *widget)
 		pango_font_description_free(descb);
 		cairo_scaled_font_t *scaledb =
 			pango_cairo_font_get_scaled_font(PANGO_CAIRO_FONT(fontb));
-		g_object_unref(fontb);
 
 		if (o_fast_font_calc.int_value)
 		{
@@ -2156,8 +2154,8 @@ static gint set_font(GtkWidget *widget)
 			}
 		}
 
-		cairo_scaled_font_destroy(scaled);
-		cairo_scaled_font_destroy(scaledb);
+		g_object_unref(font);
+		g_object_unref(fontb);
 
 		//font height is diffrent between canro and pango
 		PangoLayout *layout =
