@@ -1610,11 +1610,11 @@ static void addt(int start, ViewCollection *view)
 }
 static gpointer addloopt(ViewCollection *view)
 {
-	GThreadPool *pool = g_thread_pool_new((GFunc)addt,
-			view, g_get_num_processors(), TRUE, NULL);
+	int pross = g_get_num_processors();
+	GThreadPool *pool = g_thread_pool_new((GFunc)addt, view, pross, TRUE, NULL);
 
 	for (int i = oldnum; i < newnum; i += PUSHWEIGHT)
-		if (cutrest)
+		if (cutrest || pross == 1)
 			//pool_push is heavy
 			addt(i + 1, view);
 		else
