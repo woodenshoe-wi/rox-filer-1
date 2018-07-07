@@ -200,7 +200,8 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 			/* May stop scanning if noone's watching */
 			set_idle_callback(dir);
 
-			g_clear_object(&dir->monitor);
+			if (!dir->users)
+				g_clear_object(&dir->monitor);
 
 			if (o_purge_dir_cache.int_value && !dir->users)
 				g_fscache_remove(dir_cache, dir->pathname);
