@@ -2221,7 +2221,7 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 	rows = MAX((n + cols - 1) / cols, 1);
 
 	int vw = MAX(w * MAX(cols, 1), min_x);
-	int vh = MIN(max_y, h * rows + space);
+	int vh = CLAMP(h * rows + space, small_height * 2, max_y);
 	gboolean notauto = FALSE;
 
 	if (gtk_widget_get_visible(filer_window->thumb_bar))
