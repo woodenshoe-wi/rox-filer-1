@@ -128,6 +128,36 @@ static void set_lasso(ViewDetails *view_details, int x, int y);
 static void cancel_wink(ViewDetails *view_details);
 
 
+static void setcolour(ViewDetails *view_details)
+{
+	if (o_use_background_colour.int_value ||
+			o_display_colour_types.int_value)
+	{
+		GdkColor base;
+		if (o_use_background_colour.int_value)
+			gdk_color_parse(o_background_colour.value, &base);
+		else if (o_display_colour_types.int_value)
+		{
+			GdkColor fc = type_colours[TYPE_FILE];
+			base.red   = 65535 - fc.red;
+			base.green = 65535 - fc.green;
+			base.blue  = 65535 - fc.blue;
+		}
+
+		gtk_widget_modify_base(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &base);
+		gtk_widget_modify_text(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &type_colours[TYPE_FILE]);
+	} else {
+		GtkStyle *style = view_details->filer_window->window->style;
+		gtk_widget_modify_base(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &style->base[GTK_STATE_NORMAL]);
+		gtk_widget_modify_text(GTK_WIDGET(view_details),
+				GTK_STATE_NORMAL, &style->text[GTK_STATE_NORMAL]);
+	}
+}
+
+
 /****************************************************************
  *			EXTERNAL INTERFACE			*
  ****************************************************************/
@@ -138,6 +168,7 @@ GtkWidget *view_details_new(FilerWindow *filer_window)
 
 	view_details = g_object_new(view_details_get_type(), NULL);
 	view_details->filer_window = filer_window;
+	setcolour(view_details);
 
 	gtk_range_set_adjustment(GTK_RANGE(filer_window->scrollbar),
 		gtk_tree_view_get_vadjustment(GTK_TREE_VIEW(view_details)));
@@ -1025,36 +1056,6 @@ static void selection_changed(GtkTreeSelection *selection,
 }
 
 
-static void setcolour(ViewDetails *view_details)
-{
-	if (o_use_background_colour.int_value ||
-			o_display_colour_types.int_value)
-	{
-		GdkColor base;
-		if (o_use_background_colour.int_value)
-			gdk_color_parse(o_background_colour.value, &base);
-		else if (o_display_colour_types.int_value)
-		{
-			GdkColor fc = type_colours[TYPE_FILE];
-			base.red   = 65535 - fc.red;
-			base.green = 65535 - fc.green;
-			base.blue  = 65535 - fc.blue;
-		}
-
-		gtk_widget_modify_base(GTK_WIDGET(view_details),
-				GTK_STATE_NORMAL, &base);
-		gtk_widget_modify_text(GTK_WIDGET(view_details),
-				GTK_STATE_NORMAL, &type_colours[TYPE_FILE]);
-	} else {
-		GtkStyle *style = view_details->filer_window->window->style;
-		gtk_widget_modify_base(GTK_WIDGET(view_details),
-				GTK_STATE_NORMAL, &style->base[GTK_STATE_NORMAL]);
-		gtk_widget_modify_text(GTK_WIDGET(view_details),
-				GTK_STATE_NORMAL, &style->text[GTK_STATE_NORMAL]);
-	}
-}
-
-
 /*
  * Set the font used for a treeview column to that given for the
  * "mono-font" style property of a widget.  This has to be done _after_ the
@@ -1101,8 +1102,6 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 				GTK_SELECTION_MULTIPLE);
 	gtk_tree_selection_set_select_function(view_details->selection,
 			test_can_change_selection, view_details, NULL);
-
-	setcolour(view_details);
 
 	/* Sorting */
 	view_details->sort_fn = NULL;
