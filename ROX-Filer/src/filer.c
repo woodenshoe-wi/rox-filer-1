@@ -2938,6 +2938,12 @@ static gboolean filer_next_thumb_real(GObject *window)
 
 	path = (gchar *) g_queue_pop_tail(filer_window->thumb_queue);
 
+	if (!g_file_test(path, G_FILE_TEST_EXISTS))
+	{
+		filer_next_thumb(window, NULL);
+		goto out;
+	}
+
 	switch (pixmap_check_thumb(path))
 	{
 	case -1:
@@ -2992,29 +2998,11 @@ out:
  */
 static void filer_next_thumb(GObject *window, const gchar *path)
 {
-	FilerWindow *filer_window;
-
-	filer_window = g_object_get_data(window, "filer_window");
-
-	if (!filer_window)
-	{
-		g_object_unref(window);
-		return;
-	}
-
 	if (path)
 		dir_force_update_path(path, TRUE);
 
-	if (filer_window->trying_thumbs > g_get_num_processors()) {
-		filer_window->trying_thumbs--;
-		return;
-	}
-
-//	if (filer_window->max_thumbs > filer_window->tried_thumbs)
-//		g_idle_add((GSourceFunc) filer_next_thumb_real, window);
-//		filer_next_thumb_real(window);
-//	else
-		g_idle_add_full(G_PRIORITY_LOW, (GSourceFunc) filer_next_thumb_real, window, NULL);
+	g_idle_add_full(G_PRIORITY_LOW,
+			(GSourceFunc) filer_next_thumb_real, window, NULL);
 }
 
 static void start_thumb_scanning(FilerWindow *filer_window)
