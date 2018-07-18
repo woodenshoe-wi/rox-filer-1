@@ -929,11 +929,10 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 	return gui_side;
 }
 
-static gboolean synced = FALSE;
+static int synced = 0;
 static void syncgui()
 {
-	if (synced) return;
-	synced = TRUE;
+	if (synced++ % 99) return;
 	printf_send("r");
 	char c;
 	read(from_parent, &c, 1);
@@ -1449,7 +1448,6 @@ static void do_copy2(const char *path, const char *dest)
 	}
 
 	printed = FALSE;
-	synced = FALSE;
 	if (mc_lstat(dest_path, &dest_info) == 0)
 	{
 		int err = 0, rep = 0;
@@ -1745,7 +1743,6 @@ static void do_move2(const char *path, const char *dest)
 	}
 
 	printed = FALSE;
-	synced = FALSE;
 	if (mc_lstat(dest_path, &dest_info) == 0)
 	{
 		int err = 0, rep = 0;
