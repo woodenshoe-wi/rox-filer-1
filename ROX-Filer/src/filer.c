@@ -2849,7 +2849,7 @@ static gboolean make_dir_thumb_link()
 			continue;
 		}
 
-		GdkPixbuf *image = pixmap_try_thumb(subpath, TRUE);
+		GdkPixbuf *image = pixmap_try_thumb(subpath, FALSE);
 		if (image)
 		{
 			char *sub_thumb_path = pixmap_make_thumb_path(subpath);

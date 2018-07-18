@@ -127,7 +127,7 @@ static gint purge_thumbs(gpointer data);
 static MaskedPixmap *image_from_file(const char *path);
 static MaskedPixmap *image_from_desktop_file(const char *path);
 static MaskedPixmap *get_bad_image(void);
-static GdkPixbuf *get_thumbnail_for(const char *path);
+static GdkPixbuf *get_thumbnail_for(const char *path, gboolean forcheck);
 static void thumbnail_done(ChildThumbnail *info);
 static void create_thumbnail(const gchar *path, MIME_type *type);
 static GList *thumbs_purge_cache(Option *option, xmlNode *node, guchar *label);
@@ -338,7 +338,7 @@ GdkPixbuf *pixmap_load_thumb(const gchar *path)
 				path, FSCACHE_LOOKUP_ONLY_NEW, &found);
 
 	if (!found) {
-		ret = get_thumbnail_for(path);
+		ret = get_thumbnail_for(path, FALSE);
 		if (ret && o_purge_time.int_value > 0)
 			g_fscache_insert(thumb_cache, path, ret, TRUE);
 	}
@@ -376,7 +376,6 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 		callback(data, (gpointer)path);
 		return;
 	}
-
 
 	/* Is it currently being created? */
 	image = g_fscache_lookup_full(thumb_cache, path,
@@ -472,11 +471,9 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 }
 
 /*
- * Return the thumbnail for a file, only if available.  If the
- * can_load flags is set this includes loading from the cache, otherwise
- * only if already in memory
+ * Return the thumbnail for a file, only if available.
  */
-GdkPixbuf *pixmap_try_thumb(const gchar *path, gboolean can_load)
+GdkPixbuf *pixmap_try_thumb(const gchar *path, gboolean forcheck)
 {
 	gboolean  found;
 	GdkPixbuf *image;
@@ -494,10 +491,7 @@ GdkPixbuf *pixmap_try_thumb(const gchar *path, gboolean can_load)
 		}
 	}
 
-	if(!can_load)
-		return NULL;
-
-	pixbuf = get_thumbnail_for(path);
+	pixbuf = get_thumbnail_for(path, forcheck);
 
 	if (!pixbuf)
 	{
@@ -775,7 +769,7 @@ static void thumbnail_done_real(ChildThumbnail *info)
 {
 	GdkPixbuf *thumb;
 
-	thumb = get_thumbnail_for(info->path);
+	thumb = get_thumbnail_for(info->path, FALSE);
 
 	if (thumb)
 	{
@@ -824,7 +818,7 @@ static void thumbnail_done(ChildThumbnail *info)
 /* Check if we have an up-to-date thumbnail for this image.
  * If so, return it. Otherwise, returns NULL.
  */
-static GdkPixbuf *get_thumbnail_for(const char *pathname)
+static GdkPixbuf *get_thumbnail_for(const char *pathname, gboolean forcheck)
 {
 	GdkPixbuf *thumb = NULL;
 	char *thumb_path, *path, *pic_path = NULL;
@@ -833,6 +827,7 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 	time_t ttime, now;
 
 	path = pathdup(pathname);
+
 	thumb_path = pixmap_make_thumb_path(path);
 
 	thumb = gdk_pixbuf_new_from_file(thumb_path, NULL);
@@ -868,7 +863,13 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname)
 			)
 			goto err;
 
-		if (info.st_ctime > thumbinfo.st_ctime)
+		if (forcheck && info.st_ctime == thumbinfo.st_ctime)
+		{ //maybe thumb is old in a sec
+			time(&now);
+			if (now > info.st_ctime)
+				goto err;
+		}
+		else if (info.st_ctime > thumbinfo.st_ctime)
 			goto err;
 	}
 
