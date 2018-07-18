@@ -929,10 +929,14 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 	return gui_side;
 }
 
-static int synced = 0;
+#define SHOWTIME 100 * 1000
 static void syncgui()
 {
-	if (synced++ % 99) return;
+	static gint64 start = 0;
+	gint64 now = g_get_monotonic_time();
+	if (now - start < SHOWTIME) return;
+	start = now;
+
 	printf_send("r");
 	char c;
 	read(from_parent, &c, 1);
@@ -1390,7 +1394,6 @@ static const char *make_dest_path(const char *object, const char *dir)
 
 static void fprogcb(goffset current, goffset total, gpointer p)
 {
-#define SHOWTIME 100 * 1000
 	if (total < 1) return;
 	static gboolean started = FALSE;
 	static gint64 start = 0;
