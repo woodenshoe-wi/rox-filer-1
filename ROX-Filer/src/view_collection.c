@@ -358,7 +358,7 @@ static gboolean transparent_expose(GtkWidget *widget,
 			//cairo_rectangle(scr, 0, 0, size / 2, size / 2);
 			//cairo_rectangle(scr, size / 2, size / 2, size / 2, size / 2);
 			//cairo_fill(scr);
-			cairo_set_line_width(scr, 0.6);
+			cairo_set_line_width(scr, 0.4);
 			static const double center = size * 2/3;
 			static const double edge = size / 6;
 			static const double end = size;
@@ -368,6 +368,8 @@ static gboolean transparent_expose(GtkWidget *widget,
 			cairo_line_to(scr, edge  , 0     );
 			cairo_move_to(scr, center, center);
 			cairo_line_to(scr, end   , end   );
+			cairo_stroke_preserve(scr);
+			cairo_set_operator(scr, CAIRO_OPERATOR_LIGHTEN);
 			cairo_stroke(scr);
 
 			cairo_pattern_t *cp = cairo_pattern_create_for_surface(cs);
