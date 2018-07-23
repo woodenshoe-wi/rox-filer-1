@@ -1120,7 +1120,7 @@ gint radios_get_value(Radios *radios)
  */
 GList *uri_list_to_glist(const char *uri_list)
 {
-	GList   *list = NULL;
+	GQueue gq = G_QUEUE_INIT;
 
 	while (*uri_list)
 	{
@@ -1136,20 +1136,20 @@ GList *uri_list_to_glist(const char *uri_list)
 					  "break in text/uri-list data"));
 			/* If this is the first, append it anyway (Firefox
 			 * 3.5) */
-			if (!list && uri_list[0] != '#')
-				list = g_list_append(list, g_strdup(uri_list));
-			return list;
+			if (!gq.length && uri_list[0] != '#')
+				g_queue_push_tail(&gq, g_strdup(uri_list));
+			return gq.head;
 		}
 
 		length = linebreak - uri_list;
 
 		if (length && uri_list[0] != '#')
-			list = g_list_append(list, g_strndup(uri_list, length));
+			g_queue_push_tail(&gq, g_strndup(uri_list, length));
 
 		uri_list = linebreak + 2;
 	}
 
-	return list;
+	return gq.head;
 }
 
 typedef struct _SimpleImageClass SimpleImageClass;
