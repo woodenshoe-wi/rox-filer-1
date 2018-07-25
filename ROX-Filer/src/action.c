@@ -1904,10 +1904,7 @@ static void do_copy(const char *path, const char *dest)
 	if (is_sub_dir(make_dest_path(path, dest), path))
 		printf_send(_("!ERROR: Can't copy object into itself\n"));
 	else
-	{
 		do_copy2(path, dest);
-		send_check_path(dest);
-	}
 }
 
 /* Move path to dest.
@@ -1919,10 +1916,7 @@ static void do_move(const char *path, const char *dest)
 		printf_send(
 		     _("!ERROR: Can't move/rename object into itself\n"));
 	else
-	{
 		do_move2(path, dest);
-		send_check_path(dest);
-	}
 }
 
 /* Common code for do_link_relative() and do_link_absolute(). */
