@@ -303,6 +303,7 @@ gboolean diritem_examine_dir(const guchar *path, DirItem *item)
 {
 	guchar *rpath = pathdup(path); //realpath
 
+	int oldsize = item->size;
 	DIR *d = mc_opendir(rpath);
 	if (d)
 	{
@@ -413,5 +414,5 @@ out:
 		return TRUE;
 	}
 
-	return item->size;
+	return item->size != oldsize;
 }
