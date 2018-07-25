@@ -749,7 +749,6 @@ static void make_dir_thumb(const gchar *path)
 	}
 	else
 	{
-		char *dir_thumb_path = pixmap_make_thumb_path(dir);
 		unlink(dir_thumb_path); //////////////////////////
 
 		char *thumb_path = pixmap_make_thumb_path(path);
@@ -760,24 +759,24 @@ static void make_dir_thumb(const gchar *path)
 
 		g_free(rel_path);
 		g_free(thumb_path);
-		g_free(dir_thumb_path);
 	}
+	g_free(dir_thumb_path);
 	g_free(dir);
 }
 
-static void thumbnail_done_real(ChildThumbnail *info)
+static void thumbnail_done(ChildThumbnail *info)
 {
-	GdkPixbuf *thumb;
+	static GSList *done_stack = NULL;
+	done_stack = g_slist_prepend(done_stack, info);
 
-	thumb = get_thumbnail_for(info->path, FALSE);
+	if (info->timeout)
+		g_source_remove(info->timeout);
 
+	GdkPixbuf *thumb = get_thumbnail_for(info->path, FALSE);
 	if (thumb)
 	{
-		g_fscache_remove(thumb_cache, info->path);
-
-		make_dir_thumb(info->path);
-
 		g_object_unref(thumb);
+		g_fscache_remove(thumb_cache, info->path);
 		info->callback(info->data, info->path);
 	}
 	else
@@ -786,25 +785,19 @@ static void thumbnail_done_real(ChildThumbnail *info)
 		info->callback(info->data, NULL);
 	}
 
-	g_free(info->path);
-	g_free(info);
-}
-static GSList *done_stack = NULL;
-static void thumbnail_done(ChildThumbnail *info)
-{
-	done_stack = g_slist_prepend(done_stack, info);
-
-	if (info->timeout)
-		g_source_remove(info->timeout);
-
 	if (next_order < info->order) return;
 
 	GSList *n = done_stack;
 	while (n)
 	{
-		if (((ChildThumbnail *)n->data)->order == next_order)
+		ChildThumbnail *li = n->data;
+		if (li->order == next_order)
 		{
-			thumbnail_done_real(n->data);
+			make_dir_thumb(li->path);
+
+			g_free(li->path);
+			g_free(li);
+
 			next_order++;
 			n = done_stack =
 				g_slist_delete_link(done_stack, n);
