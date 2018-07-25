@@ -105,7 +105,10 @@ static gint rescan_timeout_cb(gpointer data)
 
 	dir->rescan_timeout = -1;
 	if (!dir->scanning && dir->needs_update)
+	{
 		dir_scan(dir);
+		dir_check_this(dir->pathname);
+	}
 	return FALSE;
 }
 
