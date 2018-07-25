@@ -142,6 +142,7 @@ void diritem_restat(
 
 		if (item->base_type == TYPE_DIRECTORY)
 		{
+			item->size = 0;
 			if (mount_is_mounted(target_path, &info,
 					target_path == path ? parent : NULL))
 				item->flags |= ITEM_FLAG_MOUNT_POINT
@@ -302,6 +303,15 @@ gboolean diritem_examine_dir(const guchar *path, DirItem *item)
 {
 	guchar *rpath = pathdup(path); //realpath
 
+	DIR *d = mc_opendir(rpath);
+	if (d)
+	{
+		int cnt = 0;
+		while ((mc_readdir(d))) cnt++;
+		item->size = cnt - 2; //. and ..
+		mc_closedir(d);
+	}
+
 	int pathlen = strlen(rpath);
 	//pathbuf has length of path + '/AppIcon.xpm'
 	gchar *pathbuf = g_new(gchar, pathlen + 13);
@@ -403,5 +413,5 @@ out:
 		return TRUE;
 	}
 
-	return FALSE;
+	return item->size;
 }

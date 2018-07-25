@@ -588,7 +588,13 @@ int sort_by_size(const void *item1, const void *item2)
 	const DirItem *i1 = (DirItem *) item1;
 	const DirItem *i2 = (DirItem *) item2;
 
-	SORT_DIRS;
+	if (i1->base_type != i2->base_type)
+	{
+		if (i1->base_type == TYPE_DIRECTORY)
+			return o_display_dirs_first.int_value ? -1 : 1;
+		if (i2->base_type == TYPE_DIRECTORY)
+			return o_display_dirs_first.int_value ? 1 : -1;
+	}
 
 	return i1->size < i2->size ? -1 :
 		i1->size > i2->size ? 1 :
@@ -955,15 +961,15 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 				return g_strdup("1234 b");
 		}
 
-		if (item->base_type != TYPE_DIRECTORY)
-		{
+//		if (item->base_type != TYPE_DIRECTORY)
+//		{
 			if (filer_window->display_style == SMALL_ICONS)
 				buf = g_strdup(format_size_aligned(item->size));
 			else
 				buf = g_strdup(format_size(item->size));
-		}
-		else
-			buf = g_strdup("-");
+//		}
+//		else
+//			buf = g_strdup("-");
 	}
 
 	return buf;

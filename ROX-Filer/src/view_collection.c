@@ -1733,6 +1733,9 @@ static void view_collection_update_items(ViewIface *view, GPtrArray *items)
 		else
 			update_item(view_collection, j);
 	}
+
+	if (filer_window->sort_type != SORT_NAME)
+		gtk_widget_queue_draw(GTK_WIDGET(view_collection));
 }
 
 static void view_collection_delete_if(ViewIface *view,
