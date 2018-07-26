@@ -30,7 +30,7 @@ typedef enum {
 typedef struct _DirUser DirUser;
 typedef void (*DirCallback)(Directory *dir,
 			DirAction action,
-			GPtrArray *items,
+			void *items,
 			gpointer data);
 
 extern GFSCache *dir_cache;
@@ -70,7 +70,7 @@ struct _Directory
 	GHashTable 	*known_items;	/* What our users know about */
 	GPtrArray	*new_items;	/* New items to add in */
 	GPtrArray	*up_items;	/* Items to redraw */
-	GPtrArray	*gone_items;	/* Items removed */
+	GHashTable 	*gone_items;	/* Items removed */
 
 	GQueue		*recheck_list;	/* Items to check on callback */
 	GQueue		*examine_list;	/* Items to examine on callback */

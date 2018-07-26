@@ -103,12 +103,13 @@ static gint rescan_timeout_cb(gpointer data)
 {
 	Directory *dir = (Directory *) data;
 
-	dir->rescan_timeout = -1;
 	if (!dir->scanning && dir->needs_update)
 		dir_scan(dir);
 
+	if (dir->scanning) return TRUE;
 	dir_check_this(dir->pathname);
 
+	dir->rescan_timeout = -1;
 	return FALSE;
 }
 
@@ -592,76 +593,6 @@ static gpointer scan_thread(gpointer data)
 	return NULL;
 }
 
-static GPtrArray *swap_ptra(GPtrArray *src){
-	GPtrArray *ret = g_ptr_array_sized_new(src->len);
-
-	g_free(ret->pdata);
-	ret->pdata = g_memdup(src->pdata, sizeof(gpointer) * src->len);
-	ret->len = src->len;
-
-	g_ptr_array_set_size(src, 0);
-
-	return ret;
-}
-
-/* Add all the new items to the items array.
- * Notify everyone who is watching us.
- */
-void dir_merge_new(Directory *dir)
-{
-	g_mutex_lock(&dir->mergem);
-
-	GPtrArray *new = swap_ptra(dir->new_items);
-	GPtrArray *up = swap_ptra(dir->up_items);
-	GPtrArray *gone = swap_ptra(dir->gone_items);
-
-	g_mutex_unlock(&dir->mergem);
-	g_thread_yield();
-
-	GList	  *list;
-	guint	  i, j;
-
-	in_callback++;
-
-	if (gone->len && new->len)
-		for (i = 0; i < new->len; i++)
-			for (j = gone->len; j--;)
-				if (i < new->len && new->pdata[i] == gone->pdata[j])
-				{
-					j = gone->len;
-					g_ptr_array_remove_index_fast(new, i);
-				}
-
-	for (list = dir->users; list; list = list->next)
-	{
-		DirUser *user = (DirUser *) list->data;
-
-		if (up->len)
-			user->callback(dir, DIR_UPDATE, up, user->data);
-		if (gone->len)
-			user->callback(dir, DIR_REMOVE, gone, user->data);
-		if (new->len)
-			user->callback(dir, DIR_ADD, new, user->data);
-	}
-
-	in_callback--;
-
-	for (i = 0; i < gone->len; i++)
-	{
-		DirItem	*item = (DirItem *) gone->pdata[i];
-		diritem_free(item);
-	}
-
-	g_ptr_array_free(new, TRUE);
-	g_ptr_array_free(up, TRUE);
-	g_ptr_array_free(gone, TRUE);
-}
-
-
-/****************************************************************
- *			INTERNAL FUNCTIONS			*
- ****************************************************************/
-
 static void free_items_array(GPtrArray *array)
 {
 	guint	i;
@@ -675,6 +606,59 @@ static void free_items_array(GPtrArray *array)
 
 	g_ptr_array_free(array, TRUE);
 }
+
+/* Add all the new items to the items array.
+ * Notify everyone who is watching us.
+ */
+void dir_merge_new(Directory *dir)
+{
+	g_mutex_lock(&dir->mergem);
+
+	GPtrArray *new = dir->new_items;
+	GPtrArray *up = dir->up_items;
+	GHashTable *gone = dir->gone_items;
+
+	dir->new_items = g_ptr_array_new();
+	dir->up_items = g_ptr_array_new();
+	dir->gone_items = g_hash_table_new(g_str_hash, g_str_equal);
+
+	g_mutex_unlock(&dir->mergem);
+	g_thread_yield();
+
+
+	in_callback++;
+
+	if (g_hash_table_size(gone) && new->len)
+		for (int i = 0; i < new->len; i++)
+			if (new->pdata[i] == g_hash_table_lookup(gone,
+						((DirItem *)new->pdata[i])->leafname))
+			{
+				g_ptr_array_remove_index_fast(new, i);
+				i--;
+			}
+
+	for (GList *list = dir->users; list; list = list->next)
+	{
+		DirUser *user = (DirUser *) list->data;
+
+		if (up->len)
+			user->callback(dir, DIR_UPDATE, up, user->data);
+		if (g_hash_table_size(gone))
+			user->callback(dir, DIR_REMOVE, gone, user->data);
+		if (new->len)
+			user->callback(dir, DIR_ADD, new, user->data);
+	}
+
+	in_callback--;
+
+	g_ptr_array_free(new, TRUE);
+	g_ptr_array_free(up, TRUE);
+
+	GPtrArray *items = hash_to_array(gone);
+	free_items_array(items);
+	g_hash_table_destroy(gone);
+}
+
 
 static gboolean compare_items(DirItem  *item, DirItem  *old)
 {
@@ -738,7 +722,7 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 			if (g_hash_table_remove(dir->known_items, item->leafname))
 			{
 				g_mutex_lock(&dir->mergem);
-				g_ptr_array_add(dir->gone_items, item);
+				g_hash_table_insert(dir->gone_items, item->leafname, item);
 				g_mutex_unlock(&dir->mergem);
 			}
 
@@ -893,7 +877,10 @@ static void dir_finialize(GObject *object)
 
 	g_ptr_array_free(dir->up_items, TRUE);
 	g_ptr_array_free(dir->new_items, TRUE);
-	g_ptr_array_free(dir->gone_items, TRUE);
+
+	items = hash_to_array(dir->gone_items);
+	free_items_array(items);
+	g_hash_table_destroy(dir->gone_items);
 
 	items = hash_to_array(dir->known_items);
 	free_items_array(items);
@@ -948,7 +935,8 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 
 	dir->new_items = g_ptr_array_new();
 	dir->up_items = g_ptr_array_new();
-	dir->gone_items = g_ptr_array_new();
+	dir->gone_items = g_hash_table_new(g_str_hash, g_str_equal);
+
 }
 
 static GType dir_get_type(void)
@@ -996,7 +984,7 @@ static gboolean check_delete(gpointer key, gpointer value, gpointer data)
 		item->flags &= ~ITEM_FLAG_NOT_DELETE;
 	else
 	{
-		g_ptr_array_add(dir->gone_items, item);
+		g_hash_table_insert(dir->gone_items, item->leafname, item);
 		return TRUE;
 	}
 	return FALSE;

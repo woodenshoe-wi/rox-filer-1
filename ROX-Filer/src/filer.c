@@ -148,9 +148,7 @@ static void detach(FilerWindow *filer_window);
 static void filer_window_destroyed(GtkWidget    *widget,
 				   FilerWindow	*filer_window);
 static void update_display(Directory *dir,
-			DirAction	action,
-			GPtrArray	*items,
-			FilerWindow *filer_window);
+		DirAction action, void *items, FilerWindow *filer_window);
 static void set_scanning_display(FilerWindow *filer_window, gboolean scanning);
 static gboolean may_rescan(FilerWindow *filer_window, gboolean warning);
 static gboolean minibuffer_show_cb(FilerWindow *filer_window);
@@ -272,17 +270,8 @@ void filer_init(void)
 
 static gboolean if_deleted(gpointer item, gpointer removed)
 {
-	int	i = ((GPtrArray *) removed)->len;
-	DirItem	**r = (DirItem **) ((GPtrArray *) removed)->pdata;
-	char	*leafname = ((DirItem *) item)->leafname;
-
-	while (i--)
-	{
-		if (strcmp(leafname, r[i]->leafname) == 0)
-			return TRUE;
-	}
-
-	return FALSE;
+	return NULL != g_hash_table_lookup((GHashTable *) removed,
+			((DirItem *)item)->leafname);
 }
 
 /* Resize the filer window to w x h pixels, plus border (not clamped).
@@ -562,9 +551,7 @@ static void set_icon(FilerWindow *fw, GdkPixbuf *src)
 		g_object_unref(lined);
 }
 static void update_display(Directory *dir,
-			DirAction	action,
-			GPtrArray	*items,
-			FilerWindow *filer_window)
+		DirAction action, void *items, FilerWindow *filer_window)
 {
 	ViewIface *view = (ViewIface *) filer_window->view;
 	gboolean init = filer_window->under_init;
