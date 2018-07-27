@@ -359,7 +359,8 @@ static int thumb_prog_timeout(ChildThumbnail *info)
  * If the image is already uptodate, or being created already, calls the
  * callback right away.
  */
-void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
+void pixmap_background_thumb(const gchar *path, gboolean noorder,
+		GFunc callback, gpointer data)
 {
 	gboolean	found;
 	GdkPixbuf	*image;
@@ -424,6 +425,7 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 	info->data = data;
 	info->timeout = 0;
 	info->order = ordered_num++;
+	if (noorder) info->order = 0;
 
 	child = fork();
 	if (child == -1)

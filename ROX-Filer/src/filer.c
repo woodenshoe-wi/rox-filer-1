@@ -2890,6 +2890,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 {
 	FilerWindow *filer_window;
 	gchar	*path;
+	gboolean noorder = FALSE;
 
 	filer_window = g_object_get_data(window, "filer_window");
 
@@ -2909,11 +2910,15 @@ static gboolean filer_next_thumb_real(GObject *window)
 
 	if (!sdinfo.cancel && sdinfo.items->len)
 	{
+		guint len = filer_window->thumb_queue->length;
+
 		if (make_dir_thumb_link())
 		{
 			filer_next_thumb(window, NULL);
 			return FALSE;
 		}
+		//this is first item and only one of subdir
+		noorder = len != filer_window->thumb_queue->length;
 	}
 	else
 		free_subdir_info();
@@ -2963,7 +2968,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 		break;
 	}
 
-	pixmap_background_thumb(path, (GFunc) filer_next_thumb, window);
+	pixmap_background_thumb(path, noorder, (GFunc) filer_next_thumb, window);
 
 	if (!gtk_widget_get_visible(filer_window->thumb_bar))
 	{

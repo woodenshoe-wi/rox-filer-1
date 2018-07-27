@@ -72,7 +72,7 @@ void pixmaps_init(void);
 void pixmap_make_huge(MaskedPixmap *mp);
 void pixmap_make_small(MaskedPixmap *mp);
 MaskedPixmap *load_pixmap(const char *name);
-void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data);
+void pixmap_background_thumb(const gchar *path, gboolean noorder, GFunc callback, gpointer data);
 GdkPixbuf *pixmap_try_thumb(const gchar *path, gboolean forcheck);
 MaskedPixmap *masked_pixmap_new(GdkPixbuf *full_size);
 GdkPixbuf *scale_pixbuf(GdkPixbuf *src, int max_w, int max_h);
