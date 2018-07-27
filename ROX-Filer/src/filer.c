@@ -634,6 +634,8 @@ static void update_display(Directory *dir,
 			filer_window->first_scan = FALSE;
 			filer_window->new_win_first_scan = FALSE;
 			break;
+		case DIR_UPDATE_EXA:
+			init = TRUE;
 		case DIR_UPDATE:
 			if ((filer_window->sort_type != SORT_NAME ||
 						o_display_dirs_first.int_value) &&
@@ -647,7 +649,9 @@ static void update_display(Directory *dir,
 
 			view_update_items(view, items);
 
-			if (!init && !filer_window->dir_icon)
+			if (init) break;
+
+			if (!filer_window->dir_icon)
 			{
 				filer_window->dir_icon = g_fscache_lookup_full(
 						pixmap_cache,

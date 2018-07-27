@@ -22,9 +22,10 @@ typedef enum {
 	DIR_ADD,           /* 2 Add the listed items to the display */
 	DIR_REMOVE,        /* 3 Remove listed items from display */
 	DIR_UPDATE,        /* 4 Redraw these items */
-	DIR_UPDATE_ICON,   /* 5 Redraw these items */
-	DIR_ERROR_CHANGED, /* 6 Check dir->error */
-	DIR_QUEUE_INTERESTING,  /* 7 Call dir_queue_recheck */
+	DIR_UPDATE_EXA,    /* 5 Redraw these items */
+	DIR_UPDATE_ICON,   /* 6 Redraw these items */
+	DIR_ERROR_CHANGED, /* 7 Check dir->error */
+	DIR_QUEUE_INTERESTING,  /* 8 Call dir_queue_recheck */
 } DirAction;
 
 typedef struct _DirUser DirUser;
@@ -70,6 +71,7 @@ struct _Directory
 	GHashTable 	*known_items;	/* What our users know about */
 	GPtrArray	*new_items;	/* New items to add in */
 	GPtrArray	*up_items;	/* Items to redraw */
+	GPtrArray	*exa_items;	/* Items to redraw */
 	GHashTable 	*gone_items;	/* Items removed */
 
 	GQueue		*recheck_list;	/* Items to check on callback */

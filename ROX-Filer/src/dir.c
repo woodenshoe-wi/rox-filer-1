@@ -465,7 +465,7 @@ static gboolean do_recheck(gpointer data)
 						make_path_to_buf(dir->strbuf, dir->pathname, item->leafname), item))
 			{
 				g_mutex_lock(&dir->mergem);
-				g_ptr_array_add(dir->up_items, item);
+				g_ptr_array_add(dir->exa_items, item);
 				g_mutex_unlock(&dir->mergem);
 				delayed_notify(dir, FALSE);
 			}
@@ -602,10 +602,12 @@ void dir_merge_new(Directory *dir)
 
 	GPtrArray *new = dir->new_items;
 	GPtrArray *up = dir->up_items;
+	GPtrArray *exa = dir->exa_items;
 	GHashTable *gone = dir->gone_items;
 
 	dir->new_items = g_ptr_array_new();
 	dir->up_items = g_ptr_array_new();
+	dir->exa_items = g_ptr_array_new();
 	dir->gone_items = g_hash_table_new_full(
 			g_str_hash, g_str_equal, NULL, (GDestroyNotify)diritem_free);
 
@@ -630,6 +632,8 @@ void dir_merge_new(Directory *dir)
 
 		if (up->len)
 			user->callback(dir, DIR_UPDATE, up, user->data);
+		if (exa->len)
+			user->callback(dir, DIR_UPDATE_EXA, exa, user->data);
 		if (g_hash_table_size(gone))
 			user->callback(dir, DIR_REMOVE, gone, user->data);
 		if (new->len)
@@ -640,6 +644,7 @@ void dir_merge_new(Directory *dir)
 
 	g_ptr_array_free(new, TRUE);
 	g_ptr_array_free(up, TRUE);
+	g_ptr_array_free(exa, TRUE);
 
 	g_hash_table_destroy(gone);
 }
@@ -862,6 +867,7 @@ static void dir_finialize(GObject *object)
 	dir_merge_new(dir);	/* Ensures new, up and gone are empty */
 
 	g_ptr_array_free(dir->up_items, TRUE);
+	g_ptr_array_free(dir->exa_items, TRUE);
 	g_ptr_array_free(dir->new_items, TRUE);
 
 	g_hash_table_destroy(dir->gone_items);
@@ -918,6 +924,7 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 
 	dir->new_items = g_ptr_array_new();
 	dir->up_items = g_ptr_array_new();
+	dir->exa_items = g_ptr_array_new();
 	dir->gone_items = g_hash_table_new_full(
 			g_str_hash, g_str_equal, NULL, (GDestroyNotify)diritem_free);
 
