@@ -1016,10 +1016,9 @@ static void do_delete(const char *src_path, const char *unused)
 	}
 
 	if (!printed && !o_brief)
-	{
 		printf_send(_("'Deleting '%s'\n"), src_path);
-		syncgui();
-	}
+
+	syncgui();
 
 	safe_path = g_strdup(src_path);
 
@@ -1546,10 +1545,9 @@ static void do_copy2(const char *path, const char *dest)
 	}
 
 	if (!printed && (!o_brief || S_ISDIR(info.st_mode)))
-	{
 		printf_send(_("'Copying %s as %s\n"), path, dest_path);
-		syncgui();
-	}
+
+	syncgui();
 
 	if (S_ISDIR(info.st_mode))
 	{
@@ -1842,11 +1840,9 @@ static void do_move2(const char *path, const char *dest)
 	}
 
 	if (!printed && (!o_brief || S_ISDIR(info.st_mode)))
-	{
 		printf_send(_("'Moving %s as %s\n"), path, dest_path);
-		syncgui();
-	}
 
+	syncgui();
 
 	gboolean domove = FALSE;
 
@@ -2788,7 +2784,7 @@ void action_init(void)
 	option_add_int(&o_action_delete, "action_delete", 0);
 	option_add_int(&o_action_mount, "action_mount", 1);
 	option_add_int(&o_action_force, "action_force", FALSE);
-	option_add_int(&o_action_brief, "action_brief", FALSE);
+	option_add_int(&o_action_brief, "action_brief", TRUE);
 	option_add_int(&o_action_recurse, "action_recurse", FALSE);
 	option_add_int(&o_action_merge, "action_merge", FALSE);
 	option_add_int(&o_action_newer, "action_newer", FALSE);

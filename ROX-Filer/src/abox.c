@@ -117,7 +117,7 @@ static void abox_class_init(GObjectClass *gclass, gpointer data)
 
 static void abox_init(GTypeInstance *object, gpointer gclass)
 {
-	GtkWidget *frame, *text, *scrolledwin, *button;
+	GtkWidget *frame, *scrolledwin, *button;
 	ABox *abox = ABOX(object);
 	GtkDialog *dialog = GTK_DIALOG(object);
 	int i;
@@ -139,18 +139,14 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 
 	frame = gtk_frame_new(NULL);
 	gtk_box_pack_start(GTK_BOX(abox->log_hbox), frame, TRUE, TRUE, 0);
-
-	text = gtk_text_view_new();
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
 
+	abox->log = gtk_text_view_new();
 	scrolledwin = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy((void *)scrolledwin,
 			GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
-	gtk_container_add(GTK_CONTAINER(scrolledwin), text);
+	gtk_container_add(GTK_CONTAINER(scrolledwin), abox->log);
 	gtk_container_add(GTK_CONTAINER(frame), scrolledwin);
-
-	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(text), GTK_WRAP_WORD);
-	abox->log = text;
 
 	gtk_text_buffer_create_tag(
 			gtk_text_view_get_buffer(GTK_TEXT_VIEW(abox->log)),
@@ -160,9 +156,10 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 			gtk_text_view_get_buffer(GTK_TEXT_VIEW(abox->log)),
 			"question", "weight", PANGO_WEIGHT_BOLD,
 			NULL);
-	gtk_text_view_set_editable(GTK_TEXT_VIEW(text), FALSE);
-	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(text), FALSE);
-	gtk_widget_set_size_request(text, 400, 100);
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(abox->log), FALSE);
+	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(abox->log), FALSE);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(abox->log), GTK_WRAP_WORD);
+	gtk_widget_set_size_request(abox->log, 400, 70);
 
 	abox->btn_cancel = gtk_dialog_add_button(dialog,
 			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
