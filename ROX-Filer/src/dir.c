@@ -593,20 +593,6 @@ static gpointer scan_thread(gpointer data)
 	return NULL;
 }
 
-static void free_items_array(GPtrArray *array)
-{
-	guint	i;
-
-	for (i = 0; i < array->len; i++)
-	{
-		DirItem	*item = (DirItem *) array->pdata[i];
-
-		diritem_free(item);
-	}
-
-	g_ptr_array_free(array, TRUE);
-}
-
 /* Add all the new items to the items array.
  * Notify everyone who is watching us.
  */
@@ -620,7 +606,8 @@ void dir_merge_new(Directory *dir)
 
 	dir->new_items = g_ptr_array_new();
 	dir->up_items = g_ptr_array_new();
-	dir->gone_items = g_hash_table_new(g_str_hash, g_str_equal);
+	dir->gone_items = g_hash_table_new_full(
+			g_str_hash, g_str_equal, NULL, (GDestroyNotify)diritem_free);
 
 	g_mutex_unlock(&dir->mergem);
 	g_thread_yield();
@@ -654,8 +641,6 @@ void dir_merge_new(Directory *dir)
 	g_ptr_array_free(new, TRUE);
 	g_ptr_array_free(up, TRUE);
 
-	GPtrArray *items = hash_to_array(gone);
-	free_items_array(items);
 	g_hash_table_destroy(gone);
 }
 
@@ -836,9 +821,7 @@ static void dir_recheck(Directory *dir,
 
 static void to_array(gpointer key, gpointer value, gpointer data)
 {
-	GPtrArray *array = (GPtrArray *) data;
-
-	g_ptr_array_add(array, value);
+	g_ptr_array_add((GPtrArray *)data, value);
 }
 
 /* Convert a hash table to an unsorted GPtrArray.
@@ -846,13 +829,17 @@ static void to_array(gpointer key, gpointer value, gpointer data)
  */
 static GPtrArray *hash_to_array(GHashTable *hash)
 {
-	GPtrArray *array;
-
-	array = g_ptr_array_sized_new(g_hash_table_size(hash));
+	GPtrArray *array = g_ptr_array_sized_new(g_hash_table_size(hash));
 
 	g_hash_table_foreach(hash, to_array, array);
 
 	return array;
+}
+
+static gboolean free_items(gpointer key, gpointer value, gpointer data)
+{
+	diritem_free(value);
+	return TRUE;
 }
 
 static gpointer parent_class;
@@ -860,7 +847,6 @@ static gpointer parent_class;
 /* Note: dir_cache is never purged, so this shouldn't get called */
 static void dir_finialize(GObject *object)
 {
-	GPtrArray *items;
 	Directory *dir = (Directory *) object;
 
 	g_return_if_fail(dir->users == NULL);
@@ -878,12 +864,9 @@ static void dir_finialize(GObject *object)
 	g_ptr_array_free(dir->up_items, TRUE);
 	g_ptr_array_free(dir->new_items, TRUE);
 
-	items = hash_to_array(dir->gone_items);
-	free_items_array(items);
 	g_hash_table_destroy(dir->gone_items);
 
-	items = hash_to_array(dir->known_items);
-	free_items_array(items);
+	g_hash_table_foreach_remove(dir->known_items, free_items, NULL);
 	g_hash_table_destroy(dir->known_items);
 
 	g_string_free(dir->strbuf, TRUE);
@@ -935,7 +918,8 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 
 	dir->new_items = g_ptr_array_new();
 	dir->up_items = g_ptr_array_new();
-	dir->gone_items = g_hash_table_new(g_str_hash, g_str_equal);
+	dir->gone_items = g_hash_table_new_full(
+			g_str_hash, g_str_equal, NULL, (GDestroyNotify)diritem_free);
 
 }
 

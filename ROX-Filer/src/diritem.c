@@ -263,11 +263,10 @@ void diritem_free(DirItem *item)
 
 	if (item->_image)
 		g_object_unref(item->_image);
-	item->_image = NULL;
 	collate_key_free(item->leafname_collate);
 	if (item->label)
 		g_free(item->label);
-	item->label = NULL;
+
 	g_free(item->leafname);
 	g_free(item);
 }
