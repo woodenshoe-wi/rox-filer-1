@@ -128,6 +128,7 @@ static MaskedPixmap *image_from_file(const char *path);
 static MaskedPixmap *image_from_desktop_file(const char *path);
 static MaskedPixmap *get_bad_image(void);
 static GdkPixbuf *get_thumbnail_for(const char *path, gboolean forcheck);
+static void ordered_update(ChildThumbnail *info);
 static void thumbnail_done(ChildThumbnail *info);
 static void create_thumbnail(const gchar *path, MIME_type *type);
 static GList *thumbs_purge_cache(Option *option, xmlNode *node, guchar *label);
@@ -387,14 +388,12 @@ void pixmap_background_thumb(const gchar *path, GFunc callback, gpointer data)
 		if (image)
 			g_object_unref(image);
 
-		//append to last
-		info = g_new(ChildThumbnail, 1);
+		callback(data, NULL);
+		//append to last for sym links what sharing the thumb
+		info = g_new0(ChildThumbnail, 1);
 		info->path = g_strdup(path);
-		info->callback = callback;
-		info->data = data;
-		info->timeout = 0;
 		info->order = ordered_num++;
-		thumbnail_done(info);
+		ordered_update(info);
 		return;
 	}
 
@@ -764,11 +763,37 @@ static void make_dir_thumb(const gchar *path)
 	g_free(dir);
 }
 
-static void thumbnail_done(ChildThumbnail *info)
+static void ordered_update(ChildThumbnail *info)
 {
 	static GSList *done_stack = NULL;
 	done_stack = g_slist_prepend(done_stack, info);
 
+	if (next_order < info->order) return;
+
+	GSList *n = done_stack;
+	while (n)
+	{
+		ChildThumbnail *li = n->data;
+		if (li->order > next_order)
+		{
+			n = n->next;
+			continue;
+		}
+
+		if (!li->callback)
+			dir_force_update_path(li->path, TRUE);
+		make_dir_thumb(li->path);
+
+		g_free(li->path);
+		g_free(li);
+
+		next_order++;
+		n = done_stack =
+			g_slist_delete_link(done_stack, n);
+	}
+}
+static void thumbnail_done(ChildThumbnail *info)
+{
 	if (info->timeout)
 		g_source_remove(info->timeout);
 
@@ -777,34 +802,13 @@ static void thumbnail_done(ChildThumbnail *info)
 	{
 		g_object_unref(thumb);
 		g_fscache_remove(thumb_cache, info->path);
-		info->callback(info->data, info->path);
 	}
 	else
-	{
 		g_fscache_insert(pixmap_cache, info->path, NULL, TRUE);
-		info->callback(info->data, NULL);
-	}
 
-	if (next_order < info->order) return;
+	info->callback(info->data, thumb ? info->path : NULL);
 
-	GSList *n = done_stack;
-	while (n)
-	{
-		ChildThumbnail *li = n->data;
-		if (li->order == next_order)
-		{
-			make_dir_thumb(li->path);
-
-			g_free(li->path);
-			g_free(li);
-
-			next_order++;
-			n = done_stack =
-				g_slist_delete_link(done_stack, n);
-		}
-		else
-			n = n->next;
-	}
+	ordered_update(info);
 }
 
 
