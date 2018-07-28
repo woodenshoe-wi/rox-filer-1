@@ -4368,7 +4368,7 @@ void filer_copy_settings(FilerWindow *src, FilerWindow *dest)
 	dest->show_thumbs          = src->show_thumbs;
 	dest->view_type            = src->view_type;
 	dest->icon_scale           = src->icon_scale;
-	dest->name_scale           = src->name_scale;
+	dest->name_scale           = 1.0;
 
 	dest->filter_directories   = src->filter_directories;
 	filer_set_filter(dest, src->filter, src->filter_string);
