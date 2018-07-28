@@ -1071,6 +1071,8 @@ static void menuitem_response(gpointer data, guint action, GtkWidget *widget)
 
 		destroy_glist(&paths);
 	}
+	destroy_glist(&prompt_local_paths);
+	null_g_free(&prompt_dest_path);
 }
 
 /* When some local files are dropped somewhere with ACTION_ASK, this
