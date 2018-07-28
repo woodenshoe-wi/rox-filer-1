@@ -124,14 +124,17 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 
 	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_MOUSE);
 
-	abox->dir_label = gtk_label_new(_("<dir>"));
-	gtk_widget_set_size_request(abox->dir_label, 8, -1);
+	abox->src_label = gtk_label_new(_("<src>"));
+	gtk_widget_set_size_request(abox->src_label, 8, -1);
+	gtk_label_set_ellipsize(GTK_LABEL(abox->src_label), PANGO_ELLIPSIZE_MIDDLE);
+	make_heading(abox->src_label, 1.0);
+	gtk_misc_set_alignment(GTK_MISC(abox->src_label), 0., 0.5);
+	gtk_box_pack_start(GTK_BOX(dialog->vbox),
+				abox->src_label, FALSE, TRUE, 0);
+
 	abox->results = NULL;
 	abox->entry = NULL;
 	abox->question = FALSE;
-	gtk_misc_set_alignment(GTK_MISC(abox->dir_label), 0.5, 0.5);
-	gtk_box_pack_start(GTK_BOX(dialog->vbox),
-				abox->dir_label, FALSE, TRUE, 0);
 
 	abox->log_hbox = gtk_hbox_new(FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(dialog->vbox),
@@ -192,11 +195,13 @@ static void abox_init(GTypeInstance *object, gpointer gclass)
 				GTK_SHRINK, GTK_SHRINK, 4, 1);
 		abox->cmp_name[i] = gtk_label_new("");
 		gtk_label_set_line_wrap(GTK_LABEL(abox->cmp_name[i]), TRUE);
+		gtk_label_set_line_wrap_mode(GTK_LABEL(abox->cmp_name[i]),
+				PANGO_WRAP_WORD_CHAR);
 		gtk_misc_set_alignment(GTK_MISC(abox->cmp_name[i]), 0., 0.5);
 		gtk_table_attach(GTK_TABLE(abox->cmp_area),
 				abox->cmp_name[i],
 				2, 3, i, i + 1,
-				 GTK_EXPAND | GTK_FILL, GTK_SHRINK, 4, 1);
+				 GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 4, 1);
 		abox->cmp_size[i] = gtk_label_new("");
 		gtk_table_attach(GTK_TABLE(abox->cmp_area),
 				abox->cmp_size[i],
@@ -359,7 +364,7 @@ void abox_set_current_object(ABox *abox, const gchar *message)
 	g_return_if_fail(message != NULL);
 	g_return_if_fail(IS_ABOX(abox));
 
-	gtk_label_set_text(GTK_LABEL(abox->dir_label), message);
+	gtk_label_set_text(GTK_LABEL(abox->src_label), message);
 }
 
 static void lost_preview(GtkWidget *window, ABox *abox)

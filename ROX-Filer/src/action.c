@@ -150,7 +150,7 @@ static void send_mount_path(const gchar *path);
 static gboolean printf_send(const char *msg, ...);
 static gboolean send_msg(void);
 static gboolean send_error(void);
-static gboolean send_dir(const char *dir);
+static gboolean send_src(const char *dir);
 static gboolean read_exact(int source, char *buffer, ssize_t len);
 static void do_mount(const guchar *path, gboolean mount);
 static int printf_reply(int fd, gboolean ignore_quiet,
@@ -490,8 +490,6 @@ static void for_dir_contents(ForDirCB *cb,
 		return;
 	}
 
-	send_dir(src_dir);
-
 	while ((ent = mc_readdir(d)))
 	{
 		if (ent->d_name[0] == '.' && (ent->d_name[1] == '\0'
@@ -504,6 +502,7 @@ static void for_dir_contents(ForDirCB *cb,
 
 	for (next = list; next; next = next->next)
 	{
+		send_src(next->data);
 		cb((char *) next->data, dest_path);
 
 		g_free(next->data);
@@ -576,8 +575,8 @@ static gboolean send_msg(void)
 	return len == (ssize_t) message->len;
 }
 
-/* Set the directory indicator at the top of the window */
-static gboolean send_dir(const char *dir)
+/* Set the src path at the top of the window */
+static gboolean send_src(const char *dir)
 {
 	return printf_send("/%s", dir);
 }
@@ -893,7 +892,7 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 			to_parent = fdopen(filedes[1], "wb");
 			from_parent = filedes[2];
 			func(data);
-			send_dir("");
+			send_src("");
 			_exit(0);
 	}
 
@@ -1675,6 +1674,7 @@ static int mover(const char *src, const char *dest)
 	if (dir)
 		mkdir(dest, 0700 | info.st_mode);
 
+	send_src(src);
 	if (!o_brief)
 		printf_send(_("'Copying %s as %s\n"), src, dest);
 
@@ -2031,7 +2031,7 @@ static void usage_cb(gpointer data)
 	{
 		guchar	*path = (guchar *) paths->data;
 
-		send_dir(path);
+		send_src(path);
 
 		size_tally = 0;
 
@@ -2136,7 +2136,7 @@ static void delete_cb(gpointer data)
 		guchar	*dir;
 
 		dir = dirname(path);
-		send_dir(dir);
+		send_src(dir);
 
 		if(n>1 && i>0)
 		{
@@ -2167,7 +2167,7 @@ static void eject_cb(gpointer data)
 			per=100*i/n;
 			printf_send("%%%d", per);
 		}
-		send_dir(path);
+		send_src(path);
 
 		do_eject(path);
 	}
@@ -2186,7 +2186,7 @@ static void find_cb(gpointer data)
 		{
 			guchar	*path = (guchar *) paths->data;
 
-			send_dir(path);
+			send_src(path);
 
 			do_find(path, NULL);
 		}
@@ -2218,7 +2218,7 @@ static void chmod_cb(gpointer data)
 			per=100*i/n;
 			printf_send("%%%d", per);
 		}
-		send_dir(path);
+		send_src(path);
 
 		if (mc_stat(path, &info) != 0)
 			send_error();
@@ -2252,7 +2252,7 @@ static void settype_cb(gpointer data)
 			per=100*i/n;
 			printf_send("%%%d", per);
 		}
-		send_dir(path);
+		send_src(path);
 
 		if (mc_stat(path, &info) != 0)
 			send_error();
@@ -2282,7 +2282,7 @@ static void list_cb(gpointer data)
 			per=100*i/n;
 			printf_send("%%%d", per);
 		}
-		send_dir((char *) paths->data);
+		send_src((char *) paths->data);
 
 		action_do_func((char *) paths->data, action_dest);
 	}

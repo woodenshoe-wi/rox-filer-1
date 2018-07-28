@@ -22,7 +22,7 @@ struct _ABox
 
 	GtkWidget	*quiet;
 	GtkWidget	*flag_box;	/* HBox for flags */
-	GtkWidget	*dir_label;	/* Shows what is being processed now */
+	GtkWidget	*src_label;	/* Shows what is being processed now */
 	GtkWidget	*log;		/* The TextView for the messages */
 	GtkWidget	*log_hbox;
 	GtkWidget	*results;	/* List of filenames found */
