@@ -2278,7 +2278,7 @@ static gboolean configure_cb(
 				fw->name_scale -= 0.03; //margin
 			else if (fw->name_scale > 1.0)
 				fw->name_scale = 1.0;
-			else
+			else if (fw->name_scale < 1.0)
 				fw->name_scale -= 0.03; //margin
 		}
 
