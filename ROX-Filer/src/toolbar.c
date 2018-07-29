@@ -60,8 +60,6 @@ Option o_toolbar, o_toolbar_info, o_toolbar_disable;
 Option o_toolbar_min_width;
 int toolbar_min_width = 100;
 
-static FilerWindow *filer_window_being_counted;
-
 /* TRUE if the button presses (or released) should open a new window,
  * rather than reusing the existing one.
  */
@@ -111,7 +109,6 @@ static void handle_drops(FilerWindow *filer_window,
 static void toggle_selected(GtkToggleButton *widget, gpointer data);
 static void option_notify(void);
 static GList *build_tool_options(Option *option, xmlNode *node, guchar *label);
-static void tally_items(gpointer key, gpointer value, gpointer data);
 
 static Tool all_tools[] = {
 	{N_("Close"), GTK_STOCK_CLOSE, N_("Close filer window"),
@@ -243,9 +240,6 @@ void toolbar_update_info(FilerWindow *filer_window)
 
 	if (n_selected == 0)
 	{
-		gchar *s = NULL;
-		int   n_items;
-
 		if (filer_window->scanning)
 		{
 			gtk_label_set_text(
@@ -253,23 +247,19 @@ void toolbar_update_info(FilerWindow *filer_window)
 			return;
 		}
 
+		gchar *s = NULL;
+		int n_items = view_count_items(view);
+
 		if (!(filer_window->show_hidden ||
 		      filer_window->temp_show_hidden) ||
 		    filer_window->filter!=FILER_SHOW_ALL)
 		{
-			GHashTable *hash = filer_window->directory->known_items;
-			int	   tally = 0;
-
-			filer_window_being_counted=filer_window;
-			g_mutex_lock(&filer_window->directory->mutex);
-			g_hash_table_foreach(hash, tally_items, &tally);
-			g_mutex_unlock(&filer_window->directory->mutex);
+			int tally = g_hash_table_size(filer_window->directory->known_items)
+				- n_items;
 
 			if (tally)
 				s = g_strdup_printf(_(" (%u hidden)"), tally);
 		}
-
-		n_items = view_count_items(view);
 
 		if (n_items)
 			label = g_strdup_printf("%d %s%s",
@@ -1099,15 +1089,6 @@ static void handle_drops(FilerWindow *filer_window,
 	g_signal_connect(button, "drag_leave",
 			G_CALLBACK(drag_leave), filer_window);
 	g_object_set_data(G_OBJECT(button), "toolbar_dest", (gpointer) dest);
-}
-
-static void tally_items(gpointer key, gpointer value, gpointer data)
-{
-	DirItem *item = (DirItem *) value;
-	int     *tally = (int *) data;
-
-	if (!filer_match_filter(filer_window_being_counted, item))
-		(*tally)++;
 }
 
 static void option_notify(void)
