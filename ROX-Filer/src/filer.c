@@ -2271,6 +2271,7 @@ static gboolean configure_cb(
 			fw->name_scale_itemw =
 				VIEW_COLLECTION(fw->view)->collection->item_width;
 
+		gfloat last = fw->name_scale;
 		fw->name_scale = cw * fw->name_scale_start / fw->resize_drag_width;
 		if (fw->name_scale_start == 1.0)
 		{
@@ -2282,7 +2283,8 @@ static gboolean configure_cb(
 				fw->name_scale -= 0.03; //margin
 		}
 
-		view_style_changed(fw->view, VIEW_UPDATE_NAME | VIEW_UPDATE_SCALE);
+		if (last != fw->name_scale)
+			view_style_changed(fw->view, VIEW_UPDATE_NAME | VIEW_UPDATE_SCALE);
 	}
 
 	if (fw->right_link)
