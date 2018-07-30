@@ -1119,6 +1119,7 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 					    "item", COL_VIEW_ITEM,
 					    NULL);
 	gtk_tree_view_append_column(treeview, column);
+	view_details->icon_column = column;
 
 	ADD_TEXT_COLUMN(_("_Name"), COL_LEAF);
 	gtk_tree_view_column_set_sort_column_id(column, COL_LEAF);
@@ -1641,15 +1642,19 @@ static void view_details_get_iter_at_point(ViewIface *view, ViewIter *iter,
 	ViewDetails *view_details = (ViewDetails *) view;
 	GtkTreeView *tree = (GtkTreeView *) view;
 	GtkTreePath *path = NULL;
+	GtkTreeViewColumn *column = NULL;
 	int i = -1;
 	gint cell_y;
 
-	if (gtk_tree_view_get_path_at_pos(tree, x, y + 4, &path, NULL,
+	if (gtk_tree_view_get_path_at_pos(tree, x, y + 4, &path, &column,
 					  NULL, &cell_y))
 	{
 		g_return_if_fail(path != NULL);
 
-		if (cell_y > 8)
+		if (cell_y > 8 && ((column == view_details->name_column ||
+				column == view_details->icon_column) ||
+				gtk_tree_selection_path_is_selected(view_details->selection,
+				path)))
 			i = gtk_tree_path_get_indices(path)[0];
 		gtk_tree_path_free(path);
 	}
