@@ -1025,7 +1025,7 @@ static void small_template(GdkRectangle *area, CollectionItem *colitem,
 
 	template->icon.x = area->x + 2;
 	template->icon.y = area->y + 1;
-	template->icon.width = small_width;
+	template->icon.width = small_width + 3;
 	template->icon.height = small_height;
 }
 
