@@ -90,11 +90,6 @@ typedef struct _GFSCache GFSCache;
 /* Each cached XML file is represented by one of these */
 typedef struct _XMLwrapper XMLwrapper;
 
-/* This holds a pre-parsed version of a filename, which can be quickly
- * compared with another CollateKey for intelligent sorting.
- */
-typedef struct _CollateKey CollateKey;
-
 /* Like a regular GtkLabel, except that the text can be wrapped to any
  * width. Used for pinboard icons.
  */

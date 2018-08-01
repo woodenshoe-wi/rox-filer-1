@@ -28,13 +28,15 @@ typedef enum
 	ITEM_FLAG_NEED_RESCAN_QUEUE = 0x100,
 	ITEM_FLAG_DIR_NEED_EXAMINE = 0x200,
 
+	ITEM_FLAG_CAPS = 0x400,
+
 	ITEM_FLAG_HAS_XATTR      = 0x800, /* Has extended attributes set */
 } ItemFlags;
 
 struct _DirItem
 {
 	char		*leafname;
-	CollateKey	*leafname_collate; /* Preprocessed for sorting */
+	char		*collatekey; /* Preprocessed for sorting */
 	int		base_type;
 	int		flags;
 	mode_t		mode;

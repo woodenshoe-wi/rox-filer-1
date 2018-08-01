@@ -47,10 +47,6 @@ gchar *expand_path(const gchar *path);
 gchar *collapse_path(const gchar *path);
 void destroy_glist(GList **list);
 void null_g_free(gpointer p);
-CollateKey *collate_key_new(const guchar *name);
-void collate_key_free(CollateKey *key);
-int collate_key_cmp(const CollateKey *n1, const CollateKey *n2,
-		    gboolean caps_first);
 gboolean file_exists(const char *path);
 GPtrArray *list_dir_all(const guchar *path);
 GPtrArray *list_dir(const guchar *path);

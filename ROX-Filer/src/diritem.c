@@ -89,7 +89,7 @@ void diritem_restat(
 		g_mutex_unlock(&m_diritems);
 	}
 
-	item->flags = 0;
+	item->flags &= ITEM_FLAG_CAPS;
 	item->mime_type = NULL;
 
 	if (mc_lstat(path, &info) == -1)
@@ -252,7 +252,21 @@ DirItem *diritem_new(const guchar *leafname)
 	item->leafname = g_strdup(leafname);
 	item->base_type = TYPE_UNKNOWN;
 	item->flags = ITEM_FLAG_NEED_RESCAN_QUEUE | ITEM_FLAG_NOT_DELETE;
-	item->leafname_collate = collate_key_new(item->leafname);
+
+	//collate key
+	gchar *to_free = NULL;
+	if (!g_utf8_validate(leafname, -1, NULL))
+		leafname = to_free = to_utf8(leafname);
+
+	if (g_unichar_isupper(g_utf8_get_char(leafname)))
+		item->flags |= ITEM_FLAG_CAPS;
+
+	gchar *tmp = g_utf8_strdown(leafname, -1);
+	item->collatekey = g_utf8_collate_key_for_filename(tmp, -1);
+	g_free(tmp);
+
+	if (to_free)
+		g_free(to_free);	/* Only taken for invalid UTF-8 */
 
 	return item;
 }
@@ -263,10 +277,10 @@ void diritem_free(DirItem *item)
 
 	if (item->_image)
 		g_object_unref(item->_image);
-	collate_key_free(item->leafname_collate);
 	if (item->label)
 		g_free(item->label);
 
+	g_free(item->collatekey);
 	g_free(item->leafname);
 	g_free(item);
 }

@@ -1177,58 +1177,6 @@ void null_g_free(gpointer p)
 	*(gpointer *)p = NULL;
 }
 
-struct _CollateKey {
-	guchar *text;
-	gboolean caps;
-};
-
-CollateKey *collate_key_new(const guchar *name)
-{
-	CollateKey *retval;
-	gchar *to_free = NULL;
-
-	g_return_val_if_fail(name != NULL, NULL);
-
-	/* Ensure valid UTF-8 */
-	if (!g_utf8_validate(name, -1, NULL))
-	{
-		to_free = to_utf8(name);
-		name = to_free;
-	}
-
-	retval = g_new(CollateKey, 1);
-	retval->caps = g_unichar_isupper(g_utf8_get_char(name));
-
-	gchar *tmp = g_utf8_strdown(name, -1);
-	retval->text = g_utf8_collate_key_for_filename(tmp, -1);
-	g_free(tmp);
-
-	if (to_free)
-		g_free(to_free);	/* Only taken for invalid UTF-8 */
-
-	return retval;
-}
-
-void collate_key_free(CollateKey *key)
-{
-	g_free(key->text);
-	g_free(key);
-}
-
-int collate_key_cmp(const CollateKey *key1, const CollateKey *key2,
-		    gboolean caps_first)
-{
-	if (caps_first)
-	{
-		if (key1->caps && !key2->caps)
-			return -1;
-		else if (key2->caps && !key1->caps)
-			return 1;
-	}
-
-	return strcmp(key1->text, key2->text);
-}
-
 /* Returns TRUE if the object exists, FALSE if it doesn't.
  * For symlinks, the file pointed to must exist.
  */

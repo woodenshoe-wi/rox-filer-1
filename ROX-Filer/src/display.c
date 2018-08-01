@@ -455,13 +455,20 @@ int sort_by_name(const void *item1, const void *item2)
 {
 	const DirItem *i1 = (DirItem *) item1;
 	const DirItem *i2 = (DirItem *) item2;
-	CollateKey *n1 = i1->leafname_collate;
-	CollateKey *n2 = i2->leafname_collate;
 	int retval;
 
 	SORT_DIRS;
 
-	retval = collate_key_cmp(n1, n2, o_display_caps_first.int_value);
+	if (o_display_caps_first.int_value)
+	{
+		if ((i1->flags & ITEM_FLAG_CAPS) && !(i2->flags & ITEM_FLAG_CAPS))
+			return -1;
+		else
+		if ((i2->flags & ITEM_FLAG_CAPS) && !(i1->flags & ITEM_FLAG_CAPS))
+			return 1;
+	}
+
+	retval = strcmp(i1->collatekey, i2->collatekey);
 
 	return retval ? retval : strcmp(i1->leafname, i2->leafname);
 }
