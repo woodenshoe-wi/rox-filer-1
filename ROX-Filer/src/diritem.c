@@ -170,7 +170,9 @@ void diritem_restat(
 		{
 			item->mime_type = inode_mountpoint;
 			/* Try to avoid automounter problems */
-			item->flags |= ITEM_FLAG_DIR_NEED_EXAMINE;
+
+			if (item->flags & ITEM_FLAG_MOUNTED)
+				item->flags |= ITEM_FLAG_DIR_NEED_EXAMINE;
 		}
 		else if (info.st_mode & S_IWOTH)
 		{/* Don't trust world-writable dirs */}
