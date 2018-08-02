@@ -412,9 +412,7 @@ static void details_get_value(GtkTreeModel *tree_model,
 			break;
 		case COL_SIZE:
 			g_value_init(value, G_TYPE_STRING);
-			if (item->base_type != TYPE_DIRECTORY)
-				g_value_set_string(value,
-						   format_size(item->size));
+			g_value_set_string(value, format_size(item->size));
 			break;
 		case COL_TYPE:
 			g_value_init(value, G_TYPE_STRING);
