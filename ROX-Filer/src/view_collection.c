@@ -1547,7 +1547,7 @@ static void view_collection_style_changed(ViewIface *view, int flags)
 			display_update_view(filer_window,
 					(DirItem *) ci->data,
 					(ViewData *) ci->view_data,
-					(flags & VIEW_UPDATE_NAME) != 0 || nosize,
+					(flags & VIEW_UPDATE_NAME) || nosize,
 					col->reached_scale != .0);
 
 		if (flags != VIEW_UPDATE_VIEWDATA && col->reached_scale == .0)
@@ -1633,11 +1633,9 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 	int mw = old_w, mh = old_h;
 
 	oldnum = collection->number_of_items;
-	gint total = collection->number_of_items + items->len;
 
 	//gint64 startt = g_get_monotonic_time();
 
-	cutrest = 0;
 	for (int i = 0; i < items->len; i++)
 	{
 		DirItem *item = (DirItem *) items->pdata[i];
@@ -1646,21 +1644,21 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 
 		collection_insert(collection, item, g_new0(ViewData, 1));
 	}
+
 	newnum = collection->number_of_items;
+	cutrest = collection->reached_scale != .0;
 
 	GThread *loopt = g_thread_new("addloop", (GThreadFunc)addloopt, view_collection);
 	g_thread_yield();
 
-	for (int i = oldnum; i < newnum; i++)
+	if (!cutrest) for (int i = oldnum; i < newnum; i++)
 	{
 		CollectionItem *colitem = &collection->items[i];
 		ViewData *view = (ViewData *)colitem->view_data;
 		while (!view->name_width) g_thread_yield();
 
-		if (collection->reached_scale == .0)
-			collection->reached_scale =
-				calc_size(filer_window, colitem, &mw, &mh, total);
-		else
+		if (.0 != (collection->reached_scale =
+				calc_size(filer_window, colitem, &mw, &mh, newnum)))
 		{
 			cutrest = 1;
 			break;
