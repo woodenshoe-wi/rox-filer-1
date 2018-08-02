@@ -71,6 +71,14 @@ Option o_display_show_thumbs;
 Option o_display_show_dir_thumbs;
 Option o_display_show_headers;
 Option o_display_show_full_type;
+Option o_display_show_name;
+Option o_display_show_type;
+Option o_display_show_size;
+Option o_display_show_permissions;
+Option o_display_show_owner;
+Option o_display_show_group;
+Option o_display_show_last_modified;
+Option o_display_show_last_changed;
 Option o_display_inherit_options;
 static Option o_filer_change_size_num;
 Option o_vertical_order_small, o_vertical_order_large;
@@ -126,6 +134,14 @@ void display_init()
 
 	option_add_int(&o_use_background_colour, "use_background_colour", FALSE);
 	option_add_string(&o_background_colour, "background_colour", "#000000");
+	option_add_int(&o_display_show_name, "display_show_name", TRUE);
+	option_add_int(&o_display_show_type, "display_show_type", TRUE);
+	option_add_int(&o_display_show_size, "display_show_size", TRUE);
+	option_add_int(&o_display_show_permissions, "display_show_permissions", TRUE);
+	option_add_int(&o_display_show_owner, "display_show_owner", TRUE);
+	option_add_int(&o_display_show_group, "display_show_group", TRUE);
+	option_add_int(&o_display_show_last_modified, "display_show_last_modified", TRUE);
+	option_add_int(&o_display_show_last_changed, "display_show_last_changed", TRUE);
 
 	option_add_notify(options_changed);
 

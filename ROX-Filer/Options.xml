@@ -38,7 +38,7 @@
       <toggle name='display_caps_first' label='Capitalised names first (for sort by name)'>If on, all filenames starting with a capital letter come before filenames starting with lowercase ones.</toggle>
       <toggle name='display_newly_first' label='Newly comes first (for sort by Date)'>If on, the Sort by Dates are reversed.</toggle>
     </frame>
-    <section title='Display'>
+    <section title='New Window'>
       <frame label='Default settings for new windows'>
         <toggle name='display_inherit_options' label='Inherit options from source window'>If this is on then display options for a new window are inherited from the source window if possible, otherwise they are set to the defaults below.</toggle>
         <hbox>
@@ -65,6 +65,8 @@ indicator'>If this is on then files which have one or more extended attributes s
 		<numentry name='huge_size' label='Huge Icons size:' unit='pixels' min='64' max='1024' width='4'>
 			Resolution depends on 'Thumbnails->Cache File Size'.</numentry>
       </frame>
+    </section>
+    <section title='Icon View'>
       <frame label='Icon View'>
         <hbox>
 	  <vbox>
@@ -105,9 +107,21 @@ indicator'>If this is on then files which have one or more extended attributes s
 	<toggle name='vertical_order_small' label='Order small icons vertically'>If this option is on, then small icons are arranged in columns, not rows.</toggle>
 	<toggle name='vertical_order_large' label='Order large icons vertically'>If this option is on, then large icons are arranged in columns, not rows.</toggle>
       </frame>
+    </section>
+    <section title='List View'>
       <frame label='List View'>
         <toggle name='display_show_headers' label='Show column headings'>If this is on then column headings will be shown in the list view.</toggle>
         <toggle name='display_show_full_type' label='Show full type'>If this is on then the full description of each object's type will be show rather than a short summary of its basic type.</toggle>
+      </frame>
+      <frame label='Show Columns'>
+        <toggle name='display_show_name' label='Name'>If this is on then Name column will be shown in the list view.</toggle>
+        <toggle name='display_show_type' label='Type'>If this is on then Type column will be shown in the list view.</toggle>
+        <toggle name='display_show_size' label='Size'>If this is on then Size column will be shown in the list view.</toggle>
+        <toggle name='display_show_permissions' label='Permissions'>If this is on then Permissions column will be shown in the list view.</toggle>
+        <toggle name='display_show_owner' label='Owner'>If this is on then Owner column will be shown in the list view.</toggle>
+        <toggle name='display_show_group' label='Group'>If this is on then Group column will be shown in the list view.</toggle>
+        <toggle name='display_show_last_modified' label='Last Modified'>If this is on then Last Modified column will be shown in the list view.</toggle>
+        <toggle name='display_show_last_changed' label='Last Changed'>If this is on then Last Changed column will be shown in the list view.</toggle>
       </frame>
     </section>
     <section title='Tools/Minibuffer'>
