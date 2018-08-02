@@ -1646,15 +1646,23 @@ static void view_details_get_iter_at_point(ViewIface *view, ViewIter *iter,
 	int i = -1;
 	gint cell_y;
 
-	if (gtk_tree_view_get_path_at_pos(tree, x, y + 4, &path, &column,
+	int space = 4;
+	if (o_display_less_column_items.int_value)
+		space = 0;
+
+	if (gtk_tree_view_get_path_at_pos(tree, x, y + space, &path, &column,
 					  NULL, &cell_y))
 	{
 		g_return_if_fail(path != NULL);
 
-		if (cell_y > 8 && ((column == view_details->name_column ||
-				column == view_details->icon_column) ||
-				gtk_tree_selection_path_is_selected(view_details->selection,
-				path)))
+		if (cell_y > space * 2 &&
+				(space ||
+				 ((column == view_details->name_column ||
+				   column == view_details->icon_column) ||
+				  gtk_tree_selection_path_is_selected(view_details->selection,
+					  path))
+				)
+		   )
 			i = gtk_tree_path_get_indices(path)[0];
 		gtk_tree_path_free(path);
 	}
