@@ -25,8 +25,7 @@ struct _ViewData
 
 	MaskedPixmap *image;		/* Image; not thumbnail */
 	GdkPixbuf *thumb;
-	int iconstatus; //0:init, 1:done, 2:may thumb, 3:delay, -1:re
-	int base_type; /* for time lag */
+	int iconstatus; //0:unknown, 1:init, 2:done, 3:may thumb, 4:delay, -1:re
 	gboolean recent;
 };
 
@@ -81,10 +80,6 @@ void draw_large_icon(GdkWindow *window,
 gboolean display_is_truncated(FilerWindow *filer_window, int i);
 void display_change_size(FilerWindow *filer_window, gboolean bigger);
 
-ViewData *display_create_viewdata(
-			FilerWindow *filer_window,
-			DirItem *item,
-			gboolean clear);
 void display_update_view(
 			FilerWindow *filer_window,
 			DirItem *item,

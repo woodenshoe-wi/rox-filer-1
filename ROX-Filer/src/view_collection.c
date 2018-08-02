@@ -560,7 +560,7 @@ static gboolean next_thumb(ViewCollection *vc)
 			DirItem        *item = (DirItem *) colitem->data;
 			ViewData       *view = (ViewData *) colitem->view_data;
 
-			if (view->iconstatus != 3)
+			if (view->iconstatus != 4)
 				continue;
 
 			if (!view->thumb)
@@ -582,7 +582,7 @@ static gboolean next_thumb(ViewCollection *vc)
 				collection_draw_item(vc->collection, idx, TRUE);
 			}
 
-			view->iconstatus = 1;
+			view->iconstatus = 2;
 		}
 	}
 
@@ -629,16 +629,16 @@ static void draw_item(GtkWidget *widget,
 
 	g_return_if_fail(view != NULL);
 
-	if (view->base_type == TYPE_UNKNOWN) {
+	if (view->iconstatus == 0) {
 		if (fw->display_style == HUGE_ICONS &&
 				vc->collection->vadj->value == 0) return;
 		goto end_image;
 	}
 
-	if (view->iconstatus < 1)
+	if (view->iconstatus < 2)
 	{
 		gboolean re = view->iconstatus == -1;
-		view->iconstatus = 1;
+		view->iconstatus = 2;
 
 		g_clear_object(&view->image);
 		g_clear_object(&view->thumb);
@@ -674,9 +674,9 @@ static void draw_item(GtkWidget *widget,
 						fw->scanning ||
 						vc->collection->vadj->value == 0
 				))
-					view->iconstatus = 3;
+					view->iconstatus = 4;
 				else
-					view->iconstatus = 2;
+					view->iconstatus = 3;
 			}
 			else
 			{
@@ -687,9 +687,9 @@ static void draw_item(GtkWidget *widget,
 		}
 	}
 
-	if (view->iconstatus > 1)
+	if (view->iconstatus > 2)
 	{
-		if (view->iconstatus == 3)
+		if (view->iconstatus == 4)
 		{
 			g_queue_push_head(vc->thumbs_queue, GUINT_TO_POINTER(idx));
 			if (!vc->thumb_func)
@@ -702,9 +702,9 @@ static void draw_item(GtkWidget *widget,
 
 			if (fw->display_style == HUGE_ICONS) return;
 		}
-		else if (view->iconstatus == 2)
+		else if (view->iconstatus == 3)
 		{
-			view->iconstatus = 1;
+			view->iconstatus = 2;
 			g_clear_object(&view->thumb);
 			gchar *path = pathdup(make_path(fw->real_path, item->leafname));
 			view->thumb = pixmap_load_thumb(path);
@@ -767,7 +767,7 @@ end_image:
 
 	//	g_clear_object(&(view->thumb));
 
-	if (view->base_type == TYPE_DIRECTORY)
+	if (item->base_type == TYPE_DIRECTORY)
 	{
 		gboolean link = fw->right_link
 			? strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
@@ -1467,7 +1467,7 @@ static void update_item(ViewCollection *view_collection, int i)
 
 	if (filer_window->onlyicon)
 	{
-		if (((ViewData *) colitem->view_data)->iconstatus != 0)
+		if (((ViewData *) colitem->view_data)->iconstatus > 1)
 		{
 			((ViewData *) colitem->view_data)->iconstatus = -1;
 			collection_draw_item(collection, i, TRUE);
@@ -1646,9 +1646,7 @@ static void view_collection_add_items(ViewIface *view, GPtrArray *items)
 		if (!filer_match_filter(filer_window, item))
 			continue;
 
-		collection_insert(collection, item,
-				display_create_viewdata(filer_window, item,
-					collection->reached_scale != 0));
+		collection_insert(collection, item, g_new0(ViewData, 1));
 	}
 	newnum = collection->number_of_items;
 

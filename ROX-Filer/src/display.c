@@ -802,17 +802,6 @@ void display_change_size(FilerWindow *filer_window, gboolean bigger)
 			   FALSE);
 }
 
-ViewData *display_create_viewdata(
-		FilerWindow *filer_window, DirItem *item, gboolean clear)
-{
-	ViewData *view = g_new0(ViewData, 1);
-	view->base_type = TYPE_UNKNOWN;
-
-//	display_update_view(filer_window, item, view, TRUE, clear);
-
-	return view;
-}
-
 /* Set the display style to the desired style. If the desired style
  * is AUTO_SIZE_ICONS, choose an appropriate size. Also resizes filer
  * window, if requested.
@@ -1153,9 +1142,10 @@ void display_update_view(FilerWindow *fw,
 	int	w, h;
 	gboolean basic = o_fast_font_calc.int_value;
 
-	view->base_type = item->base_type;
+	if (view->iconstatus == 0 && item->base_type != TYPE_UNKNOWN)
+		view->iconstatus = 1;
 
-	if (!update_name_layout && view->iconstatus != 0)
+	if (!update_name_layout && view->iconstatus > 1)
 		view->iconstatus = -1;
 
 	if (view->details)
