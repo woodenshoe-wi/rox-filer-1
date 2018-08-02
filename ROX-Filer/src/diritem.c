@@ -170,6 +170,7 @@ void diritem_restat(
 		{
 			item->mime_type = inode_mountpoint;
 			/* Try to avoid automounter problems */
+			item->flags |= ITEM_FLAG_DIR_NEED_EXAMINE;
 		}
 		else if (info.st_mode & S_IWOTH)
 		{/* Don't trust world-writable dirs */}
@@ -326,15 +327,21 @@ gboolean diritem_examine_dir(const guchar *path, DirItem *item)
 		mc_closedir(d);
 	}
 
+	gchar *pathbuf = NULL;
+	MaskedPixmap *newimage = NULL;
+	if (item->flags & ITEM_FLAG_MOUNT_POINT)
+	{
+		g_free(rpath);
+		goto out;
+	}
+
 	int pathlen = strlen(rpath);
 	//pathbuf has length of path + '/AppIcon.xpm'
-	gchar *pathbuf = g_new(gchar, pathlen + 13);
+	pathbuf = g_new(gchar, pathlen + 13);
 	gchar *inspt  = pathbuf + pathlen;
 
 	strcpy(pathbuf, rpath);
 	g_free(rpath);
-
-	MaskedPixmap *newimage = NULL;
 
 	struct stat info;
 	if (mc_lstat(pathbuf, &info) != 0)
