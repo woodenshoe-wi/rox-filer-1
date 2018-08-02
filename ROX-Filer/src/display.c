@@ -842,7 +842,16 @@ static void options_changed(void)
 
 	huge_size = o_huge_size.int_value;
 
-	if (o_display_show_headers.has_changed)
+	if (o_display_show_headers.has_changed
+			|| o_display_show_name.has_changed
+			|| o_display_show_type.has_changed
+			|| o_display_show_size.has_changed
+			|| o_display_show_permissions.has_changed
+			|| o_display_show_owner.has_changed
+			|| o_display_show_group.has_changed
+			|| o_display_show_last_modified.has_changed
+			|| o_display_show_last_changed.has_changed
+	   )
 		flags |= VIEW_UPDATE_HEADERS;
 
 	if (o_large_width.has_changed ||
