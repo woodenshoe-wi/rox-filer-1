@@ -729,12 +729,9 @@ end_image:
 
 	PangoLayout *leafname = make_layout(fw, item);
 	if (view->name_width == 0)
-	{
-		int w, h;
-		pango_layout_get_size(leafname, &w, &h);
-		view->name_width = w / PANGO_SCALE;
-		view->name_height = h / PANGO_SCALE;
-	}
+		pango_layout_get_pixel_size(leafname,
+				&view->name_width, &view->name_height);
+
 	if (!view->details && fw->details_type != DETAILS_NONE)
 		make_details_layout(fw, item, view);
 
@@ -894,18 +891,18 @@ static void huge_template(
 
 		template->leafname.width = MIN(max_text_width, view->name_width);
 		template->leafname.height = MIN(view->name_height,
-				area->height - ih - view->details_height - 2);
+				area->height - ih - template->details.height - 2);
 
 		template->icon.x = area->x + (col_width - iw) / 2;
 		template->icon.y = area->y +
-			(area->height - view->details_height -
+			(area->height - template->details.height -
 			 template->leafname.height - ih - 1);
 
 		template->leafname.x = area->x + MAX((col_width - view->name_width) / 2, 3);
 		template->leafname.y = template->icon.y + ih;
 
-		template->details.x = area->x + (col_width - view->details_width) / 2;
-		template->details.y = area->y + area->height - view->details_height - 1;
+		template->details.x = area->x + (col_width - template->details.width) / 2;
+		template->details.y = area->y + area->height - template->details.height - 1;
 	}
 	else
 	{
@@ -968,14 +965,15 @@ static void large_template(
 
 	if (full)
 	{
-		int	max_text_width = area->width - ICON_WIDTH - 4;
+		template->icon.width += 3;
+		int max_text_width = area->width - ICON_WIDTH - 4;
 
 		template->icon.x = area->x + (ICON_WIDTH - iw) / 2 + 2;
 		template->icon.y = area->y + (area->height - ih) / 2 + 1;
 
 		tx = area->x + ICON_WIDTH + 4;
 		ty = area->y + area->height / 2
-				- (view->name_height + 2 + view->details_height) / 2;
+				- (view->name_height + 2 + template->details.height) / 2;
 
 		template->leafname.x = tx;
 		template->leafname.y = ty;
@@ -1033,8 +1031,8 @@ static void small_full_template(GdkRectangle *area, CollectionItem *colitem,
 			   ViewCollection *view_collection, Template *template)
 {
 	int	col_width = view_collection->collection->item_width;
-	ViewData *view = (ViewData *) colitem->view_data;
 	GdkRectangle temparea = *area;
+
 	temparea.width = col_width - template->details.width;
 
 	small_template(&temparea, colitem, view_collection, template);
@@ -1042,8 +1040,8 @@ static void small_full_template(GdkRectangle *area, CollectionItem *colitem,
 	template->icon.x = area->x + 2;
 	template->icon.y = area->y + 1;
 	template->details.x = area->x + col_width - template->details.width;
-	template->details.y = area->y + area->height / 2 - \
-				view->details_height / 2;
+	template->details.y =
+		area->y + area->height / 2 - template->details.height / 2;
 }
 
 #define INSIDE(px, py, area)	\

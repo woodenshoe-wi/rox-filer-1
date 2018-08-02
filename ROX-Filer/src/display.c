@@ -1061,7 +1061,6 @@ void make_details_layout(
 {
 	static PangoFontDescription *monospace = NULL;
 	char *str;
-	int w, h;
 
 	if (view->details) return;
 
@@ -1078,8 +1077,7 @@ void make_details_layout(
 			pango_layout_set_text(layout, " ", -1);
 
 			pango_layout_set_font_description(layout, monospace);
-			pango_layout_get_size(layout, &monospace_width, NULL);
-			monospace_width /= PANGO_SCALE;
+			pango_layout_get_pixel_size(layout, &monospace_width, NULL);
 			g_object_unref(layout);
 		}
 		g_mutex_unlock(&m);
@@ -1103,9 +1101,8 @@ void make_details_layout(
 		g_free(str);
 
 		pango_layout_set_font_description(view->details, monospace);
-		pango_layout_get_size(view->details, &w, &h);
-		view->details_width  = w / PANGO_SCALE;
-		view->details_height = h / PANGO_SCALE;
+		pango_layout_get_pixel_size(view->details,
+				&view->details_width, &view->details_height);
 
 		if (fw->details_type == DETAILS_PERMISSIONS)
 			perm_offset = 0;
@@ -1139,7 +1136,6 @@ void display_update_view(FilerWindow *fw,
 			gboolean update_name_layout,
 			gboolean clear)
 {
-	int	w, h;
 	gboolean basic = o_fast_font_calc.int_value;
 
 	if (view->iconstatus == 0 && item->base_type != TYPE_UNKNOWN)
@@ -1176,7 +1172,7 @@ void display_update_view(FilerWindow *fw,
 
 	if (basic)
 	{
-		w = 0;
+		int w = 0;
 		gchar *name = item->leafname;
 
 		int (*widths)[] = (item->flags & ITEM_FLAG_RECENT) ?
@@ -1199,10 +1195,8 @@ void display_update_view(FilerWindow *fw,
 	{
 		PangoLayout *leafname = make_layout(fw, item);
 
-		pango_layout_get_size(leafname, &w, &h);
-
-		view->name_width = w / PANGO_SCALE;
-		view->name_height = h / PANGO_SCALE;
+		pango_layout_get_pixel_size(leafname,
+				&view->name_width, &view->name_height);
 
 		g_object_unref(G_OBJECT(leafname));
 	}
