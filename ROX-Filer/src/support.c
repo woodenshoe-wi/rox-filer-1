@@ -267,7 +267,14 @@ const char *format_size(off_t size)
 			{
 				size += 1023;
 				size >>= 10;
-				units = "G";
+				if (size >= PRETTY_SIZE_LIMIT)
+				{
+					size += 1023;
+					size >>= 10;
+					units = "T";
+				}
+				else
+					units = "G";
 			}
 			else
 				units = "M";
@@ -304,7 +311,14 @@ const char *format_size_aligned(off_t size)
 			{
 				size += 1023;
 				size >>= 10;
-				units = 'G';
+				if (size >= PRETTY_SIZE_LIMIT)
+				{
+					size += 1023;
+					size >>= 10;
+					units = 'T';
+				}
+				else
+					units = 'G';
 			}
 			else
 				units = 'M';
@@ -343,7 +357,14 @@ const gchar *format_double_size(double size)
 			{
 				size += 1023;
 				size /= 1024;
-				units = "G";
+				if (size >= PRETTY_SIZE_LIMIT)
+				{
+					size += 1023;
+					size /= 1024;
+					units = "T";
+				}
+				else
+					units = "G";
 			}
 			else
 				units = "M";
