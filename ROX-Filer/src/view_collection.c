@@ -1044,8 +1044,8 @@ static void small_full_template(GdkRectangle *area, CollectionItem *colitem,
 		area->y + area->height / 2 - template->details.height / 2;
 }
 
-#define INSIDE(px, py, area)	\
-	(px > area.x && py >= area.y && \
+#define INSIDE(px, py, area, adj)	\
+	(px > area.x + adj && py >= area.y && \
 	 px < area.x + area.width && py <= area.y + area.height)
 
 static gboolean test_point(Collection *collection,
@@ -1066,9 +1066,9 @@ static gboolean test_point(Collection *collection,
 
 	fill_template(&area, colitem, view_collection, &template);
 
-	return INSIDE(point_x, point_y, template.leafname) ||
-	       INSIDE(point_x, point_y, template.icon) ||
-	       (view->details && INSIDE(point_x, point_y, template.details));
+	return INSIDE(point_x, point_y, template.leafname, 0) ||
+	       INSIDE(point_x, point_y, template.icon, 4) ||
+	       (view->details && INSIDE(point_x, point_y, template.details, 0));
 }
 
 /* 'box' renders a background box if the string is also selected */
