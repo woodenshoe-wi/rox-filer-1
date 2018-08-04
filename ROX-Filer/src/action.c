@@ -1434,16 +1434,16 @@ static void fprogcb(goffset current, goffset total, gpointer p)
 		printf_send("f%d", current * 100 / total);
 
 }
+static char *seqed_path = NULL;
 static const char *seq_path(const char *dest_path)
 {
-	static char *path = NULL;
 	int i = 2;
 	do {
-		g_free(path);
-		path = g_strdup_printf("%s.%d", dest_path, i++);
+		g_free(seqed_path);
+		seqed_path = g_strdup_printf("%s.%d", dest_path, i++);
 	}
-	while (g_file_test(path, G_FILE_TEST_EXISTS));
-	return path;
+	while (g_file_test(seqed_path, G_FILE_TEST_EXISTS));
+	return seqed_path;
 }
 /* If action_leaf is not NULL it specifies the new leaf name */
 static void do_copy2(const char *path, const char *dest)
@@ -2308,7 +2308,8 @@ static void list_cb(gpointer data)
 
 	if (last && n == 1 && o_action_wink.int_value)
 		//autoselect(wink)
-		printf_send("w%s", make_dest_path(last, action_dest));
+		printf_send("w%s",
+				make_dest_path(seqed_path ?: last, action_dest));
 }
 
 /*			EXTERNAL INTERFACE			*/
