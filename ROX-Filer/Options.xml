@@ -305,6 +305,9 @@ operation, such as copying or deleting some files.</label>
      <entry name='action_umount_command' label='Unmount command'>The command used to unmount a filesystem. If unsure, use "umount" (yes, without the first "n").</entry>
      <entry name='action_eject_command' label='Eject command'>The command used to eject removable media. If unsure, use "eject".</entry>
     </frame>
+	<frame label='Wink'>
+		<toggle name='action_wink' label='Wink a single move/copy/linked item'></toggle>
+	</frame>
   </section>
   <section title='Drag and Drop'>
     <frame label='Dragging to icons'>
