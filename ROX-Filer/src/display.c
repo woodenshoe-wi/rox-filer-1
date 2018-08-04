@@ -1004,10 +1004,10 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item, ViewData *view
 		} else
 //		if (item->base_type != TYPE_DIRECTORY)
 		{
-			if (filer_window->display_style != LARGE_ICONS)
+			if (filer_window->display_style == SMALL_ICONS)
 				buf = g_strdup(format_size_aligned(item->size));
 			else
-				buf = g_strdup(format_size(item->size));
+				buf = g_strchomp(g_strdup(format_size(item->size)));
 		}
 //		else
 //			buf = g_strdup("-");
