@@ -52,6 +52,27 @@
  */
 time_t diritem_recent_time;
 static GMutex m_diritems;
+static GSList *mfree = NULL; //free on main loop
+static GSList *munref = NULL; //unref on main loop
+static guint onmainidle = 0;
+
+static gboolean onmaincb(void *notused)
+{
+	g_mutex_lock(&m_diritems);
+
+	if (mfree)
+		g_slist_free_full(mfree, g_free);
+	mfree = NULL;
+
+	if (munref)
+		g_slist_free_full(munref, g_object_unref);
+	munref = NULL;
+
+	g_mutex_unlock(&m_diritems);
+
+	onmainidle = 0;
+	return FALSE;
+}
 
 /****************************************************************
  *			EXTERNAL INTERFACE			*
@@ -83,7 +104,7 @@ void diritem_restat(
 	{
 		g_mutex_lock(&m_diritems);
 		if (retitem->_image)
-			g_object_unref(retitem->_image);
+			munref = g_slist_prepend(munref, retitem->_image);
 		retitem->_image = NULL;
 		item->_image = NULL;
 		g_mutex_unlock(&m_diritems);
@@ -120,6 +141,14 @@ void diritem_restat(
 		if (xattr_have(path))
 			item->flags |= ITEM_FLAG_HAS_XATTR;
 
+		if (item->label)
+		{
+			g_mutex_lock(&m_diritems);
+			if (retitem->label)
+				mfree = g_slist_prepend(mfree, item->label);
+			retitem->label = NULL;
+			g_mutex_unlock(&m_diritems);
+		}
 		item->label = xlabel_get(path);
 
 		if (S_ISLNK(info.st_mode))
@@ -304,9 +333,12 @@ MaskedPixmap *_diritem_get_image(DirItem *item)
 		else
 			item->_image = type_to_icon(item->mime_type);
 	}
-	g_mutex_unlock(&m_diritems);
 
 	ret = item->_image;
+	g_mutex_unlock(&m_diritems);
+
+	if ((mfree || munref) && !onmainidle)
+		onmainidle = g_idle_add(onmaincb, NULL);
 
 	return ret;
 }
@@ -428,8 +460,9 @@ out:
 	if (newimage)
 	{
 		g_mutex_lock(&m_diritems);
+
 		if (item->_image)
-			g_object_unref(item->_image);
+			munref = g_slist_prepend(munref, item->_image);
 
 		item->_image = newimage;
 		g_mutex_unlock(&m_diritems);
