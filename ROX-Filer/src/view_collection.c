@@ -1013,9 +1013,11 @@ static void large_template(
 static void small_template(GdkRectangle *area, CollectionItem *colitem,
 			   ViewCollection *view_collection, Template *template)
 {
-	int	text_x = area->x + small_width + 4;
+	int margin = small_height / 4;
+
+	int	text_x = area->x + small_width + margin;
 	int	low_text_y;
-	int	max_text_width = area->width - small_width - 4;
+	int	max_text_width = area->width - small_width - margin;
 	ViewData *view = (ViewData *) colitem->view_data;
 
 	low_text_y = area->y + area->height / 2 - view->name_height / 2;
@@ -1027,7 +1029,7 @@ static void small_template(GdkRectangle *area, CollectionItem *colitem,
 
 	template->icon.x = area->x + 2;
 	template->icon.y = area->y + 1;
-	template->icon.width = small_width + 3;
+	template->icon.width = small_width + margin - 1;
 	template->icon.height = small_height;
 }
 
@@ -1048,9 +1050,9 @@ static void small_full_template(GdkRectangle *area, CollectionItem *colitem,
 		area->y + area->height / 2 - template->details.height / 2;
 }
 
-#define INSIDE(px, py, area, adj)	\
-	(px > area.x + adj && py >= area.y && \
-	 px < area.x + area.width && py <= area.y + area.height)
+#define INSIDE(px, py, area, ladj, radj)	\
+	(px > area.x + ladj && py >= area.y && \
+	 px < area.x - radj + area.width && py <= area.y + area.height)
 
 static gboolean test_point(Collection *collection,
 				int point_x, int point_y,
@@ -1070,11 +1072,13 @@ static gboolean test_point(Collection *collection,
 
 	fill_template(&area, colitem, view_collection, &template);
 
-	int adj = view_collection->filer_window->display_style == LARGE_ICONS ? 2 : 4;
+	DisplayStyle style = view_collection->filer_window->display_style;
+	int ladj = style == LARGE_ICONS ?  0 : small_height / 4;
+	int radj = style == HUGE_ICONS ?  ladj : 0;
 
-	return INSIDE(point_x, point_y, template.leafname, 0) ||
-	       INSIDE(point_x, point_y, template.icon, adj) ||
-	       (view->details_width && INSIDE(point_x, point_y, template.details, 0));
+	return INSIDE(point_x, point_y, template.leafname, 0, 0) ||
+	       INSIDE(point_x, point_y, template.icon, ladj, radj) ||
+	       (view->details_width && INSIDE(point_x, point_y, template.details, 0, 0));
 }
 
 /* 'box' renders a background box if the string is also selected */
