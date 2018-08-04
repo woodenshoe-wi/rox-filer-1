@@ -911,7 +911,8 @@ static void options_changed(void)
  * are not being displayed. If details are not yet available, return
  * a string of the right length.
  */
-static char *getdetails(FilerWindow *filer_window, DirItem *item, ViewData *view)
+static char *getdetails(FilerWindow *filer_window,
+		DirItem *item, ViewData *view, gboolean sizeonly)
 {
 	mode_t	m = item->mode;
 	guchar 	*buf = NULL;
@@ -933,6 +934,21 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item, ViewData *view
 		else
 			buf = g_strdup_printf("%s/%s",
 					type->media_type, type->subtype);
+	}
+	else if (sizeonly && filer_window->details_type == DETAILS_TIMES)
+	{ //time is heavy
+		static int timelen = 0;
+		if (!timelen)
+		{
+			gchar *ctime = pretty_time(&item->ctime);
+			timelen = strlen(ctime);
+			g_free(ctime);
+		}
+		width = timelen + 3;
+		if (vertical)
+			height = 3;
+		else
+			width = width * 3 + 2;
 	}
 	else if (filer_window->details_type == DETAILS_TIMES)
 	{
@@ -1123,7 +1139,7 @@ PangoLayout * make_details_layout(
 	}
 
 	g_mutex_lock(&m);
-	str = getdetails(fw, item, view);
+	str = getdetails(fw, item, view, sizeonly);
 	g_mutex_unlock(&m);
 
 	if (sizeonly)
