@@ -229,5 +229,6 @@ void filer_send_event_to_view(FilerWindow *fw, GdkEvent *event);
 
 UnmountPrompt filer_get_unmount_action(const char *path);
 void filer_set_unmount_action(const char *path, UnmountPrompt action);
+FilerWindow *find_filer_window(const char *sym_path, FilerWindow *diff);
 
 #endif /* _FILER_H */

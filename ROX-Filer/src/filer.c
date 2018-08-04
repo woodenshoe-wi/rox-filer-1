@@ -154,7 +154,6 @@ static void update_display(Directory *dir,
 static void set_scanning_display(FilerWindow *filer_window, gboolean scanning);
 static gboolean may_rescan(FilerWindow *filer_window, gboolean warning);
 static gboolean minibuffer_show_cb(FilerWindow *filer_window);
-static FilerWindow *find_filer_window(const char *sym_path, FilerWindow *diff);
 static void filer_add_widgets(FilerWindow *filer_window, const gchar *wm_class);
 static void filer_add_signals(FilerWindow *filer_window);
 
@@ -2463,7 +2462,7 @@ void full_refresh(void)
 /* See whether a filer window with a given path already exists
  * and is different from diff.
  */
-static FilerWindow *find_filer_window(const char *sym_path, FilerWindow *diff)
+FilerWindow *find_filer_window(const char *sym_path, FilerWindow *diff)
 {
 	GList	*next;
 

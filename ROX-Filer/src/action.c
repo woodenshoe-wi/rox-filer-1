@@ -131,6 +131,8 @@ static Option o_action_mount_command;
 static Option o_action_umount_command;
 static Option o_action_eject_command;
 
+static Option o_action_wink;
+
 /* Whenever the text in these boxes is changed we store a copy of the new
  * string to be used as the default next time.
  */
@@ -351,6 +353,18 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 	if (*buffer == 'r')
 		gui_side->sync = g_idle_add((GSourceFunc)syncchild, gui_side);
 //		syncchild(gui_side);
+	else if (*buffer == 'w')
+	{
+		char *dir = g_path_get_dirname(buffer + 1);
+		FilerWindow *fw = find_filer_window(dir, NULL);
+		g_free(dir);
+		if (fw)
+		{
+			char *base = g_path_get_basename(buffer + 1);
+			display_set_autoselect(fw, base);
+			g_free(base);
+		}
+	}
 	else if (*buffer == '?')
 		abox_ask(abox, buffer + 1);
 	else if (*buffer == 's')
@@ -2272,6 +2286,7 @@ static void list_cb(gpointer data)
 {
 	GList	*paths = (GList *) data;
 	int n, i, per;
+	char *last = NULL;
 
 	n=g_list_length(paths);
 
@@ -2282,12 +2297,18 @@ static void list_cb(gpointer data)
 			per=100*i/n;
 			printf_send("%%%d", per);
 		}
+
 		send_src((char *) paths->data);
 
 		action_do_func((char *) paths->data, action_dest);
+		last = (char *) paths->data;
 	}
 
 	send_done();
+
+	if (last && n == 1 && o_action_wink.int_value)
+		//autoselect(wink)
+		printf_send("w%s", make_dest_path(last, action_dest));
 }
 
 /*			EXTERNAL INTERFACE			*/
@@ -2783,6 +2804,7 @@ void action_init(void)
 	option_add_int(&o_action_link, "action_link", 1);
 	option_add_int(&o_action_delete, "action_delete", 0);
 	option_add_int(&o_action_mount, "action_mount", 1);
+
 	option_add_int(&o_action_force, "action_force", FALSE);
 	option_add_int(&o_action_brief, "action_brief", TRUE);
 	option_add_int(&o_action_recurse, "action_recurse", FALSE);
@@ -2796,6 +2818,8 @@ void action_init(void)
 			  "action_umount_command", "umount");
 	option_add_string(&o_action_eject_command,
 			  "action_eject_command", "eject");
+
+	option_add_int(&o_action_wink, "action_wink", 1);
 }
 
 #define MAX_ASK 4
