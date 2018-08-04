@@ -732,8 +732,9 @@ end_image:
 		pango_layout_get_pixel_size(leafname,
 				&view->name_width, &view->name_height);
 
-	if (!view->details && fw->details_type != DETAILS_NONE)
-		make_details_layout(fw, item, view);
+	PangoLayout *details = NULL;
+	if (fw->details_type != DETAILS_NONE)
+		details = make_details_layout(fw, item, view, FALSE);
 
 	fill_template(area, colitem, vc, &template);
 
@@ -790,15 +791,18 @@ end_image:
 			fg,
 			select_colour);
 
-	g_object_unref(G_OBJECT(leafname));
+	g_object_unref(leafname);
 
-	if (fw->details_type != DETAILS_NONE && view->details)
-		draw_string(cr, view->details,
+	if (fw->details_type != DETAILS_NONE && details)
+	{
+		draw_string(cr, details,
 				&template.details,
 				template.details.width,
 				0,
 				fg,
 				select_colour);
+		g_object_unref(details);
+	}
 
 	cairo_destroy(cr);
 }
@@ -1068,7 +1072,7 @@ static gboolean test_point(Collection *collection,
 
 	return INSIDE(point_x, point_y, template.leafname, 0) ||
 	       INSIDE(point_x, point_y, template.icon, 4) ||
-	       (view->details && INSIDE(point_x, point_y, template.details, 0));
+	       (view->details_width && INSIDE(point_x, point_y, template.details, 0));
 }
 
 /* 'box' renders a background box if the string is also selected */
@@ -1297,9 +1301,6 @@ static void display_free_colitem(Collection *collection,
 	if (!view)
 		return;
 
-	if (view->details)
-		g_object_unref(G_OBJECT(view->details));
-
 	if (view->image)
 		g_object_unref(view->image);
 
@@ -1388,7 +1389,7 @@ static gfloat calc_size(FilerWindow *fw, CollectionItem *colitem,
 				ha += view->details_height;
 				nw = MAX(dw, nw);
 				if (type == DETAILS_SIZE)
-					nw = MAX(nw, monospace_width * 6);
+					nw = MAX(nw, fw_mono_width * 6);
 			}
 
 			if (type != DETAILS_TYPE && o_max_length.int_value)
@@ -1426,7 +1427,6 @@ static gfloat calc_size(FilerWindow *fw, CollectionItem *colitem,
 		}
 		else
 		{
-			//g_print("mono width %d, dw %d\n", monospace_width, dw);
 			if (type != DETAILS_TYPE && o_max_length.int_value &&
 				(nw >= ml || dw > ml))
 				max_h = max_w = TRUE;

@@ -88,6 +88,8 @@ GList		*all_filer_windows = NULL;
 gint fw_font_height;
 gint fw_font_widths[0x7f];
 gint fw_font_widthsb[0x7f];
+gint fw_mono_width;
+gint fw_mono_height;
 static PangoFontDescription *current_font = NULL;
 
 static GHashTable *window_with_id = NULL;
@@ -2148,14 +2150,18 @@ static gint set_font(GtkWidget *widget)
 		g_object_unref(font);
 		g_object_unref(fontb);
 
-		//font height is diffrent between canro and pango
-		PangoLayout *layout =
-			gtk_widget_create_pango_layout(widget, " ");
-
-		pango_layout_get_size(layout, NULL, &fw_font_height);
-		fw_font_height /= PANGO_SCALE;
-
+		//font height is diffrent between cairo and pango
+		PangoLayout *layout = gtk_widget_create_pango_layout(widget, "|");
+		pango_layout_get_pixel_size(layout, NULL, &fw_font_height);
 		g_object_unref(layout);
+
+		//monospace for details
+		PangoFontDescription *monospace = pango_font_description_from_string("monospace");
+		layout = gtk_widget_create_pango_layout(widget, "|");
+		pango_layout_set_font_description(layout, monospace);
+		pango_layout_get_pixel_size(layout, &fw_mono_width, &fw_mono_height);
+		g_object_unref(layout);
+		pango_font_description_free(monospace);
 	}
 
 	//make sure small_height is not font height but icons height.

@@ -161,6 +161,8 @@ extern Option		o_scroll_speed;
 extern gint 		fw_font_height;
 extern gint 		fw_font_widths[0x7f];
 extern gint 		fw_font_widthsb[0x7f];
+extern gint 		fw_mono_height;
+extern gint 		fw_mono_width;
 
 
 /* Prototypes */

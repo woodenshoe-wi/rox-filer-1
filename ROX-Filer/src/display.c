@@ -92,11 +92,9 @@ Option o_background_colour;
 static Option o_wrap_by_char;
 static Option o_huge_size;
 int huge_size = HUGE_SIZE;
-int monospace_width = 1;
 
 /* Static prototypes */
 static void options_changed(void);
-static char *getdetails(FilerWindow *filer_window, DirItem *item);
 
 /****************************************************************
  *			EXTERNAL INTERFACE			*
@@ -913,12 +911,15 @@ static void options_changed(void)
  * are not being displayed. If details are not yet available, return
  * a string of the right length.
  */
-static char *getdetails(FilerWindow *filer_window, DirItem *item)
+static char *getdetails(FilerWindow *filer_window, DirItem *item, ViewData *view)
 {
 	mode_t	m = item->mode;
 	guchar 	*buf = NULL;
 	gboolean scanned = item->base_type != TYPE_UNKNOWN;
 	gboolean vertical = filer_window->display_style == HUGE_ICONS;
+
+	int height = 1;
+	int width = 0;
 
 	if (scanned && item->lstat_errno)
 		buf = g_strdup_printf(_("lstat(2) failed: %s"),
@@ -928,10 +929,10 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 		MIME_type	*type = item->mime_type;
 
 		if (!scanned)
-			return g_strdup("unknown/");
-
-		buf = g_strdup_printf("%s/%s",
-				      type->media_type, type->subtype);
+			buf = g_strdup("unknown/");
+		else
+			buf = g_strdup_printf("%s/%s",
+					type->media_type, type->subtype);
 	}
 	else if (filer_window->details_type == DETAILS_TIMES)
 	{
@@ -941,7 +942,11 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 		mtime = pretty_time(&item->mtime);
 		atime = pretty_time(&item->atime);
 		if (vertical)
+		{
 			buf = g_strdup_printf("a[%s]\nc[%s]\nm[%s]", atime, ctime, mtime);
+			height = 3;
+			width = strlen(atime) + 3;
+		}
 		else
 			buf = g_strdup_printf("a[%s] c[%s] m[%s]", atime, ctime, mtime);
 		g_free(ctime);
@@ -952,51 +957,67 @@ static char *getdetails(FilerWindow *filer_window, DirItem *item)
 	{
 		if (!scanned) {
 			if (vertical)
-				return g_strdup("---,---,---/--"
+				buf = g_strdup("---,---,---/--"
 #ifdef S_ISVTX
 					"-"
 #endif
 					"\n12345678 12345678");
 			else
-				return g_strdup("---,---,---/--"
+				buf = g_strdup("---,---,---/--"
 #ifdef S_ISVTX
 					"-"
 #endif
 					" 12345678 12345678");
+		} else {
+			if (vertical)
+				buf = g_strdup_printf("%s\n%-8.8s %-8.8s",
+						pretty_permissions(m),
+						user_name(item->uid),
+						group_name(item->gid));
+			else
+				buf = g_strdup_printf("%s %-8.8s %-8.8s",
+						pretty_permissions(m),
+						user_name(item->uid),
+						group_name(item->gid));
 		}
 
 		if (vertical)
-			buf = g_strdup_printf("%s\n%-8.8s %-8.8s",
-					pretty_permissions(m),
-					user_name(item->uid),
-					group_name(item->gid));
+		{
+			height = 2;
+			width = 17;
+		}
 		else
-			buf = g_strdup_printf("%s %-8.8s %-8.8s",
-					pretty_permissions(m),
-					user_name(item->uid),
-					group_name(item->gid));
-
+#ifdef S_ISVTX
+			width = 17 + 16;
+#else
+			width = 17 + 15;
+#endif
 	}
 	else
 	{
 		if (!scanned)
 		{
 			if (filer_window->display_style == SMALL_ICONS)
-				return g_strdup("1234b");
+				buf = g_strdup("1234b");
 			else
-				return g_strdup("1234 b");
-		}
-
+				buf = g_strdup("1234 b");
+		} else
 //		if (item->base_type != TYPE_DIRECTORY)
-//		{
-			if (filer_window->display_style == SMALL_ICONS)
+		{
+			if (filer_window->display_style != LARGE_ICONS)
 				buf = g_strdup(format_size_aligned(item->size));
 			else
 				buf = g_strdup(format_size(item->size));
-//		}
+		}
 //		else
 //			buf = g_strdup("-");
+
 	}
+
+	if (!width)
+		width = strlen(buf);
+	view->details_width =  width * fw_mono_width;
+	view->details_height = height * fw_mono_height;
 
 	return buf;
 }
@@ -1086,53 +1107,44 @@ PangoLayout *make_layout(FilerWindow *fw, DirItem *item)
 	return ret;
 }
 
-void make_details_layout(
-		FilerWindow *fw, DirItem *item, ViewData *view)
+PangoLayout * make_details_layout(
+		FilerWindow *fw, DirItem *item, ViewData *view, gboolean sizeonly)
 {
 	static PangoFontDescription *monospace = NULL;
 	char *str;
-
-	if (view->details) return;
+	PangoLayout *ret = NULL;
 
 	static GMutex m;
 	if (!monospace) {
 		g_mutex_lock(&m);
 		if (!monospace)
-		{
 			monospace = pango_font_description_from_string("monospace");
-
-			PangoContext *pctx = gtk_widget_create_pango_context(fw->window);
-			PangoLayout *layout = pango_layout_new(pctx);
-			g_object_unref(pctx);
-			pango_layout_set_text(layout, " ", -1);
-
-			pango_layout_set_font_description(layout, monospace);
-			pango_layout_get_pixel_size(layout, &monospace_width, NULL);
-			g_object_unref(layout);
-		}
 		g_mutex_unlock(&m);
 	}
 
 	g_mutex_lock(&m);
-	str = getdetails(fw, item);
+	str = getdetails(fw, item, view);
 	g_mutex_unlock(&m);
 
-	if (str)
+	if (sizeonly)
+		g_free(str);
+	else if (str)
 	{
 		PangoAttrList *details_list;
 		int perm_offset = -1;
 
 		PangoContext *pctx = gtk_widget_create_pango_context(fw->window);
-		view->details = pango_layout_new(pctx);
+		ret = pango_layout_new(pctx);
 		g_object_unref(pctx);
 
-		pango_layout_set_text(view->details, str, -1);
+		pango_layout_set_text(ret, str, -1);
 //		view->details = gtk_widget_create_pango_layout(fw->window, str);
 		g_free(str);
 
-		pango_layout_set_font_description(view->details, monospace);
-		pango_layout_get_pixel_size(view->details,
-				&view->details_width, &view->details_height);
+		pango_layout_set_font_description(ret, monospace);
+
+//		pango_layout_get_pixel_size(ret,
+//				&view->details_width, &view->details_height);
 
 		if (fw->details_type == DETAILS_PERMISSIONS)
 			perm_offset = 0;
@@ -1148,12 +1160,13 @@ void make_details_layout(
 
 			details_list = pango_attr_list_new();
 			pango_attr_list_insert(details_list, attr);
-			pango_layout_set_attributes(view->details,
-					details_list);
+			pango_layout_set_attributes(ret, details_list);
 
 			pango_attr_list_unref(details_list);
 		}
 	}
+
+	return ret;
 }
 
 /* Each displayed item has a ViewData structure with some cached information
@@ -1174,14 +1187,8 @@ void display_update_view(FilerWindow *fw,
 	if (!update_name_layout && view->iconstatus > 1)
 		view->iconstatus = -1;
 
-	if (view->details)
-	{
-		g_object_unref(G_OBJECT(view->details));
-		view->details = NULL;
-	}
-
 	if (!clear && fw->details_type != DETAILS_NONE)
-		make_details_layout(fw, item, view);
+		make_details_layout(fw, item, view, TRUE);
 
 	if (!update_name_layout &&
 			view->recent == (item->flags & ITEM_FLAG_RECENT))
