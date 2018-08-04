@@ -609,6 +609,13 @@ static void reset_thumb_func(ViewCollection *vc)
 	vc->thumbs_queue = g_queue_new();
 }
 
+static int is_linked(FilerWindow *fw, DirItem *item)
+{
+	return !fw->right_link ? FALSE :
+		strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1, item->leafname) ?
+		FALSE : TRUE;
+}
+
 static void draw_item(GtkWidget *widget,
 			int idx,
 			GdkRectangle *area,
@@ -767,11 +774,7 @@ end_image:
 
 	if (item->base_type == TYPE_DIRECTORY)
 	{
-		gboolean link = fw->right_link
-			? strcmp(g_strrstr(fw->right_link->sym_path, "/") + 1,
-					item->leafname) ? FALSE : TRUE
-			: FALSE;
-
+		gboolean link = is_linked(fw, item);
 		if (link || (view->thumb &&
 				(template.icon.width > small_width ||
 				 template.icon.height > small_height))
@@ -2104,8 +2107,11 @@ static void view_collection_wink_item(ViewIface *view, ViewIter *iter)
 
 	collection_wink_item(collection, iter->i);
 
-	if (view_collection->filer_window->right_link &&
-			iter->peek(iter)->base_type == TYPE_DIRECTORY)
+	FilerWindow *fw = view_collection->filer_window;
+	DirItem *item = iter->peek(iter);
+	if (fw->right_link
+			&& item->base_type == TYPE_DIRECTORY
+			&& is_linked(fw, item))
 		collection->winks_left = 1;
 }
 
