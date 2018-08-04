@@ -1070,8 +1070,10 @@ static gboolean test_point(Collection *collection,
 
 	fill_template(&area, colitem, view_collection, &template);
 
+	int adj = view_collection->filer_window->display_style == LARGE_ICONS ? 2 : 4;
+
 	return INSIDE(point_x, point_y, template.leafname, 0) ||
-	       INSIDE(point_x, point_y, template.icon, 4) ||
+	       INSIDE(point_x, point_y, template.icon, adj) ||
 	       (view->details_width && INSIDE(point_x, point_y, template.details, 0));
 }
 
