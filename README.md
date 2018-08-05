@@ -1,13 +1,14 @@
 
 Changes
--- https://github.com/jun7/rox-filer/wiki/Changes
--- https://github.com/jun7/rox-filer/wiki/Screenshots
+- https://github.com/jun7/rox-filer/wiki/Changes
+- https://github.com/jun7/rox-filer/wiki/Screenshots
+
 Suggested new oparations
--- right drag on toolbar: temporary resize of items
--- shift enter while reg select: switch to temp filter
--- scroll on toolbar and size button: linked window and huge icons
--- double [right] click on toolbar while linked window: enter and up
--- new assigns of buttons of toolbar: see tooltip texts
+- right drag on toolbar: temporary resize of items
+- shift enter while reg select: switch to temp filter
+- scroll on toolbar and size button: linked window and huge icons
+- double [right] click on toolbar while linked window: enter and up
+- new assigns of buttons of toolbar: see tooltip texts
 
 
 ROX-Filer
