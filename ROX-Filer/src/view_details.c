@@ -1072,17 +1072,16 @@ static char colorder[COL_ITEM] = {0}; //order is reversed
 static gboolean ordering = FALSE;
 static void colchangedcb(GtkTreeView *tree_view, ViewDetails *view_details)
 {
+	if (!o_display_save_col_order.int_value) return;
 	if (ordering) return; //it's us
 
-	GList * cols = gtk_tree_view_get_columns(tree_view);
+	GList *cols = gtk_tree_view_get_columns(tree_view);
 
 	if (g_list_length(cols) < COL_ITEM) //remove event
 	{
 		g_list_free(cols);
 		return;
 	}
-
-	if (!o_display_save_col_order.int_value) return;
 
 	int idx = COL_ITEM;
 	for (GList *next = cols; next; next = next->next)
@@ -1135,7 +1134,7 @@ static void defcols(ViewDetails *view_details)
 			if (g_file_get_contents(path, &buffer, &len, NULL))
 			{
 				if (len <= COL_ITEM)
-					memcpy( colorder,buffer, len);
+					memcpy(colorder,buffer, len);
 				g_free(buffer);
 			}
 			g_free(path);
