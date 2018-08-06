@@ -22,6 +22,23 @@ struct _ViewItem {
 
 typedef struct _ViewDetails ViewDetails;
 
+enum {
+	COL_ICON,
+	COL_LEAF,
+	COL_TYPE,
+	COL_SIZE,
+	COL_PERM,
+	COL_OWNER,
+	COL_GROUP,
+	COL_MTIME,
+	COL_CTIME,
+	COL_ATIME,
+	COL_ITEM, //also terminator of visible cols
+	COL_COLOUR,
+	COL_WEIGHT,
+	N_COLUMNS,
+};
+
 struct _ViewDetails {
 	GtkTreeView treeview;
 	GtkTreeSelection *selection;
@@ -47,16 +64,7 @@ struct _ViewDetails {
 	int		drag_box_x[2];	/* Index 0 is the fixed corner */
 	int		drag_box_y[2];
 
-	GtkTreeViewColumn *icon_column;
-	GtkTreeViewColumn *name_column;
-	GtkTreeViewColumn *type_column;
-	GtkTreeViewColumn *size_column;
-	GtkTreeViewColumn *permissions_column;
-	GtkTreeViewColumn *owner_column;
-	GtkTreeViewColumn *group_column;
-	GtkTreeViewColumn *atime_column;
-	GtkTreeViewColumn *ctime_column;
-	GtkTreeViewColumn *mtime_column;
+	GtkTreeViewColumn *cols[N_COLUMNS];
 };
 
 

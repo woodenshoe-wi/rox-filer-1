@@ -113,6 +113,7 @@ indicator'>If this is on then files which have one or more extended attributes s
         <toggle name='display_show_headers' label='Show column headings'>If this is on then column headings will be shown in the list view.</toggle>
         <toggle name='display_show_full_type' label='Show full type'>If this is on then the full description of each object's type will be show rather than a short summary of its basic type.</toggle>
         <toggle name='display_less_column_items' label='Only icons and names are clickable'>For lasso.</toggle>
+        <toggle name='display_save_col_order' label='Save columns order'>If this is on reordering columns is saved</toggle>
       </frame>
       <frame label='Show Columns'>
         <toggle name='display_show_name' label='Name'>If this is on then Name column will be shown in the list view.</toggle>

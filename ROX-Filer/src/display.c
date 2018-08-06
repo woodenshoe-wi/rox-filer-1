@@ -81,6 +81,7 @@ Option o_display_show_group;
 Option o_display_show_mtime;
 Option o_display_show_ctime;
 Option o_display_show_atime;
+Option o_display_save_col_order;
 Option o_display_inherit_options;
 static Option o_filer_change_size_num;
 Option o_vertical_order_small, o_vertical_order_large;
@@ -144,6 +145,8 @@ void display_init()
 	option_add_int(&o_display_show_mtime, "display_show_mtime", TRUE);
 	option_add_int(&o_display_show_ctime, "display_show_ctime", TRUE);
 	option_add_int(&o_display_show_atime, "display_show_atime", FALSE);
+
+	option_add_int(&o_display_save_col_order, "display_save_col_order", TRUE);
 
 	option_add_notify(options_changed);
 

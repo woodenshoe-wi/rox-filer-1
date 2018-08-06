@@ -52,6 +52,7 @@ extern Option o_display_show_group;
 extern Option o_display_show_atime;
 extern Option o_display_show_ctime;
 extern Option o_display_show_mtime;
+extern Option o_display_save_col_order;
 
 /* Prototypes */
 void display_init(void);
