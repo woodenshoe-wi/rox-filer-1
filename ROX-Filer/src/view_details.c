@@ -1146,9 +1146,9 @@ static void defcols(ViewDetails *view_details)
 	for (int i = 0; i < COL_ITEM; i++)
 	{
 		int col = colorder[i] - 0x30;
-		if (!(col > 0 && col < COL_ITEM)) break;
+		if (!(col >= 0 && col < COL_ITEM)) break;
 		gtk_tree_view_move_column_after((GtkTreeView *)view_details,
-				view_details->cols[col], view_details->cols[COL_ICON]);
+				view_details->cols[col], NULL);
 	}
 	ordering = FALSE;
 }
@@ -1204,6 +1204,7 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 					    "item", COL_ICON,
 					    NULL);
 	gtk_tree_view_append_column(treeview, column);
+	gtk_tree_view_column_set_reorderable(column, TRUE);
 	view_details->cols[COL_ICON] = column;
 
 	ADD_TEXT_COLUMN(_("_Name"), COL_LEAF);
