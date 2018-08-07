@@ -1121,6 +1121,12 @@ static void defcols(ViewDetails *view_details)
 	COLV(o_display_show_atime, COL_ATIME)
 #undef COLV
 
+	gtk_tree_view_column_set_max_width(view_details->cols[COL_LEAF],
+			o_display_name_width.int_value ?:
+			(o_filer_width_limit.int_value == 0 ?
+			 o_filer_size_limit.int_value :
+			 o_filer_width_limit.int_value) * monitor_width / 109);
+
 	if (!o_display_save_col_order.int_value) return;
 
 	if (!colorder_loaded)
@@ -1153,7 +1159,7 @@ static void defcols(ViewDetails *view_details)
 }
 
 
-#define ADD_TEXT_COLUMN(name, model_column) \
+#define ADD_TEXT_COLUMN_NS(name, model_column) \
 	cell = gtk_cell_renderer_text_new();	\
 	column = gtk_tree_view_column_new_with_attributes(name, cell, \
 					    "text", model_column,	\
@@ -1163,7 +1169,13 @@ static void defcols(ViewDetails *view_details)
 	gtk_tree_view_append_column(treeview, column);			\
 	g_signal_connect(column->button, "grab-focus",			\
 			G_CALLBACK(block_focus), view_details); \
-	view_details->cols[model_column] = column;
+	view_details->cols[model_column] = column; \
+	gtk_tree_view_column_set_reorderable(column, TRUE); \
+	gtk_tree_view_column_set_resizable(column, TRUE);
+
+#define ADD_TEXT_COLUMN(name, model_column) \
+	ADD_TEXT_COLUMN_NS(name, model_column) \
+	gtk_tree_view_column_set_sort_column_id(column, model_column);
 
 static void view_details_init(GTypeInstance *object, gpointer gclass)
 {
@@ -1207,66 +1219,42 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 	view_details->cols[COL_ICON] = column;
 
 	ADD_TEXT_COLUMN(_("_Name"), COL_LEAF);
-	gtk_tree_view_column_set_sort_column_id(column, COL_LEAF);
-	gtk_tree_view_column_set_resizable(column, TRUE);
-	gtk_tree_view_column_set_reorderable(column, TRUE);
-
-	gtk_tree_view_column_set_max_width(column,
-			(o_filer_width_limit.int_value == 0 ?
-			 o_filer_size_limit.int_value :
-			 o_filer_width_limit.int_value) * monitor_width / 109);
 
 	ADD_TEXT_COLUMN(_("_Type"), COL_TYPE);
-	gtk_tree_view_column_set_sort_column_id(column, COL_TYPE);
-	gtk_tree_view_column_set_resizable(column, TRUE);
-	gtk_tree_view_column_set_reorderable(column, TRUE);
 
 	ADD_TEXT_COLUMN(_("_Size"), COL_SIZE);
 	g_object_set(G_OBJECT(cell), "xalign", 1.0, "font", "monospace", NULL);
 	g_signal_connect_after(object, "realize",
 			       G_CALLBACK(set_column_mono_font),
 			       G_OBJECT(cell));
-	gtk_tree_view_column_set_sort_column_id(column, COL_SIZE);
-	gtk_tree_view_column_set_reorderable(column, TRUE);
 
-	ADD_TEXT_COLUMN(_("_Permissions"), COL_PERM);
-	gtk_tree_view_column_set_reorderable(column, TRUE);
+	ADD_TEXT_COLUMN_NS(_("_Permissions"), COL_PERM);
 	g_object_set(G_OBJECT(cell), "font", "monospace", NULL);
 	g_signal_connect_after(object, "realize",
 			       G_CALLBACK(set_column_mono_font),
 			       G_OBJECT(cell));
 
 	ADD_TEXT_COLUMN(_("_Owner"), COL_OWNER);
-	gtk_tree_view_column_set_sort_column_id(column, COL_OWNER);
-	gtk_tree_view_column_set_reorderable(column, TRUE);
 
 	ADD_TEXT_COLUMN(_("_Group"), COL_GROUP);
-	gtk_tree_view_column_set_sort_column_id(column, COL_GROUP);
-	gtk_tree_view_column_set_reorderable(column, TRUE);
 
 	ADD_TEXT_COLUMN(_("Last _Modified"), COL_MTIME);
 	g_object_set(G_OBJECT(cell), "font", "monospace", NULL);
 	g_signal_connect_after(object, "realize",
 			       G_CALLBACK(set_column_mono_font),
 			       G_OBJECT(cell));
-	gtk_tree_view_column_set_sort_column_id(column, COL_MTIME);
-	gtk_tree_view_column_set_reorderable(column, TRUE);
 
 	ADD_TEXT_COLUMN(_("Last _Changed"), COL_CTIME);
 	g_object_set(G_OBJECT(cell), "font", "monospace", NULL);
 	g_signal_connect_after(object, "realize",
 			       G_CALLBACK(set_column_mono_font),
 			       G_OBJECT(cell));
-	gtk_tree_view_column_set_sort_column_id(column, COL_CTIME);
-	gtk_tree_view_column_set_reorderable(column, TRUE);
 
 	ADD_TEXT_COLUMN(_("Last _Accessed"), COL_ATIME);
 	g_object_set(G_OBJECT(cell), "font", "monospace", NULL);
 	g_signal_connect_after(object, "realize",
 			       G_CALLBACK(set_column_mono_font),
 			       G_OBJECT(cell));
-	gtk_tree_view_column_set_sort_column_id(column, COL_ATIME);
-	gtk_tree_view_column_set_reorderable(column, TRUE);
 
 	g_signal_connect_after(treeview, "columns-changed",
 			       G_CALLBACK(colchangedcb),
