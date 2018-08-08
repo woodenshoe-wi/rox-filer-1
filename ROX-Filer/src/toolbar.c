@@ -174,7 +174,8 @@ static Tool all_tools[] = {
 	 toolbar_dirs_clicked, DROP_NONE, FALSE,
 	 FALSE},
 
-	{N_("Select"), GTK_STOCK_SELECT_ALL, N_("Select all/invert selection"),
+	{N_("Select"), GTK_STOCK_SELECT_ALL, N_("Left: Select all\n"
+						"Right: Invert selection"),
 	 toolbar_select_clicked, DROP_NONE, FALSE,
 	 FALSE},
 
