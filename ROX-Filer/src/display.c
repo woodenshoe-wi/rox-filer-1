@@ -654,6 +654,9 @@ void display_set_layout(FilerWindow *fw,
 			DetailsType  details,
 			gboolean     force_resize)
 {
+	gdk_window_set_cursor(fw->window->window, busy_cursor);
+	gdk_flush();
+
 	gboolean details_changed = fw->details_type != details;
 	gboolean wanted_changed = details_changed || fw->display_style_wanted != want;
 	DisplayStyle prev_style = fw->display_style;
@@ -694,6 +697,8 @@ void display_set_layout(FilerWindow *fw,
 
 		g_free(size_label);
 	}
+
+	gdk_window_set_cursor(fw->window->window, NULL);
 }
 
 /* Set the 'Show Thumbnails' flag for this window */

@@ -183,7 +183,7 @@ static char *tip_from_desktop_file(const char *full_path);
 
 static void free_subdir_info(void);
 
-static GdkCursor *busy_cursor = NULL;
+GdkCursor *busy_cursor = NULL;
 static GdkCursor *crosshair = NULL;
 static GdkCursor *hand_cursor = NULL;
 static GdkCursor *blank_cursor = NULL;
