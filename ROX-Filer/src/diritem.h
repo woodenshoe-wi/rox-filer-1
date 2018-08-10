@@ -39,6 +39,7 @@ struct _DirItem
 	char		*collatekey; /* Preprocessed for sorting */
 	int		base_type;
 	int		flags;
+	int		lstat_errno;	/* 0 if details are valid */
 	mode_t		mode;
 	off_t		size;
 	time_t		atime, ctime, mtime;
@@ -47,7 +48,6 @@ struct _DirItem
 	GdkColor	*label;
 	uid_t		uid;
 	gid_t		gid;
-	int		lstat_errno;	/* 0 if details are valid */
 };
 
 void diritem_init(void);
