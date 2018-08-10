@@ -319,7 +319,7 @@ void dir_queue_recheck(Directory *dir, DirItem *item)
 	item->flags &= ~ITEM_FLAG_NEED_RESCAN_QUEUE;
 	if (!(item->flags & ITEM_FLAG_IN_RESCAN_QUEUE))
 	{
-		g_queue_push_head(dir->recheck_list, item);
+		g_ptr_array_add(dir->recheck_list, item);
 		item->flags |= ITEM_FLAG_IN_RESCAN_QUEUE;
 	}
 }
@@ -436,12 +436,11 @@ static gboolean do_recheck(gpointer data)
 	Directory *dir = (Directory *) data;
 
 	g_return_val_if_fail(dir != NULL, FALSE);
-	g_return_val_if_fail(dir->recheck_list != NULL, FALSE);
 
-	if (!g_queue_is_empty(dir->recheck_list))
+	if (dir->recheck_list->len > dir->rechecki)
 	{
 		g_mutex_lock(&dir->mutex);
-		DirItem *item = g_queue_pop_tail(dir->recheck_list);
+		DirItem *item = dir->recheck_list->pdata[dir->rechecki++];
 
 		if (item->flags & ITEM_FLAG_GONE)
 			diritem_free(item);
@@ -451,23 +450,28 @@ static gboolean do_recheck(gpointer data)
 			if (item && item->flags & ITEM_FLAG_NEED_EXAMINE
 					&& !(item->flags & ITEM_FLAG_IN_EXAMINE))
 			{
-				g_queue_push_head(dir->examine_list, item);
+				g_ptr_array_add(dir->examine_list, item);
 				item->flags |= ITEM_FLAG_IN_EXAMINE;
 			}
 		}
+		if (dir->recheck_list->len == dir->rechecki)
+		{
+			dir->rechecki = 0;
+			g_ptr_array_free(dir->recheck_list, TRUE);
+			dir->recheck_list = g_ptr_array_new();
+			dir->req_scan_off = TRUE;
+		}
+
 		g_mutex_unlock(&dir->mutex);
 		g_thread_yield();
-
-		if (g_queue_is_empty(dir->recheck_list))
-			dir->req_scan_off = TRUE;
 
 		return TRUE;
 	}
 
-	if (!g_queue_is_empty(dir->examine_list))
+	if (dir->examine_list->len > dir->examinei)
 	{
 		g_mutex_lock(&dir->mutex);
-		DirItem *item = g_queue_pop_tail(dir->examine_list);
+		DirItem *item = dir->examine_list->pdata[dir->examinei++];
 		item->flags &= ~ITEM_FLAG_IN_EXAMINE;
 
 		if (item->flags & ITEM_FLAG_GONE)
@@ -485,7 +489,13 @@ static gboolean do_recheck(gpointer data)
 		}
 
 		g_mutex_unlock(&dir->mutex);
-		if (!g_queue_is_empty(dir->examine_list))
+		if (dir->examine_list->len == dir->examinei)
+		{
+			dir->examinei = 0;
+			g_ptr_array_free(dir->examine_list, TRUE);
+			dir->examine_list = g_ptr_array_new();
+		}
+		else
 			return TRUE;
 	}
 
@@ -543,12 +553,8 @@ static gboolean recheck_callback(gpointer data)
 		g_thread_join(dir->t_scan);
 		dir->t_scan = NULL;
 
-		if (!g_queue_is_empty(dir->recheck_list) ||
-			!g_queue_is_empty(dir->examine_list)
-			)
-		{
-			while (do_recheck(data)) {}
-		}
+		if (dir->recheck_list->len || dir->examine_list->len)
+			while (do_recheck(data));
 
 		dir_set_scanning(dir, FALSE);
 	}
@@ -586,7 +592,7 @@ static gpointer scan_thread(gpointer data)
 
 	gboolean ret = TRUE;
 
-	if (g_queue_is_empty(dir->recheck_list))
+	if (!dir->recheck_list->len)
 		dir->req_scan_off = TRUE;
 
 	while (ret)
@@ -811,8 +817,7 @@ static void update(Directory *dir, gchar *pathname, gpointer data)
 static void call_scan_t(Directory *dir)
 {
 	if (dir->users &&
-			(!g_queue_is_empty(dir->recheck_list) ||
-			 !g_queue_is_empty(dir->examine_list)))
+			(dir->recheck_list->len || dir->examine_list->len))
 	{
 		/* Work to do, and someone's watching */
 
@@ -872,18 +877,17 @@ static gboolean free_items(gpointer key, gpointer value, gpointer data)
 	return TRUE;
 }
 
-static void inlist_clear(GQueue *qu)
+static void _inlist_clear(DirItem *item, gpointer user_data)
 {
-	for (GList *next = qu->head; next; next = next->next)
-	{
-		DirItem *item = next->data;
-		if (item->flags & ITEM_FLAG_GONE)
-			diritem_free(item);
-		else
-			item->flags &= ~(ITEM_FLAG_IN_EXAMINE | ITEM_FLAG_IN_RESCAN_QUEUE);
-	}
-
-	g_queue_clear(qu);
+	if (item->flags & ITEM_FLAG_GONE)
+		diritem_free(item);
+	else
+		item->flags &= ~(ITEM_FLAG_IN_EXAMINE | ITEM_FLAG_IN_RESCAN_QUEUE);
+}
+static void inlist_clear(GPtrArray *pta)
+{
+	g_ptr_array_foreach(pta, (GFunc)_inlist_clear, NULL);
+	g_ptr_array_set_size(pta, 0);
 }
 
 static gpointer parent_class;
@@ -910,9 +914,9 @@ static void dir_finialize(GObject *object)
 	g_hash_table_destroy(dir->gone_items);
 
 	inlist_clear(dir->recheck_list);
-	g_queue_free(dir->recheck_list);
+	g_ptr_array_free(dir->recheck_list, TRUE);
 	inlist_clear(dir->examine_list);
-	g_queue_free(dir->examine_list);
+	g_ptr_array_free(dir->examine_list, TRUE);
 
 	g_hash_table_foreach_remove(dir->known_items, free_items, NULL);
 	g_hash_table_destroy(dir->known_items);
@@ -945,8 +949,8 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 	dir->strbuf = g_string_new(NULL);
 
 	dir->known_items = g_hash_table_new(g_str_hash, g_str_equal);
-	dir->recheck_list = g_queue_new();
-	dir->examine_list = g_queue_new();
+	dir->rechecki = 0;
+	dir->examinei = 0;
 	dir->idle_callback = 0;
 	dir->t_scan = NULL;
 	dir->req_scan_off = FALSE;
@@ -1072,12 +1076,6 @@ static void dir_scan(Directory *dir)
 	dir_set_scanning(dir, TRUE);
 	gdk_flush();
 
-	if (dir->have_scanned)
-	{
-		inlist_clear(dir->recheck_list);
-		inlist_clear(dir->examine_list);
-	}
-
 	struct dirent *ent;
 	while ((ent = mc_readdir(d)))
 	{
@@ -1111,8 +1109,20 @@ static void dir_scan(Directory *dir)
 	mc_closedir(d);
 
 	if (dir->have_scanned)
+	{
+		inlist_clear(dir->recheck_list);
+		dir->rechecki = 0;
+		inlist_clear(dir->examine_list);
+		dir->examinei = 0;
+
 		/* Remove all items and add to gone list */
 		g_hash_table_foreach_remove(dir->known_items, check_delete, dir);
+	}
+	else
+	{
+		dir->recheck_list = g_ptr_array_sized_new(dir->new_items->len);
+		dir->examine_list = g_ptr_array_new();
+	}
 
 	dir_merge_new(dir);
 

@@ -74,8 +74,10 @@ struct _Directory
 	GPtrArray	*exa_items;	/* Items to redraw */
 	GHashTable 	*gone_items;	/* Items removed */
 
-	GQueue		*recheck_list;	/* Items to check on callback */
-	GQueue		*examine_list;	/* Items to examine on callback */
+	GPtrArray	*recheck_list;	/* Items to check on callback */
+	int rechecki;
+	GPtrArray	*examine_list;	/* Items to examine on callback */
+	int examinei;
 
 	gboolean	have_scanned;	/* TRUE after first complete scan */
 	gboolean	scanning;	/* TRUE if we sent DIR_START_SCAN */
