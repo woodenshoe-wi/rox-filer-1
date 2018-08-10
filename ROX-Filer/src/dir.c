@@ -79,7 +79,7 @@ static Option o_close_dir_when_missing;
 
 /* Static prototypes */
 static void update(Directory *dir, gchar *pathname, gpointer data);
-static void set_idle_callback(Directory *dir);
+static void call_scan_t(Directory *dir);
 static DirItem *_insert_item(Directory *dir, DirItem *item, const guchar *leafname, gboolean examine_now);
 static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean examine_now);
 static GPtrArray *hash_to_array(GHashTable *hash);
@@ -177,10 +177,9 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 		callback(dir, DIR_QUEUE_INTERESTING, NULL, data);
 		g_mutex_unlock(&dir->mutex);
 		g_thread_yield();
-	}
 
-	/* May start scanning if noone was watching before */
-	set_idle_callback(dir);
+		call_scan_t(dir);
+	}
 
 	if (!dir->scanning)
 		callback(dir, DIR_END_SCAN, NULL, data);
@@ -206,7 +205,7 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 			g_object_unref(dir);
 
 			/* May stop scanning if noone's watching */
-			set_idle_callback(dir);
+			call_scan_t(dir);
 
 			if (!dir->users)
 				g_clear_object(&dir->monitor);
@@ -806,10 +805,10 @@ static void update(Directory *dir, gchar *pathname, gpointer data)
 		dir_scan(dir);
 }
 
-/* If there is work to do, set the idle callback.
- * Otherwise, stop scanning and unset the idle callback.
+/* If there is work to do, set the scan thread.
+ * Otherwise, stop scanning.
  */
-static void set_idle_callback(Directory *dir)
+static void call_scan_t(Directory *dir)
 {
 	if (dir->users &&
 			(!g_queue_is_empty(dir->recheck_list) ||
@@ -898,7 +897,7 @@ static void dir_finialize(GObject *object)
 
 	//g_print("[ dir finalize ]\n");
 
-	set_idle_callback(dir);
+	call_scan_t(dir);
 	if (dir->rescan_timeout != -1)
 		g_source_remove(dir->rescan_timeout);
 
@@ -1125,5 +1124,5 @@ static void dir_scan(Directory *dir)
 
 	dir->have_scanned = TRUE;
 
-	set_idle_callback(dir);
+	call_scan_t(dir);
 }
