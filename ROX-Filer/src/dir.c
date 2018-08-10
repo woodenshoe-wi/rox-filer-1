@@ -464,6 +464,7 @@ static gboolean do_recheck(gpointer data)
 	{
 		g_mutex_lock(&dir->mutex);
 		DirItem *item = g_queue_pop_tail(dir->examine_list);
+		item->flags &= ~ITEM_FLAG_IN_EXAMINE;
 
 		if (item->flags & ITEM_FLAG_GONE)
 			diritem_free(item);
@@ -478,7 +479,6 @@ static gboolean do_recheck(gpointer data)
 				delayed_notify(dir, FALSE);
 			}
 		}
-		item->flags &= ~ITEM_FLAG_IN_EXAMINE;
 
 		g_mutex_unlock(&dir->mutex);
 		if (!g_queue_is_empty(dir->examine_list))
@@ -665,10 +665,15 @@ void dir_merge_new(Directory *dir)
 	g_ptr_array_free(up, TRUE);
 	g_ptr_array_free(exa, TRUE);
 
-	g_mutex_lock(&dir->mutex);
-	g_hash_table_destroy(gone);
-	g_mutex_unlock(&dir->mutex);
-	g_thread_yield();
+	if (g_hash_table_size(gone))
+	{
+		g_mutex_lock(&dir->mutex);
+		g_hash_table_destroy(gone);
+		g_mutex_unlock(&dir->mutex);
+		g_thread_yield();
+	}
+	else
+		g_hash_table_destroy(gone);
 }
 
 
