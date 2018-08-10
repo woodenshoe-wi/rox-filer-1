@@ -201,12 +201,12 @@ void diritem_restat(
 			/* Try to avoid automounter problems */
 
 			if (item->flags & ITEM_FLAG_MOUNTED)
-				item->flags |= ITEM_FLAG_DIR_NEED_EXAMINE;
+				item->flags |= ITEM_FLAG_NEED_EXAMINE;
 		}
 		else if (info.st_mode & S_IWOTH)
 		{/* Don't trust world-writable dirs */}
 		else
-			item->flags |= ITEM_FLAG_DIR_NEED_EXAMINE;
+			item->flags |= ITEM_FLAG_NEED_EXAMINE;
 
 	}
 	else if (item->base_type == TYPE_FILE)
@@ -272,7 +272,7 @@ void diritem_restat(
 	*retitem = newitem;
 	g_mutex_unlock(&m_diritems);
 
-	if (examine_now && item->flags & ITEM_FLAG_DIR_NEED_EXAMINE)
+	if (examine_now && item->flags & ITEM_FLAG_NEED_EXAMINE)
 		diritem_examine_dir(path, retitem);
 }
 
@@ -447,7 +447,7 @@ out:
 	g_free(pathbuf);
 
 	g_mutex_lock(&m_diritems);
-	item->flags &= ~ITEM_FLAG_DIR_NEED_EXAMINE;
+	item->flags &= ~ITEM_FLAG_NEED_EXAMINE;
 	g_mutex_unlock(&m_diritems);
 
 	if ((item->flags & ITEM_FLAG_APPDIR) && !newimage)

@@ -26,11 +26,13 @@ typedef enum
 	 * being added to the queue more than once at a time.
 	 */
 	ITEM_FLAG_NEED_RESCAN_QUEUE = 0x100,
-	ITEM_FLAG_DIR_NEED_EXAMINE = 0x200,
+	ITEM_FLAG_IN_RESCAN_QUEUE   = 0x1000,
+	ITEM_FLAG_NEED_EXAMINE = 0x200,
+	ITEM_FLAG_IN_EXAMINE   = 0x2000,
+	ITEM_FLAG_GONE = 0x4000,
 
-	ITEM_FLAG_CAPS = 0x400,
-
-	ITEM_FLAG_HAS_XATTR      = 0x800, /* Has extended attributes set */
+	ITEM_FLAG_CAPS      = 0x400,
+	ITEM_FLAG_HAS_XATTR = 0x800, /* Has extended attributes set */
 } ItemFlags;
 
 struct _DirItem
