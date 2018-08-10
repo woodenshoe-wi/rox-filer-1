@@ -886,8 +886,9 @@ static void _inlist_clear(DirItem *item, gpointer user_data)
 }
 static void inlist_clear(GPtrArray *pta)
 {
+	if (!pta) return;
 	g_ptr_array_foreach(pta, (GFunc)_inlist_clear, NULL);
-	g_ptr_array_set_size(pta, 0);
+	g_ptr_array_free(pta, TRUE);
 }
 
 static gpointer parent_class;
@@ -914,9 +915,7 @@ static void dir_finialize(GObject *object)
 	g_hash_table_destroy(dir->gone_items);
 
 	inlist_clear(dir->recheck_list);
-	g_ptr_array_free(dir->recheck_list, TRUE);
 	inlist_clear(dir->examine_list);
-	g_ptr_array_free(dir->examine_list, TRUE);
 
 	g_hash_table_foreach_remove(dir->known_items, free_items, NULL);
 	g_hash_table_destroy(dir->known_items);
@@ -949,7 +948,9 @@ static void directory_init(GTypeInstance *object, gpointer gclass)
 	dir->strbuf = g_string_new(NULL);
 
 	dir->known_items = g_hash_table_new(g_str_hash, g_str_equal);
+	dir->recheck_list = NULL;
 	dir->rechecki = 0;
+	dir->examine_list = NULL;
 	dir->examinei = 0;
 	dir->idle_callback = 0;
 	dir->t_scan = NULL;
@@ -1110,19 +1111,16 @@ static void dir_scan(Directory *dir)
 
 	if (dir->have_scanned)
 	{
-		inlist_clear(dir->recheck_list);
-		dir->rechecki = 0;
-		inlist_clear(dir->examine_list);
-		dir->examinei = 0;
-
 		/* Remove all items and add to gone list */
 		g_hash_table_foreach_remove(dir->known_items, check_delete, dir);
+
+		inlist_clear(dir->recheck_list);
+		inlist_clear(dir->examine_list);
 	}
-	else
-	{
-		dir->recheck_list = g_ptr_array_sized_new(dir->new_items->len);
-		dir->examine_list = g_ptr_array_new();
-	}
+	dir->recheck_list = g_ptr_array_sized_new(dir->new_items->len);
+	dir->rechecki = 0;
+	dir->examine_list = g_ptr_array_new();
+	dir->examinei = 0;
 
 	dir_merge_new(dir);
 
