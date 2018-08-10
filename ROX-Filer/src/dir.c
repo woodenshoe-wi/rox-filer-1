@@ -174,7 +174,12 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 		dir_scan(dir);
 	}
 	else
+	{
+		g_mutex_lock(&dir->mutex);
 		callback(dir, DIR_QUEUE_INTERESTING, NULL, data);
+		g_mutex_unlock(&dir->mutex);
+		g_thread_yield();
+	}
 
 	/* May start scanning if noone was watching before */
 	set_idle_callback(dir);
@@ -310,14 +315,12 @@ DirItem *dir_update_item(Directory *dir, const gchar *leafname)
  */
 void dir_queue_recheck(Directory *dir, DirItem *item)
 {
-	g_mutex_lock(&dir->mutex);
 	item->flags &= ~ITEM_FLAG_NEED_RESCAN_QUEUE;
 	if (!(item->flags & ITEM_FLAG_IN_RESCAN_QUEUE))
 	{
 		g_queue_push_head(dir->recheck_list, item);
 		item->flags |= ITEM_FLAG_IN_RESCAN_QUEUE;
 	}
-	g_mutex_unlock(&dir->mutex);
 }
 
 static void tousers(Directory *dir, DirAction action, GPtrArray *items)
