@@ -29,9 +29,6 @@
           <toggle name='bind_dclick_resizes' label='Double-click on background resizes'>If on then double clicking on the window background resizes the window, just like clicking on the Automatic size mode button in the toolbar.</toggle>
         </vbox>
       </hbox>
-		<hbox>
-			<numentry name='scroll_speed' label="Icon View's scroll speed: 1/" unit='view' min='1' max='99' width='2'></numentry>
-		</hbox>
     </frame>
     <frame label='Sorting'>
       <toggle name='display_dirs_first' label='Directories come first (for sort by name)'>If this is on then directories will always appear before anything else when sorting by name.</toggle>
@@ -106,7 +103,11 @@ indicator'>If this is on then files which have one or more extended attributes s
 	<spacer/>
 	<toggle name='vertical_order_small' label='Order small icons vertically'>If this option is on, then small icons are arranged in columns, not rows.</toggle>
 	<toggle name='vertical_order_large' label='Order large icons vertically'>If this option is on, then large icons are arranged in columns, not rows.</toggle>
-      </frame>
+	<spacer/>
+	<hbox>
+		<numentry name='scroll_speed' label="Scroll speed: 1/" unit='view' min='1' max='99' width='2'></numentry>
+	</hbox>
+    </frame>
     </section>
     <section title='List View'>
       <frame label='List View'>
