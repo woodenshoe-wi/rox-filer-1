@@ -23,6 +23,7 @@
 
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
+#include <string.h>
 
 #include "global.h"
 
@@ -1140,7 +1141,7 @@ static void defcols(ViewDetails *view_details)
 			if (g_file_get_contents(path, &buffer, &len, NULL))
 			{
 				if (len <= COL_ITEM)
-					memcpy(colorder,buffer, len);
+					memcpy(colorder, buffer, len);
 				g_free(buffer);
 			}
 			g_free(path);
