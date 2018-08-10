@@ -883,8 +883,13 @@ static gboolean free_items(gpointer key, gpointer value, gpointer data)
 static void inlist_clear(GQueue *qu)
 {
 	for (GList *next = qu->head; next; next = next->next)
-		if (((DirItem *)next->data)->flags & ITEM_FLAG_GONE)
-			diritem_free(next->data);
+	{
+		DirItem *item = next->data;
+		if (item->flags & ITEM_FLAG_GONE)
+			diritem_free(item);
+		else
+			item->flags &= ~(ITEM_FLAG_IN_EXAMINE | ITEM_FLAG_IN_RESCAN_QUEUE);
+	}
 
 	g_queue_clear(qu);
 }
