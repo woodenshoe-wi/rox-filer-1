@@ -82,8 +82,6 @@ static void update(Directory *dir, gchar *pathname, gpointer data);
 static void set_idle_callback(Directory *dir);
 static DirItem *_insert_item(Directory *dir, DirItem *item, const guchar *leafname, gboolean examine_now);
 static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean examine_now);
-static void dir_recheck(Directory *dir,
-			const guchar *path, const guchar *leafname);
 static GPtrArray *hash_to_array(GHashTable *hash);
 static void dir_force_update_item(Directory *dir,
 		const gchar *leaf, gboolean thumb);
@@ -242,7 +240,6 @@ void dir_check_this(const guchar *path)
 	guchar	*real_path;
 	guchar	*dir_path;
 	Directory *dir;
-	gchar	*base;
 
 	dir_path = g_path_get_dirname(path);
 	real_path = pathdup(dir_path);
@@ -252,9 +249,14 @@ void dir_check_this(const guchar *path)
 					FSCACHE_LOOKUP_PEEK, NULL);
 	if (dir)
 	{
-		base = g_path_get_basename(path);
-		dir_recheck(dir, real_path, base);
-		g_free(base);
+		if (dir->users)
+		{
+			time(&diritem_recent_time);
+
+			char *base = g_path_get_basename(path);
+			insert_item(dir, base, TRUE);
+			g_free(base);
+		}
 		g_object_unref(dir);
 	}
 
@@ -846,18 +848,6 @@ static void dir_force_update_item(Directory *dir,
 	tousers(dir, icon ? DIR_UPDATE_ICON : DIR_UPDATE, items);
 
 	g_ptr_array_free(items, TRUE);
-}
-
-static void dir_recheck(Directory *dir,
-			const guchar *path, const guchar *leafname)
-{
-	guchar *old = dir->pathname;
-
-	dir->pathname = g_strdup(path);
-	g_free(old);
-
-	time(&diritem_recent_time);
-	insert_item(dir, leafname, TRUE);
 }
 
 static void to_array(gpointer key, gpointer value, gpointer data)
