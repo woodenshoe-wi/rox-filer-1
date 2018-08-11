@@ -2306,7 +2306,7 @@ static void list_cb(gpointer data)
 
 	send_done();
 
-	if (last && n == 1 && o_action_wink.int_value)
+	if (last && o_action_wink.int_value)
 		//autoselect(wink)
 		printf_send("w%s",
 				make_dest_path(seqed_path ?: last, action_dest));
