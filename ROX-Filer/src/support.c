@@ -1186,9 +1186,7 @@ gchar *collapse_path(const gchar *path)
  */
 void destroy_glist(GList **list)
 {
-	GList *l = *list;
-	g_list_foreach(l, (GFunc) g_free, NULL);
-	g_list_free(l);
+	g_list_free_full(*list, g_free);
 	*list = NULL;
 }
 
