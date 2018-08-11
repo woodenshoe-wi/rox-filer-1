@@ -446,6 +446,7 @@ static gboolean do_recheck(gpointer data)
 			diritem_free(item);
 		else
 		{
+			item->flags &= ~ITEM_FLAG_IN_RESCAN_QUEUE;
 			item = _insert_item(dir, item, item->leafname, FALSE);
 			if (item && item->flags & ITEM_FLAG_NEED_EXAMINE
 					&& !(item->flags & ITEM_FLAG_IN_EXAMINE))
