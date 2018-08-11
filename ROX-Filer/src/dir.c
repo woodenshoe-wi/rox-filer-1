@@ -727,10 +727,7 @@ static DirItem *_insert_item(Directory *dir, DirItem *item, const guchar *leafna
 		{
 			/* Preserve the old details so we can compare */
 			old = *item;
-			old.flags &= ~(ITEM_FLAG_NEED_RESCAN_QUEUE
-					| ITEM_FLAG_IN_RESCAN_QUEUE
-					| ITEM_FLAG_NEED_EXAMINE
-					| ITEM_FLAG_IN_EXAMINE);
+			old.flags &= ~(ITEM_FLAG_NEED_RESCAN_QUEUE | ITEM_FLAG_NEED_EXAMINE);
 			do_compare = TRUE;
 		}
 		diritem_restat(full_path, item, &dir->stat_info, examine_now);

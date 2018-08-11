@@ -110,7 +110,8 @@ void diritem_restat(
 		g_mutex_unlock(&m_diritems);
 	}
 
-	item->flags &= ITEM_FLAG_CAPS;
+	item->flags &=
+		(ITEM_FLAG_CAPS | ITEM_FLAG_IN_RESCAN_QUEUE | ITEM_FLAG_IN_EXAMINE);
 	item->mime_type = NULL;
 
 	if (mc_lstat(path, &info) == -1)
