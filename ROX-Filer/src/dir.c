@@ -185,6 +185,20 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 		callback(dir, DIR_END_SCAN, NULL, data);
 }
 
+
+static gboolean delayed_remove(char *pathname)
+{
+	Directory *dir = g_fscache_lookup(dir_cache, pathname);
+	if (dir)
+	{
+		g_object_unref(dir);
+		if (!dir->users)
+			g_fscache_remove(dir_cache, pathname);
+	}
+	g_free(pathname);
+	return FALSE;
+}
+
 /* Undo the effect of dir_attach */
 void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 {
@@ -208,11 +222,13 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 			call_scan_t(dir);
 
 			if (!dir->users)
+			{
 				g_clear_object(&dir->monitor);
 
-			if (o_purge_dir_cache.int_value && !dir->users)
-				g_fscache_remove(dir_cache, dir->pathname);
-
+				if (o_purge_dir_cache.int_value)
+					//don't remove when detach and attach are called in a func
+					g_idle_add((GSourceFunc)delayed_remove, g_strdup(dir->pathname));
+			}
 			return;
 		}
 	}
