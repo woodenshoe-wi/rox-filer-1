@@ -600,6 +600,12 @@ static gboolean send_error(void)
 	return printf_send("!%s: %s\n", _("ERROR"), g_strerror(errno));
 }
 
+static void send_prog(int idx, int n) //idx is current - 1
+{
+	if(n > 1)
+		printf_send("%%%d", 100 * (idx + 1) / n);
+}
+
 static void response(GtkDialog *dialog, gint response, GUIside *gui_side)
 {
 	gchar code;
@@ -2035,7 +2041,7 @@ static void usage_cb(gpointer data)
 {
 	GList *paths = (GList *) data;
 	double	total_size = 0;
-	int n, i, per;
+	int n, i;
 	gchar *base;
 
 	n=g_list_length(paths);
@@ -2049,11 +2055,6 @@ static void usage_cb(gpointer data)
 
 		size_tally = 0;
 
-		if(n>1 && i>0)
-		{
-			per=100*i/n;
-			printf_send("%%%d", per);
-		}
 		do_usage(path, NULL);
 
 		base = g_path_get_basename(path);
@@ -2062,6 +2063,8 @@ static void usage_cb(gpointer data)
 			    format_double_size(size_tally));
 		g_free(base);
 		total_size += size_tally;
+
+		send_prog(i, n);
 	}
 	printf_send("%%-1");
 
@@ -2090,7 +2093,7 @@ static void mount_cb(gpointer data)
 {
 	GList 		*paths = (GList *) data;
 	gboolean	mount_points = FALSE;
-	int n, i, per;
+	int n, i;
 
 	n=g_list_length(paths);
 	for (i=0; paths; paths = paths->next, i++)
@@ -2102,11 +2105,6 @@ static void mount_cb(gpointer data)
 		if (!target)
 			target = path;
 
-		if(n>1 && i>0)
-		{
-			per=100*i/n;
-			printf_send("%%%d", per);
-		}
 		if (mount_is_mounted(target, NULL, NULL) ||
 		    g_hash_table_lookup(fstab_mounts, target))
 		{
@@ -2116,6 +2114,8 @@ static void mount_cb(gpointer data)
 
 		if (target != path)
 			g_free(target);
+
+		send_prog(i, n);
 	}
 
 	if (mount_points)
@@ -2141,7 +2141,7 @@ static guchar *dirname(guchar *path)
 static void delete_cb(gpointer data)
 {
 	GList	*paths = (GList *) data;
-	int n, i, per;
+	int n, i;
 
 	n=g_list_length(paths);
 	for (i=0; paths; paths = paths->next, i++)
@@ -2152,14 +2152,10 @@ static void delete_cb(gpointer data)
 		dir = dirname(path);
 		send_src(dir);
 
-		if(n>1 && i>0)
-		{
-			per=100*i/n;
-			printf_send("%%%d", per);
-		}
 		do_delete(path, dir);
-
 		g_free(dir);
+
+		send_prog(i, n);
 	}
 
 	send_done();
@@ -2168,7 +2164,7 @@ static void delete_cb(gpointer data)
 static void eject_cb(gpointer data)
 {
 	GList	*paths = (GList *) data;
-	int n, i, per;
+	int n, i;
 
 	n=g_list_length(paths);
 
@@ -2176,14 +2172,9 @@ static void eject_cb(gpointer data)
 	{
 		guchar	*path = (guchar *) paths->data;
 
-		if(n>1 && i>0)
-		{
-			per=100*i/n;
-			printf_send("%%%d", per);
-		}
 		send_src(path);
-
 		do_eject(path);
+		send_prog(i, n);
 	}
 
 	send_done();
@@ -2217,7 +2208,7 @@ static void find_cb(gpointer data)
 static void chmod_cb(gpointer data)
 {
 	GList *paths = (GList *) data;
-	int n, i, per;
+	int n, i;
 	gchar *base;
 
 	n=g_list_length(paths);
@@ -2227,11 +2218,6 @@ static void chmod_cb(gpointer data)
 		guchar	*path = (guchar *) paths->data;
 		struct stat info;
 
-		if(n>1 && i>0)
-		{
-			per=100*i/n;
-			printf_send("%%%d", per);
-		}
 		send_src(path);
 
 		if (mc_stat(path, &info) != 0)
@@ -2243,6 +2229,8 @@ static void chmod_cb(gpointer data)
 		}
 		else
 			do_chmod(path, NULL);
+
+		send_prog(i, n);
 	}
 
 	send_done();
@@ -2251,7 +2239,7 @@ static void chmod_cb(gpointer data)
 static void settype_cb(gpointer data)
 {
 	GList *paths = (GList *) data;
-	int n, i, per;
+	int n, i;
 	gchar *base;
 
 	n=g_list_length(paths);
@@ -2261,11 +2249,6 @@ static void settype_cb(gpointer data)
 		guchar	*path = (guchar *) paths->data;
 		struct stat info;
 
-		if(n>1 && i>0)
-		{
-			per=100*i/n;
-			printf_send("%%%d", per);
-		}
 		send_src(path);
 
 		if (mc_stat(path, &info) != 0)
@@ -2277,6 +2260,8 @@ static void settype_cb(gpointer data)
 		}
 		else
 			do_settype(path, NULL);
+
+		send_prog(i, n);
 	}
 
 	send_done();
@@ -2285,23 +2270,19 @@ static void settype_cb(gpointer data)
 static void list_cb(gpointer data)
 {
 	GList	*paths = (GList *) data;
-	int n, i, per;
+	int n, i;
 	char *last = NULL;
 
 	n=g_list_length(paths);
 
 	for (i=0; paths; paths = paths->next, i++)
 	{
-		if(n>1 && i>0)
-		{
-			per=100*i/n;
-			printf_send("%%%d", per);
-		}
-
 		send_src((char *) paths->data);
 
 		action_do_func((char *) paths->data, action_dest);
+
 		last = (char *) paths->data;
+		send_prog(i, n);
 	}
 
 	send_done();
