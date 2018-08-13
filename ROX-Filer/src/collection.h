@@ -128,7 +128,6 @@ gint	collection_insert		(Collection *collection,
 void    collection_remove          	(Collection *collection, gint item);
 void    collection_unselect_item	(Collection *collection, gint item);
 void    collection_select_item		(Collection *collection, gint item);
-void 	collection_toggle_item		(Collection *collection, gint item);
 void 	collection_select_all		(Collection *collection);
 void 	collection_clear_selection	(Collection *collection);
 void	collection_invert_selection	(Collection *collection);

@@ -982,8 +982,9 @@ static void collection_process_area(Collection	 *collection,
 	for (y = area->y; y < area->y + area->height && y < rows; y++)
 		for (x = area->x; x < area->x + area->width && x < cols; x++)
 	{
-			item = collection_rowcol_to_item(collection, y, x);
-			if (item < collection->number_of_items) {
+		item = collection_rowcol_to_item(collection, y, x);
+		if (item < collection->number_of_items)
+		{
 			if (fn == GDK_INVERT)
 					collection_item_set_selected(
 					    collection, item,
@@ -1309,11 +1310,6 @@ void collection_select_item(Collection *collection, gint item)
 	collection_item_set_selected(collection, item, TRUE, TRUE);
 }
 
-void collection_toggle_item(Collection *collection, gint item)
-{
-	collection_item_set_selected(collection, item,
-			!collection->items[item].selected, TRUE);
-}
 
 /* Select all items in the collection */
 void collection_select_all(Collection *collection)
