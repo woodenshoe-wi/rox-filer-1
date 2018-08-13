@@ -2232,36 +2232,32 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 	rows = MAX((n + cols - 1) / cols, 1);
 
 	GtkRequisition req;
-	gtk_widget_get_requisition(filer_window->scrollbar, &req);
-
-	int vw = MAX(w * MAX(cols, 1), min_x);
-	int vh = CLAMP(h * rows + space, MAX(req.height, small_height * 2), max_y);
-	gboolean notauto = FALSE;
-
-
 	if (gtk_widget_get_visible(filer_window->thumb_bar))
 	{
-		GtkRequisition req;
 		gtk_widget_size_request(filer_window->thumb_bar, &req);
 		exh += req.height;
 	}
 
 	if (gtk_widget_get_visible(filer_window->minibuffer_area))
 	{
-		GtkRequisition req;
 		gtk_widget_size_request(filer_window->minibuffer_area, &req);
 		exh += req.height;
 	}
+
+	gtk_widget_get_requisition(filer_window->scrollbar, &req);
+
+	int vw = MAX(w * MAX(cols, 1), min_x);
+	int vh = CLAMP(h * rows + space, MAX(req.height, small_height * 2), max_y - exh);
+	gboolean notauto = FALSE;
 
 	if (turn && (vw != max_x || vh != max_y) &&
 		GTK_WIDGET(view_collection)->allocation.width  == vw &&
 		GTK_WIDGET(view_collection)->allocation.height == vh)
 	{
 		vw = max_x;
-		vh = max_y;
+		vh = max_y - exh;
 		notauto = TRUE;
 	}
-
 
 	filer_window_set_size(filer_window, vw, vh + exh, notauto);
 }
