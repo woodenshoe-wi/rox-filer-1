@@ -633,6 +633,17 @@ int sort_by_size(const void *item1, const void *item2)
 		sort_by_name(item1, item2);
 }
 
+int sort_by_perm(const void *item1, const void *item2)
+{
+#define S_ALL (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO)
+	guint i1 = ((DirItem *)item1)->mode & S_ALL;
+	guint i2 = ((DirItem *)item2)->mode & S_ALL;
+#undef S_ALL
+
+	return i1 < i2 ? -1 : i1 > i2 ? 1 : sort_by_name(item1, item2);
+}
+
+
 void display_set_sort_type(FilerWindow *filer_window, SortType sort_type,
 			   GtkSortType order)
 {

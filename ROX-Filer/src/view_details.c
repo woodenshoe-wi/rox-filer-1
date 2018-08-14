@@ -557,6 +557,7 @@ static gboolean details_get_sort_column_id(GtkTreeSortable *sortable,
 		case SORT_DATEC: col = COL_CTIME; break;
 		case SORT_DATEA: col = COL_ATIME; break;
 		case SORT_SIZE: col = COL_SIZE; break;
+		case SORT_PERM: col = COL_PERM; break;
 		case SORT_OWNER: col = COL_OWNER; break;
 		case SORT_GROUP: col = COL_GROUP; break;
 		default:
@@ -587,6 +588,9 @@ static void details_set_sort_column_id(GtkTreeSortable     *sortable,
 			break;
 		case COL_SIZE:
 			display_set_sort_type(filer_window, SORT_SIZE, order);
+			break;
+		case COL_PERM:
+			display_set_sort_type(filer_window, SORT_PERM, order);
 			break;
 		case COL_MTIME:
 			display_set_sort_type(filer_window, SORT_DATEM, order);
@@ -1229,7 +1233,7 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 			       G_CALLBACK(set_column_mono_font),
 			       G_OBJECT(cell));
 
-	ADD_TEXT_COLUMN_NS(_("_Permissions"), COL_PERM);
+	ADD_TEXT_COLUMN(_("_Permissions"), COL_PERM);
 	g_object_set(G_OBJECT(cell), "font", "monospace", NULL);
 	g_signal_connect_after(object, "realize",
 			       G_CALLBACK(set_column_mono_font),
@@ -1377,6 +1381,7 @@ static void resort(ViewDetails *view_details)
 		case SORT_DATEC: view_details->sort_fn = sort_by_datec; break;
 		case SORT_DATEM: view_details->sort_fn = sort_by_datem; break;
 		case SORT_SIZE: view_details->sort_fn = sort_by_size; break;
+		case SORT_PERM: view_details->sort_fn = sort_by_perm; break;
 		case SORT_OWNER: view_details->sort_fn = sort_by_owner; break;
 		case SORT_GROUP: view_details->sort_fn = sort_by_group; break;
 		default:

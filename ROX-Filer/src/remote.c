@@ -765,6 +765,7 @@ static xmlNodePtr rpc_OpenDir(GList *args)
 		       !g_ascii_strcasecmp(sort, "Type") ? SORT_TYPE :
 		       !g_ascii_strcasecmp(sort, "Date") ? SORT_DATEC :
 		       !g_ascii_strcasecmp(sort, "Size") ? SORT_SIZE :
+		       !g_ascii_strcasecmp(sort, "Permissions") ? SORT_PERM :
 		       !g_ascii_strcasecmp(sort, "Owner") ? SORT_OWNER :
 		       !g_ascii_strcasecmp(sort, "Group") ? SORT_GROUP :
 		       SORT_UNKNOWN;

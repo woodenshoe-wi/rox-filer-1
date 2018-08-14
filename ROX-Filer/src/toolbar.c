@@ -516,7 +516,7 @@ static void toolbar_sort_clicked(GtkWidget *widget,
 	gchar *tip;
 
 	static const SortType sorts[]={
-		SORT_NAME, SORT_TYPE, SORT_DATEC, SORT_SIZE,
+		SORT_NAME, SORT_TYPE, SORT_DATEC, SORT_SIZE, SORT_PERM,
 		SORT_OWNER, SORT_GROUP,
 	};
 	static const char *sort_names[] = {

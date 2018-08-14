@@ -142,6 +142,7 @@ typedef enum {		/* Values used in options */
 	SORT_GROUP = 5,
 	SORT_DATEC = 6,
 	SORT_DATEA = 7,
+	SORT_PERM = 8,
 	SORT_UNKNOWN = -1,
 } SortType;
 

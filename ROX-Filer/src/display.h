@@ -73,6 +73,7 @@ int sort_by_datea(const void *item1, const void *item2);
 int sort_by_datec(const void *item1, const void *item2);
 int sort_by_datem(const void *item1, const void *item2);
 int sort_by_size(const void *item1, const void *item2);
+int sort_by_perm(const void *item1, const void *item2);
 int sort_by_owner(const void *item1, const void *item2);
 int sort_by_group(const void *item1, const void *item2);
 void display_set_sort_type(FilerWindow *filer_window, SortType sort_type,

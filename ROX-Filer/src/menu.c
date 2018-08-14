@@ -192,6 +192,7 @@ static GtkWidget	*filer_sort_date_a_menu;
 static GtkWidget	*filer_sort_date_c_menu;
 static GtkWidget	*filer_sort_date_m_menu;
 static GtkWidget	*filer_sort_size_menu;
+static GtkWidget	*filer_sort_perm_menu;
 static GtkWidget	*filer_sort_owner_menu;
 static GtkWidget	*filer_sort_group_menu;
 
@@ -643,6 +644,7 @@ gboolean ensure_filer_menu(void)
 	sg = adr(N_("Sort by Date (ctime)"), set_sort, SORT_DATEC, sg, &filer_sort_date_c_menu);
 	sg = adr(N_("Sort by Date (mtime)"), set_sort, SORT_DATEM, sg, &filer_sort_date_m_menu);
 	sg = adr(N_("Sort by Size"        ), set_sort, SORT_SIZE , sg, &filer_sort_size_menu  );
+	sg = adr(N_("Sort by permissions" ), set_sort, SORT_PERM , sg, &filer_sort_perm_menu  );
 	sg = adr(N_("Sort by Owner"       ), set_sort, SORT_OWNER, sg, &filer_sort_owner_menu );
 	     adr(N_("Sort by Group"       ), set_sort, SORT_GROUP, sg, &filer_sort_group_menu );
 
@@ -911,6 +913,8 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 				filer_window->sort_type == SORT_DATEM);
 		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_size_menu  ),
 				filer_window->sort_type == SORT_SIZE );
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_perm_menu  ),
+				filer_window->sort_type == SORT_PERM );
 		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_owner_menu ),
 				filer_window->sort_type == SORT_OWNER);
 		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(filer_sort_group_menu ),

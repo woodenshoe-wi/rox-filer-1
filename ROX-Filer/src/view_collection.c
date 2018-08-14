@@ -1584,6 +1584,7 @@ static SortFn sort_fn(FilerWindow *fw)
 		case SORT_DATEC: return sort_by_datec;
 		case SORT_DATEM: return sort_by_datem;
 		case SORT_SIZE: return sort_by_size;
+		case SORT_PERM: return sort_by_perm;
 		case SORT_OWNER: return sort_by_owner;
 		case SORT_GROUP: return sort_by_group;
 		default:
