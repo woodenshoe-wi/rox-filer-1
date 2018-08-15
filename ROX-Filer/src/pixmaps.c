@@ -863,8 +863,8 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname, gboolean forcheck)
 			goto err;
 
 		if (forcheck && (
-					   info.st_mtime == thumbinfo.st_ctime
-					|| info.st_mtime == thumbinfo.st_ctime - 1))
+					   info.st_ctime == thumbinfo.st_ctime
+					|| info.st_ctime == thumbinfo.st_ctime - 1))
 					   //we asume generater doesn't take more than 1 sec
 		{ //maybe thumb is old in a sec.
 			time(&now);
