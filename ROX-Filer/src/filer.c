@@ -727,6 +727,10 @@ static void detach(FilerWindow *filer_window)
 	if (filer_window->mini_type == MINI_REG_SELECT)
 		minibuffer_hide(filer_window);
 
+	if (filer_window->view_type == VIEW_TYPE_DETAILS)
+		//details selection is very heavy
+		view_clear_selection(filer_window->view);
+
 	dir_detach(filer_window->directory,
 			(DirCallback) update_display, filer_window);
 	g_object_unref(filer_window->directory);
