@@ -100,16 +100,7 @@ void diritem_restat(
 
 	DirItem *item = &newitem;
 
-	if (item->_image)
-	{
-		g_mutex_lock(&m_diritems);
-		if (retitem->_image)
-			munref = g_slist_prepend(munref, retitem->_image);
-		retitem->_image = NULL;
-		item->_image = NULL;
-		g_mutex_unlock(&m_diritems);
-	}
-
+	item->_image = NULL;
 	item->flags &=
 		(ITEM_FLAG_CAPS | ITEM_FLAG_IN_RESCAN_QUEUE | ITEM_FLAG_IN_EXAMINE);
 	item->mime_type = NULL;
@@ -270,6 +261,8 @@ void diritem_restat(
 	item->flags &= ~ITEM_FLAG_NEED_RESCAN_QUEUE;
 
 	g_mutex_lock(&m_diritems);
+	if (retitem->_image)
+		munref = g_slist_prepend(munref, retitem->_image);
 	*retitem = newitem;
 	g_mutex_unlock(&m_diritems);
 

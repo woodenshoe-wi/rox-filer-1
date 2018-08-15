@@ -632,11 +632,9 @@ static gpointer scan_thread(gpointer data)
 static void gone_free(DirItem *item)
 {
 	if (item->flags & (ITEM_FLAG_IN_EXAMINE | ITEM_FLAG_IN_RESCAN_QUEUE))
-	{
 		item->flags |= ITEM_FLAG_GONE;
-		return;
-	}
-	diritem_free(item);
+	else
+		diritem_free(item);
 }
 
 /* Add all the new items to the items array.
@@ -767,7 +765,7 @@ static DirItem *_insert_item(Directory *dir, DirItem *item, const guchar *leafna
 				old.flags |= ITEM_FLAG_NEED_EXAMINE;
 
 			if (do_compare && compare_items(item, &old))
-				goto out;
+				return item;
 
 			g_mutex_lock(&dir->mergem);
 			g_ptr_array_add(dir->up_items, item);
@@ -778,11 +776,11 @@ static DirItem *_insert_item(Directory *dir, DirItem *item, const guchar *leafna
 	{
 		item = diritem_new(leafname);
 		diritem_restat(full_path, item, &dir->stat_info, examine_now);
+
 		if (item->base_type == TYPE_ERROR && item->lstat_errno == ENOENT)
 		{
 			diritem_free(item);
-			item = NULL;
-			goto out;
+			return NULL;
 		}
 
 		if (g_hash_table_insert(dir->known_items, item->leafname, item))
@@ -794,7 +792,6 @@ static DirItem *_insert_item(Directory *dir, DirItem *item, const guchar *leafna
 	}
 
 	delayed_notify(dir, examine_now);
-out:
 	return item;
 }
 static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean examine_now)
