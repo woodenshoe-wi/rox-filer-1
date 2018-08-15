@@ -327,10 +327,7 @@ MaskedPixmap *_diritem_get_image(DirItem *item)
 	if (!item->_image && item->base_type != TYPE_UNKNOWN)
 	{
 		if (item->base_type == TYPE_ERROR)
-		{
-			item->_image = im_error;
-			g_object_ref(im_error);
-		}
+			item->_image = g_object_ref(im_error);
 		else
 			item->_image = type_to_icon(item->mime_type);
 	}
