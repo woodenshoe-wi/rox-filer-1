@@ -3563,7 +3563,6 @@ gint filer_motion_notify(FilerWindow *filer_window, GdkEventMotion *event)
 	edragx = event->x_root;
 	edragy = event->y_root;
 
-	filer_set_autoscroll(fw, FALSE);
 
 	view_get_iter_at_point(view, &iter, event->window, event->x, event->y);
 	item = iter.peek(&iter);
