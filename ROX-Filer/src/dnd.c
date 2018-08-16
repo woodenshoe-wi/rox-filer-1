@@ -135,7 +135,7 @@ GdkAtom text_uri_list;
 GdkAtom text_x_moz_url;
 GdkAtom xa_application_octet_stream;
 GdkAtom xa_string; /* Not actually used for DnD, but the others are here! */
-
+FilerWindow *dnd_autoscrollfw = NULL;
 int spring_in_progress = 0;	/* Non-zero changes filer_opendir slightly */
 
 Option o_dnd_drag_to_icons;
@@ -536,6 +536,9 @@ static gboolean drag_drop(GtkWidget 	  *widget,
 			  guint           time,
 			  gpointer	  data)
 {
+	if (dnd_autoscrollfw)
+		filer_set_autoscroll(dnd_autoscrollfw, FALSE);
+
 	const char	*error = NULL;
 	char		*leafname = NULL;
 	GdkAtom		target = GDK_NONE;

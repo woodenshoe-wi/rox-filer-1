@@ -3813,6 +3813,7 @@ void filer_set_autoscroll(FilerWindow *filer_window, gboolean auto_scroll)
 
 	if (auto_scroll)
 	{
+		dnd_autoscrollfw = filer_window;
 		if (filer_window->auto_scroll != -1)
 			return;		/* Already on! */
 
@@ -3822,6 +3823,7 @@ void filer_set_autoscroll(FilerWindow *filer_window, gboolean auto_scroll)
 	}
 	else
 	{
+		dnd_autoscrollfw = NULL;
 		if (filer_window->auto_scroll == -1)
 			return;		/* Already off! */
 

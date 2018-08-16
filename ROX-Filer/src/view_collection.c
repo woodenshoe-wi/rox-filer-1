@@ -2321,7 +2321,7 @@ static gboolean view_collection_auto_scroll_callback(ViewIface *view)
 	if ((x < 0 || x > w || y < 0 || y > h) && !collection->lasso_box)
 		return FALSE;		/* Out of window - stop */
 
-	int step = MAX(AUTOSCROLL_STEP, h / 6);
+	int step = MAX(AUTOSCROLL_STEP, h / 7);
 
 	if      (y <     step) diff = y - step;
 	else if (y > h - step) diff = step + y - h;
