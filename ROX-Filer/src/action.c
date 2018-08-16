@@ -951,9 +951,10 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 #define SHOWTIME 100 * 1000
 static void syncgui()
 {
+	static int cnt = 0;
 	static gint64 start = 0;
 	gint64 now = g_get_monotonic_time();
-	if (now - start < SHOWTIME) return;
+	if (now - start < SHOWTIME || cnt++ % 333) return;
 	start = now;
 
 	printf_send("r");
