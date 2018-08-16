@@ -351,8 +351,8 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 	ABox *abox = gui_side->abox;
 
 	if (*buffer == 'r')
-		gui_side->sync = g_idle_add((GSourceFunc)syncchild, gui_side);
-//		syncchild(gui_side);
+//		gui_side->sync = g_idle_add((GSourceFunc)syncchild, gui_side);
+		syncchild(gui_side);
 	else if (*buffer == 'w')
 	{
 		char *dir = g_path_get_dirname(buffer + 1);
@@ -951,10 +951,9 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 #define SHOWTIME 100 * 1000
 static void syncgui()
 {
-	static int cnt = 0;
 	static gint64 start = 0;
 	gint64 now = g_get_monotonic_time();
-	if (now - start < SHOWTIME || cnt++ % 333) return;
+	if (now - start < SHOWTIME) return;
 	start = now;
 
 	printf_send("r");
