@@ -156,11 +156,15 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 
 		g_signal_connect(dir->monitor, "changed", G_CALLBACK(monitorcb), dir);
 	}
+	else
+		//clear new_items. note:new_items is only inserted in this thread
+		dir_merge_new(dir);
 
 	dir->users = g_list_prepend(dir->users, user);
 
 	g_object_ref(dir);
 
+	//lock for remove
 	g_mutex_lock(&dir->mutex);
 	items = hash_to_array(dir->known_items);
 	g_mutex_unlock(&dir->mutex);
