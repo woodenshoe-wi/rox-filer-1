@@ -1129,12 +1129,14 @@ static void selection_get(GtkWidget *widget,
  * to regain primary.
  * Also updates toolbar info.
  */
+static int copying_selection = 0;
 void filer_selection_changed(FilerWindow *filer_window, gint time)
 {
+	if (copying_selection) return; //this is very heavy for details view
+
 	g_return_if_fail(filer_window != NULL);
 
 	toolbar_update_info(filer_window);
-
 	if (window_with_primary == filer_window)
 		return;		/* Already got primary */
 
@@ -2012,6 +2014,14 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	return filer_window;
 }
 
+
+static gboolean setviewcb(FilerWindow *fw)
+{
+	if (filer_exists(fw))
+		filer_selection_changed(fw, gtk_get_current_event_time());
+	return FALSE;
+}
+
 void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 {
 	GtkWidget *view = NULL;
@@ -2099,6 +2109,8 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 		ViewIter iter;
 		DirItem *item;
 
+		copying_selection = g_hash_table_size(selected);
+
 		view_get_iter(filer_window->view, &iter, 0);
 		while ((item = iter.next(&iter)))
 		{
@@ -2107,6 +2119,15 @@ void filer_set_view_type(FilerWindow *filer_window, ViewType type)
 						  &iter, TRUE);
 		}
 		g_hash_table_destroy(selected);
+
+		if (copying_selection)
+		{
+			copying_selection = 0;
+			//somehow details view's selection data is not available yet
+			//Specifically, view_count_selected returns 0
+			// and gtk_selection_owner_set returns false
+			g_idle_add((GSourceFunc)setviewcb, filer_window);
+		}
 	}
 }
 
