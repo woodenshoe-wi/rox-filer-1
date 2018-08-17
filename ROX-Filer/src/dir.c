@@ -161,7 +161,10 @@ void dir_attach(Directory *dir, DirCallback callback, gpointer data)
 
 	g_object_ref(dir);
 
+	g_mutex_lock(&dir->mutex);
 	items = hash_to_array(dir->known_items);
+	g_mutex_unlock(&dir->mutex);
+
 	if (items->len)
 		callback(dir, DIR_ADD, items, data);
 	g_ptr_array_free(items, TRUE);
