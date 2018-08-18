@@ -35,33 +35,36 @@
       <toggle name='display_caps_first' label='Capitalised names first (for sort by name)'>If on, all filenames starting with a capital letter come before filenames starting with lowercase ones.</toggle>
       <toggle name='display_newly_first' label='Newly comes first (for sort by Date)'>If on, the Sort by Dates are reversed.</toggle>
     </frame>
-    <section title='New Window'>
-      <frame label='Default settings for new windows'>
-        <toggle name='display_inherit_options' label='Inherit options from source window'>If this is on then display options for a new window are inherited from the source window if possible, otherwise they are set to the defaults below.</toggle>
-        <hbox>
-          <vbox>
-	    <menu name='filer_view_type' label='View type:' sizegroup='disp-def'>
-	      <item label='Icons View' value='0'/>
-	      <item label='List View' value='1'/>
-	    </menu>
-            <menu name='display_sort_by' label='Sort by:' sizegroup='disp-def'>
-              <item label='Name' value='0'/>
-              <item label='Type' value='1'/>
-              <item label='Date (m)' value='2'/>
-              <item label='Date (c)' value='6'/>
-              <item label='Date (a)' value='7'/>
-              <item label='Size' value='3'/>
-            </menu>
-          </vbox><vbox>
-            <toggle name='display_show_hidden' label='Show hidden files'>If this is on then files whose names start with a dot are shown too, otherwise they are hidden.</toggle>
-            <toggle name='xattr_show' label='Show extended attribute
-indicator'>If this is on then files which have one or more extended attributes set will have an emblem added to indicate this.</toggle>
-          </vbox>
-        </hbox>
 
-		<numentry name='huge_size' label='Huge Icons size:' unit='pixels' min='64' max='1024' width='4'>
-			Resolution depends on 'Thumbnails->Cache File Size'.</numentry>
-      </frame>
+	<frame label='etc'>
+	<toggle name='xattr_show' label='Show extended attribute indicator'>
+		If this is on then files which have one or more extended attributes set will have an emblem added to indicate this.</toggle>
+	</frame>
+
+    <section title='New Window'>
+    <frame label='Default settings for new windows'>
+	<toggle name='display_inherit_options' label='Inherit options from source window'>
+		If this is on then display options for a new window are inherited from the source window if possible, otherwise they are set to the defaults below.</toggle>
+	<hbox><vbox>
+		<menu name='filer_view_type' label='View type:' sizegroup='disp-def'>
+			<item label='Icons View' value='0'/>
+			<item label='List View' value='1'/>
+		</menu>
+		<menu name='display_sort_by' label='Sort by:' sizegroup='disp-def'>
+			<item label='Name' value='0'/>
+			<item label='Type' value='1'/>
+			<item label='Date (m)' value='2'/>
+			<item label='Date (c)' value='6'/>
+			<item label='Date (a)' value='7'/>
+			<item label='Size' value='3'/>
+		</menu>
+	</vbox></hbox>
+	<toggle name='display_show_hidden' label='Show hidden files'>
+		If this is on then files whose names start with a dot are shown too, otherwise they are hidden.</toggle>
+	<spacer/>
+	<numentry name='huge_size' label='Huge Icons size:' unit='pixels' min='64' max='1024' width='4'>
+		Resolution depends on 'Thumbnails->Cache File Size'.</numentry>
+    </frame>
     </section>
     <section title='Icon View'>
       <frame label='Icon View'>
@@ -81,34 +84,33 @@ indicator'>If this is on then files which have one or more extended attributes s
               <item label='Times' value='5'/>
             </menu>
 	  </vbox>
-	  <vbox>
-	    <label>Automatic small icons:</label>
-            <numentry name='filer_change_size_num' label='Change at:' unit='items' min='1' max='1000' width='4'>When automatic icon sizing is selected: If the directory contains this many items then it will be shown using Small Icons, otherwise Large Icons will be used.</numentry>
-	  </vbox>
-        </hbox>
-	<spacer/>
-	<hbox>
-		<numentry name='display_large_width' label='Large Icons (Max width):' unit='pixels' min='0' max='2000' width='4'>
-			Text wider than this is broken onto two lines in Large Icons mode.</numentry>
-	  <spacer/>
-			<numentry name='display_max_length' label='(Wrapped, Details):' unit='pixels' min='0' max='2000' width='4'>Maximum length for Large Icons mode and Details. This can be changed temporarily by right dragging of the toolbar.</numentry>
-        </hbox>
-		<toggle name='wrap_by_char' label='Wrap by characters'>
-			If this option is on, file names will wrap by characters instead of words.
-		</toggle>
-		<hbox>
-          <numentry name='display_small_width' label='Small Icons (Max width):' unit='pixels' min='0' max='2000' width='4'>Maximum width for the text beside a Small Icon.</numentry>
-		</hbox>
-		<spacer/>
-	<spacer/>
-	<toggle name='vertical_order_small' label='Order small icons vertically'>If this option is on, then small icons are arranged in columns, not rows.</toggle>
-	<toggle name='vertical_order_large' label='Order large icons vertically'>If this option is on, then large icons are arranged in columns, not rows.</toggle>
-	<spacer/>
-	<hbox>
-		<numentry name='scroll_speed' label="Scroll speed: 1/" unit='view' min='1' max='99' width='2'></numentry>
+
 	</hbox>
-    </frame>
-    </section>
+	<spacer/>
+	<numentry name='filer_change_size_num' label='Automatic small icons: Change at:'
+		unit='items' min='1' max='1000' width='4'>
+		When automatic icon sizing is selected: If the directory contains this many items then it will be shown using Small Icons, otherwise Large Icons will be used.</numentry>
+	<spacer/>
+	<numentry name='display_large_width' label='Large Icons: (Max width):' sizegroup='disp2-lw'
+		unit='pixels' min='0' max='2000' width='4'>
+		Text wider than this is broken onto two lines in Large Icons mode.</numentry>
+	<numentry name='display_max_length' label='(Wrapped, Details):' sizegroup='disp2-lw'
+		unit='pixels' min='0' max='2000' width='4'>
+		Maximum length for Large Icons mode and Details. This can be changed temporarily by right dragging of the toolbar.</numentry>
+	<toggle name='wrap_by_char' label='Wrap by characters'>
+		If this option is on, file names will wrap by characters instead of words.</toggle>
+	<spacer/>
+	<numentry name='display_small_width' label='Small Icons (Max width):'
+		unit='pixels' min='0' max='2000' width='4'>Maximum width for the text beside a Small Icon.</numentry>
+	<spacer/>
+	<toggle name='vertical_order_small' label='Order small icons vertically'>
+		If this option is on, then small icons are arranged in columns, not rows.</toggle>
+	<toggle name='vertical_order_large' label='Order large icons vertically'>
+		If this option is on, then large icons are arranged in columns, not rows.</toggle>
+	<spacer/>
+		<numentry name='scroll_speed' label="Scroll speed: 1/" unit='view' min='1' max='99' width='2'></numentry>
+</frame>
+</section>
     <section title='List View'>
       <frame label='List View'>
         <toggle name='display_show_headers' label='Show column headings'>If this is on then column headings will be shown in the list view.</toggle>
