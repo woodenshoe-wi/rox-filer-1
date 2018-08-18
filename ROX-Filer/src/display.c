@@ -71,7 +71,7 @@ Option o_display_show_thumbs;
 Option o_display_show_dir_thumbs;
 Option o_display_show_headers;
 Option o_display_show_full_type;
-Option o_display_less_column_items;
+Option o_display_less_clickable_cols;
 Option o_display_name_width;
 Option o_display_show_name;
 Option o_display_show_type;
@@ -136,7 +136,7 @@ void display_init()
 
 	option_add_int(&o_use_background_colour, "use_background_colour", FALSE);
 	option_add_string(&o_background_colour, "background_colour", "#000000");
-	option_add_int(&o_display_less_column_items, "display_less_column_items", FALSE);
+	option_add_int(&o_display_less_clickable_cols, "display_less_clickable_cols", FALSE);
 
 	option_add_int(&o_display_name_width, "display_name_width", 0);
 

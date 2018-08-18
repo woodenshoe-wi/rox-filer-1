@@ -42,7 +42,7 @@ extern Option o_view_alpha;
 extern Option o_use_background_colour;
 extern Option o_background_colour;
 extern int huge_size;
-extern Option o_display_less_column_items;
+extern Option o_display_less_clickable_cols;
 extern Option o_display_name_width;
 extern Option o_display_show_name;
 extern Option o_display_show_type;

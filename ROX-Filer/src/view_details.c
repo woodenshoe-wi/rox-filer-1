@@ -1683,7 +1683,7 @@ static void view_details_get_iter_at_point(ViewIface *view, ViewIter *iter,
 	gint cell_y;
 
 	int space = 4;
-	if (o_display_less_column_items.int_value)
+	if (o_display_less_clickable_cols.int_value)
 		space = 0;
 
 	if (gtk_tree_view_get_path_at_pos(tree, x, y + space, &path, &column,
