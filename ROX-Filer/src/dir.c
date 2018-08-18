@@ -342,8 +342,8 @@ void dir_queue_recheck(Directory *dir, DirItem *item)
 	item->flags &= ~ITEM_FLAG_NEED_RESCAN_QUEUE;
 	if (!(item->flags & ITEM_FLAG_IN_RESCAN_QUEUE))
 	{
-		g_ptr_array_add(dir->recheck_list, item);
 		item->flags |= ITEM_FLAG_IN_RESCAN_QUEUE;
+		g_ptr_array_add(dir->recheck_list, item);
 	}
 }
 
@@ -577,8 +577,9 @@ static gboolean recheck_callback(gpointer data)
 		g_thread_join(dir->t_scan);
 		dir->t_scan = NULL;
 
+		//added by this thread
 		if (dir->recheck_list->len || dir->examine_list->len)
-			while (do_recheck(data));
+			while (do_recheck(dir));
 
 		dir_set_scanning(dir, FALSE);
 	}
@@ -749,7 +750,6 @@ static DirItem *_insert_item(Directory *dir, DirItem *item, const guchar *leafna
 		{
 			/* Preserve the old details so we can compare */
 			old = *item;
-			old.flags &= ~(ITEM_FLAG_NEED_RESCAN_QUEUE | ITEM_FLAG_NEED_EXAMINE);
 			do_compare = TRUE;
 		}
 		diritem_restat(full_path, item, &dir->stat_info, examine_now);
@@ -1121,6 +1121,11 @@ static void dir_scan(Directory *dir)
 			DirItem *new;
 
 			new = diritem_new(ent->d_name);
+			new->flags |= ITEM_FLAG_NEED_RESCAN_QUEUE;
+
+			if (dir->have_scanned)
+				new->flags |= ITEM_FLAG_NOT_DELETE;
+
 			g_ptr_array_add(dir->new_items, new);
 			g_hash_table_insert(dir->known_items, new->leafname, new);
 		}

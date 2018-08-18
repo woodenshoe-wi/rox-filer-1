@@ -258,8 +258,6 @@ void diritem_restat(
 	if (!item->mime_type)
 		item->mime_type = mime_type_from_base_type(item->base_type);
 
-	item->flags &= ~ITEM_FLAG_NEED_RESCAN_QUEUE;
-
 	g_mutex_lock(&m_diritems);
 	if (retitem->_image)
 		munref = g_slist_prepend(munref, retitem->_image);
@@ -277,7 +275,6 @@ DirItem *diritem_new(const guchar *leafname)
 	item = g_new0(DirItem, 1);
 	item->leafname = g_strdup(leafname);
 	item->base_type = TYPE_UNKNOWN;
-	item->flags = ITEM_FLAG_NEED_RESCAN_QUEUE | ITEM_FLAG_NOT_DELETE;
 
 	//collate key
 	gchar *to_free = NULL;
