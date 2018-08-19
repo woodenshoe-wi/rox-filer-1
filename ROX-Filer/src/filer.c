@@ -556,6 +556,7 @@ static void update_display(Directory *dir,
 {
 	ViewIface *view = (ViewIface *) filer_window->view;
 	gboolean init = filer_window->under_init;
+	FilerWindow *fw = filer_window;
 
 	//g_print("[a%d]%s", action, action == 1 ? "\n" : "");
 	//static gint64 start_time;
@@ -595,8 +596,12 @@ static void update_display(Directory *dir,
 				gtk_widget_queue_draw(GTK_WIDGET(view));
 			}
 
-			g_free(filer_window->dir_colour);
-			filer_window->dir_colour = xlabel_get(filer_window->sym_path);
+			GdkColor *tmpc = xlabel_get(fw->sym_path);
+			if ((!tmpc) != (!fw->dir_colour) || (tmpc && fw->dir_colour
+					&& !gdk_color_equal(tmpc, fw->dir_colour)))
+				gtk_widget_queue_draw(GTK_WIDGET(view));
+			g_free(fw->dir_colour);
+			fw->dir_colour = tmpc;
 
 			if (filer_window->dir_icon)
 				g_object_unref(filer_window->dir_icon);
