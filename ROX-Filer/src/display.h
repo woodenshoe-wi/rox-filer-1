@@ -16,6 +16,7 @@ typedef struct _ViewData ViewData;
 
 struct _ViewData
 {
+	PangoLayout *name;
 	int	name_width;
 	int	name_height;
 	int	details_width;

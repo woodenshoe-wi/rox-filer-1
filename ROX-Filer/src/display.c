@@ -1235,6 +1235,7 @@ void display_update_view(FilerWindow *fw,
 		return;
 
 	view->recent = item->flags & ITEM_FLAG_RECENT;
+	g_clear_object(&view->name);
 
 	if (clear)
 	{
