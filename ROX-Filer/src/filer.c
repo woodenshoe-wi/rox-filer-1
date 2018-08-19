@@ -940,6 +940,7 @@ gboolean filer_window_delete(GtkWidget *window,
 
 void filer_cut_links(FilerWindow *fw, gint side)
 {
+	if (!fw) return;
 	if (!fw->left_link && !fw->right_link) return;
 
 	if (side != 1 && fw->left_link)
@@ -3404,11 +3405,13 @@ void filer_perform_action(FilerWindow *fw, GdkEventButton *event)
 					}
 					else
 					{
-						//link mode
 						if (flags & OPEN_SAME_WINDOW)
 							flags |= OPEN_LINK_WINDOW;
-						else if (!ctrl)
-							flags |= OPEN_SAME_WINDOW;
+						else if (o_window_link.int_value != ctrl)
+						{ //want win link again (middle button)
+							filer_cut_links(fw->right_link, -1);
+							flags |= OPEN_LINK_WINDOW;
+						}
 					}
 				}
 				else
