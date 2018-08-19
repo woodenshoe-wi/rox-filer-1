@@ -39,6 +39,8 @@
 	<frame label='etc'>
 	<toggle name='xattr_show' label='Show extended attribute indicator'>
 		If this is on then files which have one or more extended attributes set will have an emblem added to indicate this.</toggle>
+	<toggle name='hide_root_msg' label="Hide the message bar Running as user 'root'">
+		This hides the bar even with the command-line option -u, --user if user is the root.</toggle>
 	</frame>
 
     <section title='New Window'>
@@ -431,10 +433,6 @@ xterm -e wget $1</entry>
 
 	<frame label='etc'>
 		<toggle name='xattr_ignore' label="Don't use extended attributes">This disables the use of extended attributes available in newer operating systems and file systems.  With this option set the 'Set Type' menu entry is disabled, the MIME type of the file is only derived from the file name and the properties window does not report extended attributes.</toggle>
-
-		<toggle name='hide_root_msg' label="Hide the message bar Running as user 'root'">
-			This hides the bar even with the command-line option -u, --user if user is the root.
-		</toggle>
 
 		<toggle name='fast_font_calc' label='Fast width calculating'>
 			If this is on, string width calculations will be faster but less accurate in Small Icons mode.
