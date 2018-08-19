@@ -41,6 +41,7 @@
 #include "bind.h"
 #include "menu.h"
 #include "diritem.h"
+#include "pixmaps.h"
 
 static GList *history = NULL;		/* Most recent first */
 static GList *history_tail = NULL;	/* Oldest item */
@@ -81,12 +82,23 @@ static void commit_edits(GtkTreeModel *model);
 
 //menu icons
 static MenuIconStyle style;
+static int iconw = 0;
 static GList *labels = NULL;
 static GList *labelshist = NULL; //temp
 static guint labelprocs = 0;
 static void resetlabels()
 {
 	style = get_menu_icon_style();
+	switch (style) {
+	case MIS_LARGE:
+		iconw = ICON_WIDTH * 1.2; break;
+	case MIS_SMALL:
+		iconw = small_width + 1; break;
+	default:
+		iconw = small_width / 6;
+D(iconw %d, iconw)
+	}
+
 	if (labelprocs)
 	{
 		g_source_remove(labelprocs);
@@ -895,9 +907,9 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 		layout = gtk_label_get_layout(GTK_LABEL(label));
 		pango_layout_get_pixel_size(layout, &width, &height);
 
-		gtk_fixed_put(GTK_FIXED(fix), label, height * 1.4, 0);
+		gtk_fixed_put(GTK_FIXED(fix), label, iconw, 0);
 		label =  gtk_label_new(pathp);
-		gtk_fixed_put(GTK_FIXED(fix), label, width + height * 1.4, 0);
+		gtk_fixed_put(GTK_FIXED(fix), label, width + iconw, 0);
 
 		gtk_container_add(GTK_CONTAINER(item), fix);
 
@@ -1014,10 +1026,10 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 
 		layout = gtk_label_get_layout(GTK_LABEL(label));
 		pango_layout_get_pixel_size(layout, &width, &height);
-		if (width + height * 2 > maxwidth)
-			maxwidth = width + height * 2;
+		if (width + height/2 + iconw > maxwidth)
+			maxwidth = width + height/2 + iconw;
 
-		gtk_fixed_put(GTK_FIXED(fix), label, height * 1.6, 0);
+		gtk_fixed_put(GTK_FIXED(fix), label, iconw, 0);
 
 		dirname = g_path_get_dirname(mark);
 		label = gtk_label_new(dirname);
