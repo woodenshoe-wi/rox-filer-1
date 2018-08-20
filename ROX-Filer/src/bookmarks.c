@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <gtk/gtk.h>
 #include <string.h>
@@ -81,13 +82,32 @@ static void commit_edits(GtkTreeModel *model);
 
 
 //menu icons
+typedef struct {
+	GtkWidget *fix;
+	GtkWidget *lbl;
+	DirItem *ditem;
+	char *path;
+} BItem;
 static MenuIconStyle style;
-static int iconw = 0;
-static GList *labels = NULL;
-static GList *labelshist = NULL; //temp
-static guint labelprocs = 0;
-static void resetlabels()
+static int iconw;
+static GList *items;
+static GList *itemshist; //temp
+static guint iconloop;
+static GThread *icont;
+static bool iconfinish;
+static GMutex itemm;
+static void resetitems()
 {
+	if (iconloop)
+	{
+		iconfinish = true;
+		if (icont)
+			g_thread_join(icont);
+		icont = NULL;
+		g_source_remove(iconloop);
+		iconloop = 0;
+	}
+
 	style = get_menu_icon_style();
 	switch (style) {
 	case MIS_LARGE:
@@ -96,43 +116,68 @@ static void resetlabels()
 		iconw = small_width + 1; break;
 	default:
 		iconw = small_width / 6;
-D(iconw %d, iconw)
 	}
 
-	if (labelprocs)
+	if (items)
 	{
-		g_source_remove(labelprocs);
-		labelprocs = 0;
+		for (GList *next = items; next; next = next->next)
+		{
+			BItem *bi = next->data;
+			g_free(bi->path); //free the path
+			if (bi->ditem)
+				diritem_free(bi->ditem);
+		}
+		g_list_free_full(items, g_free);
+		items = NULL;
 	}
-	if (!labels) return;
-
-	for (GList *next = labels; next; next = next->next)
-		g_free(((void **)next->data)[2]); //free the path
-
-	g_list_free_full(labels, g_free);
-	labels = NULL;
 }
-static gboolean labelproc(gpointer p)
+static gpointer icon_thread(gpointer data)
 {
-	gchar *path = ((void **)labels->data)[2];
-
-	DirItem *ditem = diritem_new("");
-	diritem_restat(path, ditem, NULL, TRUE);
-	GtkWidget *img = menu_make_image(ditem, style);
-	diritem_free(ditem);
-
-	if (img)
+	for (GList *next = items; next; next = next->next)
 	{
-		gtk_widget_show(img);
-		gtk_fixed_put(((void **)labels->data)[0], img, -1, -1);
+		if (iconfinish) break;
+		BItem *bi = next->data;
+
+		DirItem *ditem = diritem_new("");
+		diritem_restat(bi->path, ditem, NULL, TRUE);
+
+		g_mutex_lock(&itemm);
+		bi->ditem = ditem;
+		g_mutex_unlock(&itemm);
 	}
 
-	g_free(path);
-	labels = g_list_delete_link(labels, labels);
+	iconfinish = true;
+	return NULL;
+}
+static gboolean iconloopcb(gpointer p)
+{
+	g_mutex_lock(&itemm);
+	for (GList *next = items; next; next = next->next)
+	{
+		BItem *bi = next->data;
+		if (!bi->ditem) continue;
 
-	if (labels) return TRUE;
-	labelprocs = 0;
+		GtkWidget *img = menu_make_image(bi->ditem, style);
+
+		gtk_widget_show(img);
+		gtk_fixed_put((void *)bi->fix, img, -1, -1);
+
+		diritem_free(bi->ditem);
+		bi->ditem = NULL;
+	}
+	bool finish = iconfinish;
+	g_mutex_unlock(&itemm);
+
+	if (!finish) return TRUE;
+
+	resetitems();
 	return FALSE;
+}
+static void makeicons()
+{
+	iconfinish = false;
+	icont = g_thread_new("b_icon_t", icon_thread, NULL);
+	iconloop = g_idle_add(iconloopcb, NULL);
 }
 
 /****************************************************************
@@ -155,7 +200,7 @@ void bookmarks_show_menu(FilerWindow *filer_window, GtkWidget *widget)
 		gdk_event_free(event);
 	}
 
-	resetlabels();
+	resetitems();
 	if (menu)
 		gtk_widget_destroy((GtkWidget *) menu);
 
@@ -893,10 +938,10 @@ static GtkWidget *build_history_menu(FilerWindow *filer_window)
 		item = gtk_menu_item_new();
 
 		fix = gtk_fixed_new();
-		void **links = g_new(void *, 3);
-		links[0] = fix;
-		links[2] = g_strdup(path);
-		labelshist = g_list_append(labelshist, links);
+		BItem *bi = g_new0(BItem, 1);
+		bi->fix = fix;
+		bi->path = g_strdup(path);
+		itemshist = g_list_append(itemshist, bi);
 
 		label =  gtk_label_new(bpath);
 
@@ -1017,10 +1062,10 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		}
 
 		fix = gtk_fixed_new();
-		void **links = g_new(void *, 3);
-		links[0] = fix;
-		links[2] = g_strdup(path);
-		labels = g_list_append(labels, links);
+		BItem *bi = g_new0(BItem, 1);
+		bi->fix = fix;
+		bi->path = g_strdup(path);
+		items = g_list_append(items, bi);
 
 		label =  gtk_label_new_with_mnemonic(title);
 
@@ -1033,7 +1078,7 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 
 		dirname = g_path_get_dirname(mark);
 		label = gtk_label_new(dirname);
-		links[1] = label;
+		bi->lbl = label;
 
 		gtk_widget_modify_fg (label,
 				GTK_STATE_NORMAL,
@@ -1058,13 +1103,13 @@ static GtkWidget *bookmarks_build_menu(FilerWindow *filer_window)
 		g_free(dirname);
 	}
 
-	for (GList *next = labels; next; next = next->next)
-		gtk_fixed_move(((GtkFixed **)(next->data))[0],
-				((GtkWidget **)(next->data))[1], maxwidth, 0);
+	for (GList *next = items; next; next = next->next)
+		gtk_fixed_move((void *)((BItem *)next->data)->fix,
+				((BItem *)next->data)->lbl, maxwidth, 0);
 
-	labels = g_list_concat(labels, labelshist);
-	labelshist = NULL;
-	labelprocs = g_idle_add(labelproc, NULL);
+	items = g_list_concat(items, itemshist);
+	itemshist = NULL;
+	makeicons();
 
 	return menu;
 }
