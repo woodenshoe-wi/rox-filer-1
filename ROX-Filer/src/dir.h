@@ -94,8 +94,6 @@ struct _Directory
 
 	gint		rescan_timeout;	/* See dir_rescan_soon() */
 
-	gint64 last_scan_time;
-
 	GFileMonitor *monitor;
 };
 

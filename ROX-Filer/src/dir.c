@@ -54,6 +54,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "global.h"
 
@@ -78,7 +79,7 @@ static Option o_purge_dir_cache;
 static Option o_close_dir_when_missing;
 
 /* Static prototypes */
-static void update(Directory *dir, gchar *pathname, gpointer data);
+static void fsupdate(Directory *dir, gchar *pathname, gpointer data);
 static void call_scan_t(Directory *dir);
 static DirItem *_insert_item(Directory *dir, DirItem *item, const guchar *leafname, gboolean examine_now);
 static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean examine_now);
@@ -94,7 +95,7 @@ void dir_init(void)
 	option_add_int(&o_close_dir_when_missing, "close_dir_when_missing", FALSE);
 
 	dir_cache = g_fscache_new((GFSLoadFunc) dir_new,
-				(GFSUpdateFunc) update, NULL);
+				(GFSUpdateFunc) fsupdate, NULL);
 }
 
 
@@ -106,7 +107,6 @@ static gint rescan_timeout_cb(gpointer data)
 		dir_scan(dir);
 
 	if (dir->scanning) return TRUE;
-	dir_check_this(dir->pathname);
 
 	dir->rescan_timeout = -1;
 	return FALSE;
@@ -243,35 +243,28 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 	g_warning("dir_detach: Callback/data pair not attached!\n");
 }
 
-void dir_update(Directory *dir, gchar *pathname)
+static Directory *parent(const char *path)
 {
-	update(dir, pathname, NULL);
-}
+	char *dir_path = g_path_get_dirname(path);
+	char *real_path = pathdup(dir_path);
+	g_free(dir_path);
 
-/* Rescan this directory */
-void refresh_dirs(const char *path)
-{
-	g_fscache_update(dir_cache, path);
+	Directory *dir = g_fscache_lookup_full(
+			dir_cache, real_path, FSCACHE_LOOKUP_PEEK, NULL);
+
+	g_free(real_path);
+	return dir;
 }
 
 /* When something has happened to a particular object, call this
  * and all appropriate changes will be made.
  */
-void dir_check_this(const guchar *path)
+static void _dir_check_this(const char *path, bool force)
 {
-	guchar	*real_path;
-	guchar	*dir_path;
-	Directory *dir;
-
-	dir_path = g_path_get_dirname(path);
-	real_path = pathdup(dir_path);
-	g_free(dir_path);
-
-	dir = g_fscache_lookup_full(dir_cache, real_path,
-					FSCACHE_LOOKUP_PEEK, NULL);
+	Directory *dir = parent(path);
 	if (dir)
 	{
-		if (dir->users)
+		if (dir->users || force)
 		{
 			time(&diritem_recent_time);
 
@@ -281,8 +274,10 @@ void dir_check_this(const guchar *path)
 		}
 		g_object_unref(dir);
 	}
-
-	g_free(real_path);
+}
+void dir_check_this(const guchar *path)
+{
+	_dir_check_this(path, false);
 }
 
 /* Used when we fork an action child, otherwise we can't delete or unmount
@@ -298,25 +293,16 @@ void dir_drop_all_notifies(void)
  */
 void dir_force_update_path(const gchar *path, gboolean icon)
 {
-	gchar	*dir_path;
-	Directory *dir;
-	gchar 	*base;
-
 	g_return_if_fail(path[0] == '/');
 
-	dir_path = g_path_get_dirname(path);
-
-	dir = g_fscache_lookup_full(dir_cache, dir_path, FSCACHE_LOOKUP_PEEK,
-			NULL);
+	Directory *dir = parent(path);
 	if (dir)
 	{
-		base = g_path_get_basename(path);
+		char *base = g_path_get_basename(path);
 		dir_force_update_item(dir, base, icon);
 		g_free(base);
 		g_object_unref(dir);
 	}
-
-	g_free(dir_path);
 }
 
 /* Ensure that 'leafname' is up-to-date. Returns the new/updated
@@ -526,16 +512,6 @@ static gboolean do_recheck(gpointer data)
 	return FALSE;
 }
 
-static void dir_rescan_later(Directory *dir)
-{
-	if (dir->rescan_timeout != -1)
-		g_source_remove(dir->rescan_timeout);
-
-	dir->rescan_timeout = g_timeout_add(
-			(g_get_monotonic_time() - dir->last_scan_time) / 1000 * 4 + 600,
-			rescan_timeout_cb, dir);
-}
-
 static GMutex callbackm;
 static gboolean recheck_callback(gpointer data)
 {
@@ -591,7 +567,7 @@ static gboolean recheck_callback(gpointer data)
 	}
 
 	if (!dir->in_scan_thread && dir->needs_update)
-		dir_rescan_later(dir);
+		rescan_soon(dir);
 
 	return FALSE;
 }
@@ -818,7 +794,7 @@ static DirItem *insert_item(Directory *dir, const guchar *leafname, gboolean exa
 	return item;
 }
 
-static void update(Directory *dir, gchar *pathname, gpointer data)
+void dir_update(Directory *dir, gchar *pathname)
 {
 	g_free(dir->pathname);
 	dir->pathname = pathdup(pathname);
@@ -828,6 +804,16 @@ static void update(Directory *dir, gchar *pathname, gpointer data)
 	else
 		dir_scan(dir);
 }
+static void fsupdate(Directory *dir, gchar *pathname, gpointer data)
+{ //todo: when a dir is updated, dir scan is called twice because of this
+	dir_update(dir, pathname);
+}
+/* Rescan this directory */
+void refresh_dirs(const char *path)
+{
+	g_fscache_update(dir_cache, path);
+}
+
 
 /* If there is work to do, set the scan thread.
  * Otherwise, stop scanning.
@@ -1046,6 +1032,13 @@ static gboolean check_delete(gpointer key, gpointer value, gpointer data)
 	return FALSE;
 }
 
+static gboolean checkthiscb(char *path)
+{
+	_dir_check_this(path, true);
+	g_free(path);
+	return FALSE;
+}
+
 /* Get the names of all files in the directory.
  * Remove any DirItems that are no longer listed.
  * Replace the recheck_list with the items found.
@@ -1055,8 +1048,6 @@ static void dir_scan(Directory *dir)
 	g_return_if_fail(dir != NULL);
 
 	stop_scan_t(dir);
-
-	dir->last_scan_time = g_get_monotonic_time();
 
 	const char *pathname = dir->pathname;
 	gboolean isupdate = dir->needs_update && !dir->error;
@@ -1153,7 +1144,12 @@ static void dir_scan(Directory *dir)
 	 */
 	tousers(dir, DIR_QUEUE_INTERESTING, NULL);
 
-	dir->have_scanned = TRUE;
-
 	call_scan_t(dir);
+
+	if (dir->have_scanned)
+		//this means files are changed by rox
+		//by other prog, still needs the scan btn because it is very heavy.
+		//and this func is called in the lock of fscache. so have to be idle
+		g_idle_add((GSourceFunc)checkthiscb, g_strdup(dir->pathname));
+	dir->have_scanned = TRUE;
 }

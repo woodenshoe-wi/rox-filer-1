@@ -2287,6 +2287,10 @@ static void list_cb(gpointer data)
 
 	send_done();
 
+	//for the case dropping files to a dir item
+	//not for view area, because dir_scan does force check
+	send_check_path(action_dest);
+
 	if (last && o_action_wink.int_value)
 		//autoselect(wink)
 		printf_send("w%s",
