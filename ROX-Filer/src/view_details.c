@@ -2200,7 +2200,6 @@ static gboolean view_details_auto_scroll_callback(ViewIface *view)
 	if      (y <     step) diff = y - step;
 	else if (y > h - step) diff = step + y - h;
 
-D(diff %d, diff)
 	if (diff)
 	{
 		int	old = adj->value;
