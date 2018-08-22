@@ -7,6 +7,8 @@
 #define __VIEW_IFACE_H__
 
 #define AUTOSCROLL_STEP 20
+#define AUTOSCROLL_AREA 22
+#define AUTOSCROLL_SPEED 1.7
 
 #include <glib-object.h>
 #include <gdk/gdk.h>

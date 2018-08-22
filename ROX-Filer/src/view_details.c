@@ -2195,15 +2195,16 @@ static gboolean view_details_auto_scroll_callback(ViewIface *view)
 	if ((x < 0 || x > w || y < 0 || y > h) && !view_details->lasso_box)
 		return FALSE;		/* Out of window - stop */
 
-	int step = MAX(AUTOSCROLL_STEP, h / 9);
+	int step = MAX(AUTOSCROLL_STEP, h / AUTOSCROLL_AREA);
 
 	if      (y <     step) diff = y - step;
 	else if (y > h - step) diff = step + y - h;
 
+D(diff %d, diff)
 	if (diff)
 	{
 		int	old = adj->value;
-		int	value = old + diff;
+		int	value = old + diff * AUTOSCROLL_SPEED;
 
 		value = CLAMP(value, 0, adj->upper - adj->page_size);
 		gtk_adjustment_set_value(adj, value);
