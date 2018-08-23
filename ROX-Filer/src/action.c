@@ -447,11 +447,11 @@ static void message_from_child(gpointer 	  data,
 			g_free(buffer);
 			return;
 		}
-		g_printerr("Child died in the middle of a message.\n");
+		g_printerr("\nChild died in the middle of a message.");
 	}
 
 	if (gui_side->abort_attempts)
-		abox_log(abox, _("\nProcess terminated.\n"), "error");
+		abox_log(abox, _("\nProcess terminated."), "error");
 
 	/* The child is dead */
 	gui_side->child = 0;
@@ -471,9 +471,9 @@ static void message_from_child(gpointer 	  data,
 		guchar *report;
 
 		if (gui_side->errors == 1)
-			report = g_strdup(_("There was one error.\n"));
+			report = g_strdup(_("\nThere was one error."));
 		else
-			report = g_strdup_printf(_("There were %d errors.\n"),
+			report = g_strdup_printf(_("\nThere were %d errors."),
 							gui_side->errors);
 
 		gtk_text_buffer_insert_at_cursor(text_buffer, report, -1);
@@ -541,7 +541,7 @@ static gboolean read_exact(int source, char *buffer, ssize_t len)
 
 static void send_done(void)
 {
-	printf_send(_("'\nDone\n"));
+	printf_send(_("'\nDone"));
 }
 
 /* Notify the filer that this item has been updated */
