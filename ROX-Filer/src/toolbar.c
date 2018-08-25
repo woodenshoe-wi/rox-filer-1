@@ -769,6 +769,7 @@ static gint bar_pressed(GtkWidget *widget,
 				pressbtn = event->button;
 				pressx = event->x_root;
 				pressy = event->y_root;
+				return FALSE;
 			}
 		}
 		break;
@@ -797,6 +798,7 @@ static gint bar_pressed(GtkWidget *widget,
 			pressbtn = event->button;
 			pressx = event->x_root;
 			pressy = event->y_root;
+			return FALSE;
 		}
 
 		break;
@@ -1028,10 +1030,19 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 	{
 		g_signal_connect(button, "clicked",
 			G_CALLBACK(tool->clicked), filer_window);
+
 		g_signal_connect(button, "button_press_event",
 			G_CALLBACK(toolbar_button_pressed), filer_window);
 		g_signal_connect(button, "button_release_event",
 			G_CALLBACK(toolbar_button_released), filer_window);
+
+		gtk_widget_add_events(button, GDK_BUTTON_RELEASE | GDK_MOTION_NOTIFY);
+		g_signal_connect(button, "motion-notify-event",
+			G_CALLBACK(bar_motion), filer_window);
+		g_signal_connect(button, "button-release-event",
+			G_CALLBACK(bar_released), filer_window);
+		g_signal_connect(button, "button_press_event",
+			G_CALLBACK(bar_pressed), filer_window);
 
 		if (o_toolbar.int_value != TOOLBAR_NORMAL)
 		{
