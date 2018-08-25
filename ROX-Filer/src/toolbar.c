@@ -692,17 +692,68 @@ static gboolean check_double()
 	lasttime = current;
 	return FALSE;
 }
+
+static int pressx;
+static int pressy;
+static int pressbtn;
+static int bar_motion(GtkWidget *widget, GdkEventMotion *event, FilerWindow *fw)
+{
+	if (!pressx && !pressy) return FALSE;
+
+	int threshold;
+	g_object_get(gtk_settings_get_default(),
+		"gtk-dnd-drag-threshold", &threshold, NULL);
+
+	int dx = event->x_root - pressx;
+	int dy = event->y_root - pressy;
+
+	if (ABS(dx) > threshold || ABS(dy) > threshold)
+	{
+		GtkWindow *win = GTK_WINDOW(gtk_widget_get_toplevel(widget));
+		if (pressbtn == 1)
+			gtk_window_begin_move_drag(win,
+					1, pressx, pressy, event->time); //use pressx/y for cursor pos
+		else if (pressbtn == 3)
+		{
+			if (fw->view_type == VIEW_TYPE_COLLECTION)
+			{
+				gdk_window_get_geometry(
+						fw->window->window, NULL, NULL,
+						&fw->resize_drag_width,
+						NULL, NULL);
+
+				fw->name_scale_start = fw->name_scale;
+			}
+
+			gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
+					3, event->x_root, event->y_root, event->time);
+		}
+
+		pressbtn = pressx = pressy = 0;
+		return TRUE;
+	}
+
+	return FALSE;
+}
+static gint bar_released(GtkWidget *widget,
+				GdkEventButton *event,
+				FilerWindow *filer_window)
+{
+	if (event->state & GDK_BUTTON1_MASK
+			&& event->button != 1) return FALSE;
+
+	pressbtn = pressx = pressy = 0;
+	return FALSE;
+}
 static gint bar_pressed(GtkWidget *widget,
 				GdkEventButton *event,
 				FilerWindow *filer_window)
 {
 	if (event->type != GDK_BUTTON_PRESS) return FALSE;
-	GtkWindow *win = GTK_WINDOW(gtk_widget_get_toplevel(widget));
 
 	switch (event->button)
 	{
 	case 1:
-
 		{
 			ViewIter iter;
 			if (check_double() &&
@@ -714,8 +765,11 @@ static gint bar_pressed(GtkWidget *widget,
 						NULL);
 			}
 			else
-				gtk_window_begin_move_drag(win,
-						event->button, event->x_root, event->y_root, event->time);
+			{
+				pressbtn = event->button;
+				pressx = event->x_root;
+				pressy = event->y_root;
+			}
 		}
 		break;
 	case 2:
@@ -729,7 +783,7 @@ static gint bar_pressed(GtkWidget *widget,
 		view_cursor_to_iter(filer_window->view, NULL);
 		break;
 	case 3:
-		if (check_double())
+		if (pressbtn == 1 || check_double())
 		{
 			const char *current = filer_window->sym_path;
 			if (current[0] == '/' && current[1] == '\0')
@@ -740,17 +794,9 @@ static gint bar_pressed(GtkWidget *widget,
 		}
 		else
 		{
-			if (filer_window->view_type == VIEW_TYPE_COLLECTION)
-			{
-				gdk_window_get_geometry(
-						filer_window->window->window, NULL, NULL,
-						&filer_window->resize_drag_width,
-						NULL, NULL);
-
-				filer_window->name_scale_start = filer_window->name_scale;
-			}
-			gtk_window_begin_resize_drag(win, GDK_WINDOW_EDGE_NORTH_EAST,
-					event->button, event->x_root, event->y_root, event->time);
+			pressbtn = event->button;
+			pressx = event->x_root;
+			pressy = event->y_root;
 		}
 
 		break;
@@ -831,6 +877,11 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 		gtk_toolbar_append_widget(GTK_TOOLBAR(bar),
 				filer_window->toolbar_text, NULL, NULL);
 
+		gtk_widget_add_events(bar, GDK_BUTTON_RELEASE | GDK_MOTION_NOTIFY);
+		g_signal_connect(bar, "motion-notify-event",
+			G_CALLBACK(bar_motion), filer_window);
+		g_signal_connect(bar, "button-release-event",
+			G_CALLBACK(bar_released), filer_window);
 
 		g_signal_connect(bar, "button_press_event",
 			G_CALLBACK(bar_pressed), filer_window);
