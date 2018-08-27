@@ -954,12 +954,13 @@ static void syncgui()
 	static gint64 start = 0;
 	gint64 now = g_get_monotonic_time();
 	if (now - start < SHOWTIME) return;
-	start = now;
 
 	printf_send("r");
 	char c;
 	read(from_parent, &c, 1);
 	if (c != 'r') process_flag(c);
+
+	start = g_get_monotonic_time();
 	//g_usleep(100);
 }
 
