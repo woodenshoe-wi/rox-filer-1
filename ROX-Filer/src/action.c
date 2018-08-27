@@ -960,16 +960,20 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 #define SHOWTIME 100 * 1000
 static void syncgui()
 {
-	static gint64 start = 0;
+	static gint64 showtime = SHOWTIME;
+	static gint64 start;
 	gint64 now = g_get_monotonic_time();
-	if (now - start < SHOWTIME) return;
+	if (now - start < showtime) return;
+	start = now;
 
 	printf_send("r");
 	char c;
 	read(from_parent, &c, 1);
 	if (c != 'r') process_flag(c);
 
-	start = g_get_monotonic_time();
+	now = g_get_monotonic_time();
+	showtime = MAX(now - start, showtime);
+	start = now;
 	//g_usleep(100);
 }
 
