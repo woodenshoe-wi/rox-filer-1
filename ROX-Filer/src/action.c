@@ -80,6 +80,7 @@ struct _GUIside
 
 	int 		from_child;	/* File descriptor */
 	FILE		*to_child;
+	gint		synced;
 	gint		sync;
 	int 		input_tag;	/* gdk_input_add() */
 	pid_t		child;		/* Process ID */
@@ -351,8 +352,15 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 	ABox *abox = gui_side->abox;
 
 	if (*buffer == 'r')
-//		gui_side->sync = g_idle_add((GSourceFunc)syncchild, gui_side);
-		syncchild(gui_side);
+	{
+		if (!gui_side->synced)
+		{//first time is heavy
+			gui_side->synced = TRUE;
+			gui_side->sync = g_idle_add((GSourceFunc)syncchild, gui_side);
+		}
+		else
+			syncchild(gui_side);
+	}
 	else if (*buffer == 'w')
 	{
 		char *dir = g_path_get_dirname(buffer + 1);
@@ -922,6 +930,7 @@ static GUIside *start_action(GtkWidget *abox, ActionChild *func, gpointer data,
 	gui_side = g_new(GUIside, 1);
 	gui_side->from_child = filedes[0];
 	gui_side->to_child = fdopen(filedes[3], "wb");
+	gui_side->synced = 0;
 	gui_side->sync = 0;
 	gui_side->child = child;
 	gui_side->errors = 0;
