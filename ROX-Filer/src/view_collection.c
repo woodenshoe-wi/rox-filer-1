@@ -25,6 +25,7 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "global.h"
 
@@ -2249,8 +2250,11 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 
 	gtk_widget_get_requisition(filer_window->scrollbar, &req);
 
+	bool inbar = false;
+
 	int vw = MAX(w * MAX(cols, 1), min_x);
-	int vh = CLAMP(h * rows + space, MAX(req.height, small_height * 2), max_y - exh);
+	int vh = CLAMP(h * rows + space, MAX(req.height, small_height * 2),
+			max_y - (inbar ? exh : 0));
 	gboolean notauto = FALSE;
 
 	if (turn && (vw != max_x || vh != max_y) &&
@@ -2258,7 +2262,7 @@ static void view_collection_autosize(ViewIface *view, gboolean turn)
 		GTK_WIDGET(view_collection)->allocation.height == vh)
 	{
 		vw = max_x;
-		vh = max_y - exh;
+		vh = max_y - (inbar ? exh : 0);
 		notauto = TRUE;
 	}
 
