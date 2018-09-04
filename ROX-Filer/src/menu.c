@@ -67,9 +67,10 @@
 #include "bulk_rename.h"
 #include "xtypes.h"
 #include "log.h"
+#include "dnd.h"
 
 typedef enum {
-	FILE_COPY_ITEM,
+	FILE_DUPLICATE_ITEM,
 	FILE_RENAME_ITEM,
 	FILE_LINK_ITEM,
 	FILE_OPEN_FILE,
@@ -82,6 +83,8 @@ typedef enum {
 	FILE_CHMOD_ITEMS,
 	FILE_FIND,
 	FILE_SET_TYPE,
+	FILE_COPY_TO_CLIPBOARD,
+	FILE_CUT_TO_CLIPBOARD,
 #if defined(HAVE_GETXATTR) || defined(HAVE_ATTROPEN)
 	FILE_XATTRS,
 #endif
@@ -101,6 +104,15 @@ static gint updating_menu = 0;		/* Non-zero => ignore activations */
 static GList *send_to_paths = NULL;
 
 static Option o_menu_iconsize, o_menu_xterm, o_menu_quick;
+
+/* clipboard targets */
+static const GtkTargetEntry clipboard_targets[] = {
+	{"text/uri-list", 0, TARGET_URI_LIST},
+	{"x-special/gnome-copied-files", 0, TARGET_GNOME_COPIED_FILES},
+};
+static GtkClipboard *clipboard;
+static gchar *clipboard_action = NULL;
+static GList *selected_paths = NULL;
 
 /* Static prototypes */
 
@@ -172,6 +184,11 @@ static void follow_symlinks(gpointer data, guint action, GtkWidget *widget);
 /* (action used in this - MiniType) */
 static void mini_buffer(gpointer data, guint action, GtkWidget *widget);
 static void resize(gpointer data, guint action, GtkWidget *widget);
+
+/* clipboard */
+static void clipboard_get(GtkClipboard *clipboard, GtkSelectionData *selection_data, guint info, gpointer user_data);
+static void clipboard_clear(GtkClipboard *clipboard, gpointer user_data);
+static void paste_from_clipboard(gpointer data, guint action, GtkWidget *widget);
 
 #define MENUS_NAME "menus2"
 
@@ -310,6 +327,8 @@ void menu_init(void)
 	option_register_widget("menu-set-keys", set_keys_button);
 
 	filer_keys = gtk_accel_group_new();
+
+	clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 }
 
 MenuIconStyle get_menu_icon_style(void)
@@ -359,12 +378,12 @@ MenuIconStyle get_menu_icon_style(void)
 /* Shade items that only work on single files */
 static void shade_file_menu_items(gboolean shaded)
 {
-	menu_set_items_shaded(filer_file_menu, shaded, 0, 1);
-	menu_set_items_shaded(filer_file_menu, shaded, 2, 1);
-	menu_set_items_shaded(filer_file_menu, shaded, 5, 1);
-	menu_set_items_shaded(filer_file_menu, shaded, 8, 2);
+	menu_set_items_shaded(filer_file_menu, shaded, 2, 1); /* Duplicate... */
+	menu_set_items_shaded(filer_file_menu, shaded, 4, 1); /* Link... */
+	menu_set_items_shaded(filer_file_menu, shaded, 7, 1); /* Shift Open */
+	menu_set_items_shaded(filer_file_menu, shaded, 10, 2); /* Set Run Action... + Set Icon... */
 #if defined(HAVE_GETXATTR) || defined(HAVE_ATTROPEN)
-	menu_set_items_shaded(filer_file_menu, shaded, 10, 1);
+	menu_set_items_shaded(filer_file_menu, shaded, 12, 1); /* Extended Attributes... */
 #endif
 }
 
@@ -670,12 +689,16 @@ gboolean ensure_filer_menu(void)
 	filer_file_menu = start_menu("File", filer_menu);
 	filer_file_item = GTK_BIN(current)->child;
 
-	ads(N_("Copy..."  ), file_op, FILE_COPY_ITEM, GTK_STOCK_COPY);
+	ads(N_("Copy"), file_op, FILE_COPY_TO_CLIPBOARD, GTK_STOCK_COPY);
 		sta(GDK_KEY_c, GDK_CONTROL_MASK);
+	ads(N_("Cut" ), file_op, FILE_CUT_TO_CLIPBOARD, GTK_STOCK_CUT);
+		sta(GDK_KEY_x, GDK_CONTROL_MASK);
+	ads(N_("Duplicate..."), file_op, FILE_DUPLICATE_ITEM, GTK_STOCK_COPY);
+		sta(GDK_KEY_d, GDK_CONTROL_MASK);
 	adi(N_("Rename..."), file_op, FILE_RENAME_ITEM);
 	adi(N_("Link..."  ), file_op, FILE_LINK_ITEM);
 	ads(N_("Delete"   ), file_op, FILE_DELETE, GTK_STOCK_DELETE);
-		sta(GDK_KEY_x, GDK_CONTROL_MASK);
+		sta(GDK_KEY_Delete, 0);
 
 	add_separator();
 
@@ -717,10 +740,10 @@ gboolean ensure_filer_menu(void)
 	adi(N_("Select If..."     ), mini_buffer, MINI_SELECT_IF);
 		sta(GDK_KEY_question, GDK_SHIFT_MASK);
 
-
 	start_menu(NULL, filer_menu);
 	ads(N_("Options..."), menu_show_options, 0, GTK_STOCK_PREFERENCES);
-
+	ads(N_("Paste"), paste_from_clipboard, 0, GTK_STOCK_PASTE);
+		sta(GDK_KEY_v, GDK_CONTROL_MASK);
 
 	filer_new_menu = start_menu(N_("New"), filer_menu);
 
@@ -834,6 +857,8 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 	GdkModifierType	state = 0;
 	int		n_selected;
 	int             n_added = 0;
+	GtkSelectionData *clipboard_selection = NULL;
+	gboolean clipboard_retrieved;
 
 	g_return_if_fail(event != NULL);
 
@@ -863,6 +888,23 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 	{
 		filer_window->temp_item_selected = FALSE;
 	}
+
+	/* Determine whether to shade "Paste" option */
+	clipboard_selection = gtk_clipboard_wait_for_contents(clipboard, gnome_copied_files);
+
+	if (clipboard_selection == NULL)
+		clipboard_selection = gtk_clipboard_wait_for_contents(clipboard, text_uri_list);
+
+	if (clipboard_selection == NULL)
+		clipboard_retrieved = FALSE;
+	else
+	{
+		clipboard_retrieved = TRUE;
+		gtk_selection_data_free (clipboard_selection);
+	}
+
+	menu_set_items_shaded(filer_menu, !clipboard_retrieved, 4, 1);
+
 	/* Short-cut to the Send To menu */
 	if (state & GDK_SHIFT_MASK)
 	{
@@ -949,7 +991,7 @@ void show_filer_menu(FilerWindow *filer_window, GdkEvent *event, ViewIter *iter)
 						: _("(bad utf-8)"));
 				if (!can_set_run_action(file_item))
 					menu_set_items_shaded(filer_file_menu,
-							TRUE, 8, 1);
+							TRUE, 10, 1);
 				break;
 			default:
 				shade_file_menu_items(TRUE);
@@ -2233,6 +2275,146 @@ static void select_nth_item(GtkMenuShell *shell, int n)
 	gtk_menu_shell_select_item(shell, item);
 }
 
+static void clipboard_get(GtkClipboard *clipboard, GtkSelectionData *selection_data, guint info, gpointer user_data)
+{
+	if (!selected_paths)
+		return;
+
+	GList *iter;
+	switch (info) {
+		case TARGET_URI_LIST:
+		{
+			gchar *tmp;
+			gchar *data = g_strdup("");
+			for (iter = selected_paths; iter; iter = iter->next)
+			{
+				tmp = data;
+				data = g_strconcat(data, "file://", (gchar *)iter->data, "\n", NULL);
+				g_free(tmp);
+			}
+			gtk_selection_data_set(selection_data, text_uri_list,
+					8, data, strlen(data));
+			g_free(data);
+			break;
+		}
+		case TARGET_GNOME_COPIED_FILES:
+		{
+			gchar *tmp;
+			gchar *data = strdup(clipboard_action);
+			for (iter = selected_paths; iter; iter = iter->next)
+			{
+				tmp = data;
+				data = g_strconcat(data, "file://", (gchar *)iter->data, "\r\n", NULL);
+				g_free(tmp);
+			}
+			gtk_selection_data_set(selection_data, gnome_copied_files,
+					8, data, strlen(data));
+			g_free(data);
+			break;
+		}
+		default:
+			break;
+	}
+}
+
+static void clipboard_clear(GtkClipboard *clipboard, gpointer user_data)
+{
+	if (!selected_paths)
+		return;
+
+	destroy_glist(&selected_paths);
+}
+
+static void paste_from_clipboard(gpointer data, guint action, GtkWidget *unused)
+{
+	GtkSelectionData *clipboard_selection = NULL;
+	GList *local_paths = NULL;
+	gchar **uri_iter;
+	gchar **uri_list;
+	const gchar *error = NULL;
+	const gchar *dest_path = (gchar *)window_with_focus->sym_path;
+	gchar *string_data = NULL;
+	gboolean are_copying = TRUE;
+
+	clipboard_selection =
+				gtk_clipboard_wait_for_contents(clipboard, gnome_copied_files);
+
+	if (clipboard_selection == NULL)
+	{
+		clipboard_selection =
+					gtk_clipboard_wait_for_contents(clipboard, text_uri_list);
+	}
+
+	if (clipboard_selection == NULL)
+	{
+		delayed_error(_("The clipboard is empty."));
+		return;
+	}
+	else
+	{
+		uri_list = gtk_selection_data_get_uris(clipboard_selection);
+
+		if (uri_list == NULL)
+		{
+			string_data = g_strndup(clipboard_selection->data,
+									clipboard_selection->length);
+
+			uri_list = g_strsplit_set(string_data, "\r\n", -1);
+			g_free(string_data);
+		}
+
+		/* Either one local URI, or a list. If everything in the list
+		* isn't local then we are stuck.
+		*/
+
+		for (uri_iter = uri_list; *uri_iter; uri_iter++)
+		{
+			if (**uri_iter == '\0')
+				continue;
+			if (strcmp(*uri_iter, "copy") == 0)
+				continue;
+			if (strcmp(*uri_iter, "cut") == 0)
+			{
+				are_copying = FALSE;
+				continue;
+			}
+
+			char *path;
+
+			path = get_local_path((EscapedPath *) *uri_iter);
+
+			if (path)
+				local_paths = g_list_append(local_paths, path);
+			else
+				error = _("Some of these files are on a "
+						"different machine - they will be "
+						"ignored - sorry");
+		}
+
+		if (!local_paths)
+			error = _("None of these files are on the local "
+					"machine - I can't operate on multiple "
+					"remote files - sorry.");
+		else
+		{
+			if (are_copying == TRUE)
+				action_copy(local_paths, dest_path, NULL, -1);
+			else
+				action_move(local_paths, dest_path, NULL, -1);
+
+			destroy_glist(&local_paths);
+		}
+
+		if (error)
+			delayed_error(_("Error getting file list: %s"), error);
+
+		g_strfreev(uri_list);
+		gtk_selection_data_free (clipboard_selection);
+
+		gtk_clipboard_clear(clipboard);
+	}
+}
+
 static void file_op(gpointer data, FileOp action, GtkWidget *unused)
 {
 	DirItem	*item;
@@ -2250,8 +2432,8 @@ static void file_op(gpointer data, FileOp action, GtkWidget *unused)
 
 		switch (action)
 		{
-			case FILE_COPY_ITEM:
-				prompt = _("Copy ... ?");
+			case FILE_DUPLICATE_ITEM:
+				prompt = _("Duplicate ... ?");
 				break;
 			case FILE_RENAME_ITEM:
 				prompt = _("Rename ... ?");
@@ -2293,6 +2475,12 @@ static void file_op(gpointer data, FileOp action, GtkWidget *unused)
 				break;
 			case FILE_FIND:
 				prompt = _("Search inside ... ?");
+				break;
+			case FILE_COPY_TO_CLIPBOARD:
+				prompt = _("Copy ... to clipboard ?");
+				break;
+			case FILE_CUT_TO_CLIPBOARD:
+				prompt = _("Cut ... to clipboard ?");
 				break;
 			default:
 				g_warning("Unknown action!");
@@ -2348,6 +2536,34 @@ static void file_op(gpointer data, FileOp action, GtkWidget *unused)
 				return;
 			}
 			break;	/* Not a bulk rename... see below */
+		case FILE_COPY_TO_CLIPBOARD:
+		{
+			gtk_clipboard_clear(clipboard);
+
+			if (clipboard_action)
+				g_free(clipboard_action);
+			clipboard_action = g_strdup("copy\n");
+
+			selected_paths = filer_selected_items(window_with_focus);
+
+			gtk_clipboard_set_with_data(clipboard, clipboard_targets, 2,
+				clipboard_get, clipboard_clear, NULL);
+			return;
+		}
+		case FILE_CUT_TO_CLIPBOARD:
+		{
+			gtk_clipboard_clear(clipboard);
+
+			if (clipboard_action)
+				g_free(clipboard_action);
+			clipboard_action = g_strdup("cut\n");
+
+			selected_paths = filer_selected_items(window_with_focus);
+
+			gtk_clipboard_set_with_data(clipboard, clipboard_targets, 2,
+				clipboard_get, clipboard_clear, NULL);
+			return;
+		}
 		default:
 			break;
 	}
@@ -2381,9 +2597,9 @@ static void file_op(gpointer data, FileOp action, GtkWidget *unused)
 
 	switch (action)
 	{
-		case FILE_COPY_ITEM:
+		case FILE_DUPLICATE_ITEM:
 			src_dest_action_item(path, di_image(item),
-					_("Copy"), copy_cb,
+					_("Duplicate"), copy_cb,
 					GDK_ACTION_COPY);
 			break;
 		case FILE_RENAME_ITEM:
@@ -2408,7 +2624,8 @@ static void file_op(gpointer data, FileOp action, GtkWidget *unused)
 			break;
 #if defined(HAVE_GETXATTR) || defined(HAVE_ATTROPEN)
 		case FILE_XATTRS:
-			xattrs_browser(item, path);
+			if(access(path, R_OK) == 0)
+				xattrs_browser(item, path);
 			break;
 #endif
 		default:

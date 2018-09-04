@@ -1,5 +1,7 @@
 
 Changes
+- **Short cut keys around Copy and Paste are changed**
+
 - https://github.com/jun7/rox-filer/wiki/Changes
 - https://github.com/jun7/rox-filer/wiki/Screenshots
 
