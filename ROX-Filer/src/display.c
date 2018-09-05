@@ -124,7 +124,7 @@ void display_init()
 	option_add_int(&o_wrap_by_char, "wrap_by_char", FALSE);
 	option_add_int(&o_small_width, "display_small_width", 160);
 
-	option_add_int(&o_view_alpha, "view_alpha", 33);
+	option_add_int(&o_view_alpha, "view_alpha", 22);
 
 	option_add_int(&o_vertical_order_small, "vertical_order_small", TRUE);
 	option_add_int(&o_vertical_order_large, "vertical_order_large", FALSE);
