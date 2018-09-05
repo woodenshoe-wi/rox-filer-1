@@ -30,6 +30,7 @@
 #include <fnmatch.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <gio/gdesktopappinfo.h>
 
 #ifdef WITH_GNOMEVFS
 # include <libgnomevfs/gnome-vfs.h>
@@ -721,6 +722,21 @@ static void clear_run_action(GtkWidget *drop_box, GtkWidget *dialog)
 	run_action_update(NULL, dialog);
 }
 
+
+static void appinfo_clicked(GtkButton *btn, GtkWidget *dialog)
+{
+	GDesktopAppInfo *app = g_object_get_data(G_OBJECT(btn), "appinfo");
+	guchar *path = get_action_save_path(dialog);
+	if (path)
+	{
+		if (symlink(g_desktop_app_info_get_filename(app), path))
+			delayed_error("symlink: %s", g_strerror(errno));
+		else
+			destroy_on_idle(dialog);
+	}
+	g_free(path);
+}
+
 /* Called when a URI list is dropped onto the box in the Set Run Action
  * dialog. Make sure it's an application, and make that the default
  * handler.
@@ -907,12 +923,39 @@ void type_set_handler_dialog(MIME_type *type)
 	g_signal_connect(frame, "clear",
 			G_CALLBACK(clear_run_action), dialog);
 
+
+	GtkWidget *vbox = gtk_hbox_new(FALSE, 4);
+	char *typestr = g_strdup_printf("%s/%s", type->media_type, type->subtype);
+	GList *apps = g_app_info_get_all_for_type(typestr);
+//	apps = g_app_info_get_recommended_for_type(typestr);
+//	apps = g_app_info_get_fallback_for_type(typestr);
+	g_free(typestr);
+
+	for (GList *next = apps; next; next = next->next)
+	{
+		GAppInfo *app = next->data;
+		GtkWidget *btn = button_new_image_text(
+				gtk_image_new_from_gicon(
+					g_app_info_get_icon(app), GTK_ICON_SIZE_BUTTON),
+				g_app_info_get_display_name(app));
+
+		g_object_set_data(G_OBJECT(btn), "appinfo", app);
+		g_object_weak_ref(G_OBJECT(btn), (GWeakNotify)g_object_unref, app);
+
+		g_signal_connect(btn, "clicked", G_CALLBACK(appinfo_clicked), dialog);
+		gtk_box_pack_start(GTK_BOX(vbox), btn, TRUE, TRUE, 0);
+	}
+	g_list_free(apps);
+	gtk_box_pack_start(VBOX(dialog), vbox, FALSE, TRUE, 4);
+
+
 	hbox = gtk_hbox_new(FALSE, 4);
 	gtk_box_pack_start(GTK_BOX(dialog->vbox), hbox, FALSE, TRUE, 4);
 	gtk_box_pack_start(GTK_BOX(hbox), gtk_hseparator_new(), TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new(_("OR")),
 						FALSE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(hbox), gtk_hseparator_new(), TRUE, TRUE, 0);
+
 
 	hbox = gtk_hbox_new(FALSE, 4);
 	gtk_box_pack_start(GTK_BOX(dialog->vbox), hbox, FALSE, TRUE, 0);
