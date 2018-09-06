@@ -946,7 +946,7 @@ void type_set_handler_dialog(MIME_type *type)
 		gtk_box_pack_start(GTK_BOX(vbox), btn, TRUE, TRUE, 0);
 	}
 	g_list_free(apps);
-	gtk_box_pack_start(VBOX(dialog), vbox, FALSE, TRUE, 4);
+	gtk_box_pack_start(GTK_BOX(dialog->vbox), vbox, FALSE, TRUE, 4);
 
 
 	hbox = gtk_hbox_new(FALSE, 4);
