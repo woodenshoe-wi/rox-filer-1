@@ -696,6 +696,15 @@ static gboolean check_double()
 static int pressx;
 static int pressy;
 static int pressbtn;
+static GtkWidget *in_drag_move;
+static int bar_enter(FilerWindow *fw)
+{ //end of gtk_window_begin_move_drag
+	if (in_drag_move)
+		gtk_button_released(GTK_BUTTON(in_drag_move));
+
+	in_drag_move = NULL;
+	return FALSE;
+}
 static int bar_motion(GtkWidget *widget, GdkEventMotion *event, FilerWindow *fw)
 {
 	if (!pressx && !pressy) return FALSE;
@@ -711,8 +720,12 @@ static int bar_motion(GtkWidget *widget, GdkEventMotion *event, FilerWindow *fw)
 	{
 		GtkWindow *win = GTK_WINDOW(gtk_widget_get_toplevel(widget));
 		if (pressbtn == 1)
+		{
 			gtk_window_begin_move_drag(win,
 					1, pressx, pressy, event->time); //use pressx/y for cursor pos
+			if (GTK_IS_BUTTON(widget))
+				in_drag_move = widget;
+		}
 		else if (pressbtn == 3)
 		{
 			if (fw->view_type == VIEW_TYPE_COLLECTION)
@@ -1043,6 +1056,8 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 			G_CALLBACK(bar_released), filer_window);
 		g_signal_connect(button, "button_press_event",
 			G_CALLBACK(bar_pressed), filer_window);
+		g_signal_connect_swapped(button, "enter-notify-event",
+			G_CALLBACK(bar_enter), filer_window);
 
 		if (o_toolbar.int_value != TOOLBAR_NORMAL)
 		{
