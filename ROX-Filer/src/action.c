@@ -1679,7 +1679,10 @@ static void do_copy2(const char *path, const char *dest)
 			g_error_free(err);
 		}
 		else
+		{
+			lchown(dest_path, info.st_uid, info.st_gid);
 			send_check_path(dest_path);
+		}
 
 		g_object_unref(srcf);
 		g_object_unref(destf);
