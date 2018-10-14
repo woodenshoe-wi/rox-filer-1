@@ -524,12 +524,12 @@ static void toolbar_sort_clicked(GtkWidget *widget,
 	gchar *tip;
 
 	static const SortType sorts[]={
-		SORT_NAME, SORT_TYPE, SORT_DATEC, SORT_SIZE, SORT_PERM,
-		SORT_OWNER, SORT_GROUP,
+		SORT_NAME, SORT_TYPE, SORT_DATEC, SORT_SIZE,
+		SORT_PERM, SORT_OWNER, SORT_GROUP,
 	};
 	static const char *sort_names[] = {
-		N_("Sort by name"), N_("Sort by type"), N_("Sort by date"),
-		N_("Sort by size"), N_("Sort by owner"), N_("Sort by group"),
+		N_("Sort by name"), N_("Sort by type"), N_("Sort by date"), N_("Sort by size"),
+		N_("Sort by permissions"), N_("Sort by owner"), N_("Sort by group"),
 	};
 
 	adjust = (eb != 1) && eb != 0;
