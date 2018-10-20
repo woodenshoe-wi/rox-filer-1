@@ -2371,8 +2371,13 @@ static void paste_from_clipboard(gpointer data, guint action, GtkWidget *unused)
 				"remote files - sorry.");
 	else
 	{
-		(!strcmp(*uri_list, "cut") ? action_move : action_copy)(
-				gq.head, window_with_focus->sym_path, NULL, -1);
+		if (!strcmp(*uri_list, "cut"))
+		{
+			action_move(gq.head, window_with_focus->sym_path, NULL, -1);
+			gtk_clipboard_clear(clipboard);
+		}
+		else
+			action_copy(gq.head, window_with_focus->sym_path, NULL, -1);
 
 		destroy_glist(&gq.head);
 	}
@@ -2382,8 +2387,6 @@ static void paste_from_clipboard(gpointer data, guint action, GtkWidget *unused)
 
 	g_strfreev(uri_list);
 	gtk_selection_data_free(selection);
-
-	gtk_clipboard_clear(clipboard);
 }
 
 static void file_op(gpointer data, FileOp action, GtkWidget *unused)
