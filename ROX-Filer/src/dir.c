@@ -246,6 +246,11 @@ void dir_detach(Directory *dir, DirCallback callback, gpointer data)
 static Directory *parent(const char *path)
 {
 	char *dir_path = g_path_get_dirname(path);
+	if (!strcmp(dir_path, path))
+	{
+		g_free(dir_path);
+		return NULL;
+	}
 	char *real_path = pathdup(dir_path);
 	g_free(dir_path);
 
