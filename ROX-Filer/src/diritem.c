@@ -68,9 +68,8 @@ static gboolean onmaincb(void *notused)
 		g_slist_free_full(munref, g_object_unref);
 	munref = NULL;
 
-	g_mutex_unlock(&m_diritems);
-
 	onmainidle = 0;
+	g_mutex_unlock(&m_diritems);
 	return FALSE;
 }
 
@@ -323,11 +322,11 @@ MaskedPixmap *_diritem_get_image(DirItem *item)
 	}
 
 	ret = item->_image;
-	g_mutex_unlock(&m_diritems);
 
 	if ((mfree || munref) && !onmainidle)
 		onmainidle = g_idle_add(onmaincb, NULL);
 
+	g_mutex_unlock(&m_diritems);
 	return ret;
 }
 
