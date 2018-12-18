@@ -436,9 +436,6 @@ static void message_from_child(gpointer 	  data,
 	char buf[5];
 	GUIside	*gui_side = (GUIside *) data;
 	ABox	*abox = gui_side->abox;
-	GtkTextBuffer *text_buffer;
-
-	text_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(abox->log));
 
 	if (read_exact(source, buf, 4))
 	{
@@ -479,13 +476,12 @@ static void message_from_child(gpointer 	  data,
 		guchar *report;
 
 		if (gui_side->errors == 1)
-			report = g_strdup(_("\nThere was one error."));
+			report = g_strdup(_(" - There was one error."));
 		else
-			report = g_strdup_printf(_("\nThere were %d errors."),
+			report = g_strdup_printf(_(" - There were %d errors."),
 							gui_side->errors);
 
-		gtk_text_buffer_insert_at_cursor(text_buffer, report, -1);
-
+		abox_log(abox, report, "error");
 		g_free(report);
 	}
 	else if (gui_side->show_info == FALSE)
