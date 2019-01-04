@@ -50,6 +50,9 @@ static void cell_edited(GtkCellRendererText *cell, const gchar *path_string,
  *			EXTERNAL INTERFACE			*
  ****************************************************************/
 
+static char *replace;
+static char *with;
+
 /* Bulk rename these items */
 void bulk_rename(const char *dir, GList *items)
 {
@@ -94,7 +97,7 @@ void bulk_rename(const char *dir, GList *items)
 	replace_entry = gtk_entry_new();
 	g_object_set_data(G_OBJECT(box), "replace_entry", replace_entry);
 	gtk_box_pack_start(GTK_BOX(hbox), replace_entry, TRUE, TRUE, 0);
-	gtk_entry_set_text(GTK_ENTRY(replace_entry), "\\.htm$");
+	gtk_entry_set_text(GTK_ENTRY(replace_entry), replace ?: "\\.htm$");
 	gtk_widget_set_tooltip_text(replace_entry,
 			_("This is a regular expression to search for.\n"
 			"^ matches the start of a filename\n"
@@ -108,7 +111,7 @@ void bulk_rename(const char *dir, GList *items)
 	with_entry = gtk_entry_new();
 	g_object_set_data(G_OBJECT(box), "with_entry", with_entry);
 	gtk_box_pack_start(GTK_BOX(hbox), with_entry, TRUE, TRUE, 0);
-	gtk_entry_set_text(GTK_ENTRY(with_entry), ".html");
+	gtk_entry_set_text(GTK_ENTRY(with_entry), with ?: ".html");
 	gtk_widget_set_tooltip_text(with_entry,
 			_("The first match in each filename will be replaced "
 			"by this string. "
@@ -306,7 +309,6 @@ static gboolean apply_replace(GtkWidget *box)
 {
 	GtkListStore *model;
 	GtkEntry *replace_entry, *with_entry;
-	const char *replace, *with;
 	regex_t compiled;
 	int error;
 
@@ -318,8 +320,10 @@ static gboolean apply_replace(GtkWidget *box)
 	g_return_val_if_fail(with_entry != NULL, TRUE);
 	g_return_val_if_fail(model != NULL, TRUE);
 
-	replace = gtk_entry_get_text(replace_entry);
-	with = gtk_entry_get_text(with_entry);
+	g_free(replace);
+	g_free(with);
+	replace = g_strdup(gtk_entry_get_text(replace_entry));
+	with    = g_strdup(gtk_entry_get_text(with_entry));
 
 	if (replace[0] == '\0' && with[0] == '\0')
 	{
