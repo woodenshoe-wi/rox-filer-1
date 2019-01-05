@@ -308,7 +308,7 @@ void diritem_free(DirItem *item)
 }
 
 /* For use by di_image() only. Sets item->_image. */
-MaskedPixmap *_diritem_get_image(DirItem *item)
+MaskedPixmap *_diritem_get_image(DirItem *item, gboolean mainthread)
 {
 	MaskedPixmap *ret;
 
@@ -323,7 +323,7 @@ MaskedPixmap *_diritem_get_image(DirItem *item)
 
 	ret = item->_image;
 
-	if ((mfree || munref) && !onmainidle)
+	if (mainthread && (mfree || munref) && !onmainidle)
 		onmainidle = g_idle_add(onmaincb, NULL);
 
 	g_mutex_unlock(&m_diritems);

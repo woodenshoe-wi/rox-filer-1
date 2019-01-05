@@ -55,13 +55,13 @@ struct _DirItem
 void diritem_init(void);
 DirItem *diritem_new(const guchar *leafname);
 void diritem_restat(const guchar *path, DirItem *item, struct stat *parent, gboolean examine_now);
-MaskedPixmap *_diritem_get_image(DirItem *item);
+MaskedPixmap *_diritem_get_image(DirItem *item, gboolean mainthread);
 void diritem_free(DirItem *item);
 gboolean diritem_examine_dir(const guchar *path, DirItem *item);
 
 static inline MaskedPixmap *di_image(DirItem *item)
 {
-	return _diritem_get_image(item);
+	return _diritem_get_image(item, TRUE);
 }
 
 #endif /* _DIRITEM_H */
