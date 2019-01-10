@@ -805,8 +805,6 @@ static void thumbnail_done(ChildThumbnail *info)
 		g_object_unref(thumb);
 		g_fscache_remove(thumb_cache, info->path);
 	}
-	else
-		g_fscache_insert(pixmap_cache, info->path, NULL, TRUE);
 
 	info->callback(info->data, thumb ? info->path : NULL);
 
