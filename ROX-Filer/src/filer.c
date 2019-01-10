@@ -3109,6 +3109,10 @@ void filer_create_thumbs(FilerWindow *filer_window, GPtrArray *items)
 
 	while ((item = diritem_next(&iter, items, &index)))
 	{
+		MaskedPixmap *pixmap;
+		const guchar *path;
+		gboolean found;
+
 		 if (item->base_type != TYPE_FILE &&
 				(o_display_show_dir_thumbs.int_value != 1 ||
 				 item->base_type != TYPE_DIRECTORY))
@@ -3117,8 +3121,24 @@ void filer_create_thumbs(FilerWindow *filer_window, GPtrArray *items)
 		 /*if (strcmp(item->mime_type->media_type, "image") != 0)
 		   continue;*/
 
-		const guchar *path = make_path(filer_window->real_path, item->leafname);
-		filer_create_thumb(filer_window, path);
+		path = make_path(filer_window->real_path, item->leafname);
+		pixmap = g_fscache_lookup_full(pixmap_cache, path,
+				FSCACHE_LOOKUP_ONLY_NEW, &found);
+
+		if (pixmap)
+			g_object_unref(pixmap);
+
+		/* If we didn't get an image, it could be because:
+		 *
+		 * - We're loading the image now. found is TRUE,
+		 *   and we'll update the item later.
+		 * - We tried to load the image and failed. found
+		 *   is TRUE.
+		 * - We haven't tried loading the image. found is
+		 *   FALSE, and we start creating the thumb here.
+		 */
+		if (!found)
+			filer_create_thumb(filer_window, path);
 	}
 
 	if (!g_queue_is_empty(filer_window->thumb_queue))
