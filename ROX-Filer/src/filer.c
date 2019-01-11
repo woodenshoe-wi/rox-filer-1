@@ -3945,7 +3945,9 @@ void filer_refresh_thumbs(FilerWindow *filer_window)
 
 		dir_force_update_path(path, TRUE);
 
-		if (item->base_type == TYPE_DIRECTORY)
+		if (!filer_window->show_thumbs)
+			; //do nothing
+		else if (item->base_type == TYPE_DIRECTORY)
 		{
 			free_subdir_info();
 			sdinfo.fw = filer_window;
