@@ -400,7 +400,7 @@ static gboolean transparent_expose(GtkWidget *widget,
 			fg->green / p,
 			fg->blue / p,
 			//(100 - o_view_alpha.int_value) / 100.0);
-			1);
+		1);
 
 	gdk_region_get_rectangles(event->region, &rects, &n_rects);
 	for (i = 0; i < n_rects; i++)
@@ -432,7 +432,7 @@ static void view_collection_init(GTypeInstance *object, gpointer gclass)
 	collection = collection_new();
 
 	g_signal_connect(collection, "expose-event",
-				G_CALLBACK(transparent_expose), object);
+			G_CALLBACK(transparent_expose), object);
 
 	view_collection->collection = COLLECTION(collection);
 
@@ -618,10 +618,10 @@ static int is_linked(FilerWindow *fw, DirItem *item)
 }
 
 static void draw_item(GtkWidget *widget,
-			int idx,
-			GdkRectangle *area,
-			gpointer user_data,
-			gboolean cursor)
+		int idx,
+		GdkRectangle *area,
+		gpointer user_data,
+		gboolean cursor)
 {
 	ViewCollection *vc = (ViewCollection *) user_data;
 	FilerWindow    *fw = vc->filer_window;
@@ -638,7 +638,7 @@ static void draw_item(GtkWidget *widget,
 	g_return_if_fail(view != NULL);
 
 	if (view->iconstatus == 0) {
-		if (fw->display_style == HUGE_ICONS &&
+		if (fw->display_style == HUGE_ICONS && fw->sort_type == SORT_NAME &&
 				vc->collection->vadj->value == 0) return;
 		goto end_image;
 	}
