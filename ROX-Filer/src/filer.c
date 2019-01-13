@@ -3046,8 +3046,7 @@ static void filer_next_thumb(GObject *window, const gchar *path)
 	if (path)
 		dir_force_update_path(path, TRUE);
 
-	g_idle_add_full(G_PRIORITY_LOW,
-			(GSourceFunc) filer_next_thumb_real, window, NULL);
+	g_idle_add((GSourceFunc) filer_next_thumb_real, window);
 }
 
 static void start_thumb_scanning(FilerWindow *filer_window)
@@ -3059,8 +3058,6 @@ static void start_thumb_scanning(FilerWindow *filer_window)
 
 	g_object_ref(G_OBJECT(filer_window->window));
 	filer_next_thumb(G_OBJECT(filer_window->window), NULL);
-
-	start_thumb_scanning(filer_window);
 }
 
 /* Set this image to be loaded some time in the future */
