@@ -3071,9 +3071,6 @@ void filer_create_thumb(FilerWindow *filer_window, const gchar *path)
 
 	g_queue_push_head(filer_window->thumb_queue, g_strdup(path));
 
-	if (filer_window->scanning)
-		return;			/* Will start when scan ends */
-
 	start_thumb_scanning(filer_window);
 }
 
@@ -3137,9 +3134,6 @@ void filer_create_thumbs(FilerWindow *filer_window, GPtrArray *items)
 		if (!found)
 			filer_create_thumb(filer_window, path);
 	}
-
-	if (!g_queue_is_empty(filer_window->thumb_queue))
-		start_thumb_scanning(filer_window);
 }
 
 static void filer_options_changed(void)
