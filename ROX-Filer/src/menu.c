@@ -2330,6 +2330,8 @@ static void clipboard_clear(GtkClipboard *clipboard, gpointer user_data)
 static void paste_from_clipboard(gpointer data, guint action, GtkWidget *unused)
 {
 	const gchar *error = NULL;
+	gboolean ignore_no_local_paths = FALSE;
+
 	GtkSelectionData *selection =
 				gtk_clipboard_wait_for_contents(clipboard, gnome_copied_files) ?:
 				gtk_clipboard_wait_for_contents(clipboard, text_uri_list);
@@ -2358,7 +2360,40 @@ static void paste_from_clipboard(gpointer data, guint action, GtkWidget *unused)
 
 		char *path = get_local_path((EscapedPath *) *uri_iter);
 		if (path)
-			g_queue_push_tail(&gq, path);
+		{
+			gchar *source_real_path = pathdup(path);
+			gchar *source_dirname = g_path_get_dirname(source_real_path);
+			if (strcmp(source_dirname, window_with_focus->real_path) == 0 &&
+				strcmp(*uri_list, "cut") != 0)
+			{
+				gchar *source_basename = g_path_get_basename(path);
+				gchar *new_name = NULL;
+				GList *one_path = NULL;
+
+				ignore_no_local_paths = TRUE;
+				one_path = g_list_append(one_path, path);
+
+				new_name = g_strdup_printf(_("Copy of %s"), source_basename);
+				int i = 2;
+				struct stat dest_info;
+				while (mc_lstat(make_path(source_dirname, new_name), &dest_info) == 0)
+				{
+					g_free(new_name);
+					new_name = g_strdup_printf(_("Copy(%d) of %s"), i, source_basename);
+					i++;
+				}
+				action_copy(one_path, window_with_focus->sym_path, new_name, -1);
+
+				g_free(new_name);
+				g_free(source_basename);
+				destroy_glist(&one_path);
+			}
+			else
+				g_queue_push_tail(&gq, path);
+
+			g_free(source_real_path);
+			g_free(source_dirname);
+		}
 		else
 			error = _("Some of these files are on a "
 					"different machine - they will be "
@@ -2366,9 +2401,12 @@ static void paste_from_clipboard(gpointer data, guint action, GtkWidget *unused)
 	}
 
 	if (!gq.head)
-		error = _("None of these files are on the local "
+	{
+		if (ignore_no_local_paths == FALSE)
+			error = _("None of these files are on the local "
 				"machine - I can't operate on multiple "
 				"remote files - sorry.");
+	}
 	else
 	{
 		if (!strcmp(*uri_list, "cut"))
