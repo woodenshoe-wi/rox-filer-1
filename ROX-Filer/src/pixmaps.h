@@ -10,7 +10,6 @@
 
 extern GFSCache *pixmap_cache;
 extern GFSCache *thumb_cache;
-extern GFSCache *desktop_icon_cache;
 
 extern MaskedPixmap *im_error;
 extern MaskedPixmap *im_unknown;
@@ -80,5 +79,6 @@ gint pixmap_check_thumb(const gchar *path);
 GdkPixbuf *pixmap_load_thumb(const gchar *path);
 char *pixmap_make_thumb_path(const char *path);
 GdkPixbuf *pixmap_make_lined(GdkPixbuf *src, GdkColor *colour);
+MaskedPixmap *pixmap_from_desktop_file(const char *path);
 
 #endif /* _PIXMAP_H */

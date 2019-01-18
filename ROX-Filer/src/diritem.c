@@ -247,7 +247,7 @@ void diritem_restat(
 		if (item->mime_type == application_x_desktop && item->_image == NULL)
 		{
 			g_mutex_lock(&m_diritems);
-			item->_image = g_fscache_lookup(desktop_icon_cache, path);
+			item->_image = pixmap_from_desktop_file(path);
 			g_mutex_unlock(&m_diritems);
 		}
 	}

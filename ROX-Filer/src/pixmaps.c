@@ -57,7 +57,6 @@
 
 GFSCache *pixmap_cache = NULL;
 GFSCache *thumb_cache = NULL;
-GFSCache *desktop_icon_cache = NULL;
 
 static const char * bad_xpm[] = {
 "12 12 3 1",
@@ -125,7 +124,6 @@ static void load_default_pixmaps(void);
 static gint purge_pixmaps(gpointer data);
 static gint purge_thumbs(gpointer data);
 static MaskedPixmap *image_from_file(const char *path);
-static MaskedPixmap *image_from_desktop_file(const char *path);
 static MaskedPixmap *get_bad_image(void);
 static GdkPixbuf *get_thumbnail_for(const char *path, gboolean forcheck);
 static void ordered_update(ChildThumbnail *info);
@@ -186,7 +184,6 @@ void pixmaps_init(void)
 
 	pixmap_cache = g_fscache_new((GFSLoadFunc) image_from_file, NULL, NULL);
 	thumb_cache = g_fscache_new((GFSLoadFunc) image_from_file, NULL, NULL);
-	desktop_icon_cache = g_fscache_new((GFSLoadFunc) image_from_desktop_file, NULL, NULL);
 
 	g_timeout_add(6000, purge_thumbs, NULL);
 	g_timeout_add(PIXMAP_PURGE_TIME / 2 * 1000, purge_pixmaps, NULL);
@@ -917,7 +914,7 @@ static MaskedPixmap *image_from_file(const char *path)
 /* Load this icon named by this .desktop file from the current theme.
  * NULL on failure.
  */
-static MaskedPixmap *image_from_desktop_file(const char *path)
+MaskedPixmap *pixmap_from_desktop_file(const char *path)
 {
 	GError *error = NULL;
 	MaskedPixmap *image = NULL;
