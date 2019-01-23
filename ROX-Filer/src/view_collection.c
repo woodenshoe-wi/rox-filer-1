@@ -782,7 +782,8 @@ end_image:
 				 template.icon.height > small_height))
 				)
 			draw_dir_mark(cr, widget, &template.icon,
-					link ? &red : type_colour);
+					link ? &red :
+						colitem->selected ? select_colour : type_colour);
 	}
 
 
