@@ -2867,24 +2867,14 @@ static gboolean make_dir_thumb_link()
 
 		if (stage > 0)
 		{
-			gboolean found;
-			GdkPixbuf *pixmap = g_fscache_lookup_full(pixmap_cache, subpath,
-					FSCACHE_LOOKUP_ONLY_NEW, &found);
-
-			if (pixmap)
-				g_object_unref(pixmap);
-
-			if (!found)
+			gchar *sp = g_strdup(subpath);
+			if (pixmap_check_thumb(sp) == 0)
 			{
-				gchar *sp = g_strdup(subpath);
-				if (pixmap_check_thumb(sp) == 0)
-				{
-					sdinfo.fw->max_thumbs++;
-					g_queue_push_tail(sdinfo.fw->thumb_queue, sp/*eaten*/);
-					goto done;
-				}
-				g_free(sp);
+				sdinfo.fw->max_thumbs++;
+				g_queue_push_tail(sdinfo.fw->thumb_queue, sp/*eaten*/);
+				goto done;
 			}
+			g_free(sp);
 
 			continue;
 		}
@@ -3008,6 +2998,7 @@ static gboolean filer_next_thumb_real(GObject *window)
 				g_thread_unref(scd);
 			}
 		}
+	case -2:
 		filer_next_thumb(window, NULL);
 		goto out;
 	case 1:
@@ -3103,9 +3094,7 @@ void filer_create_thumbs(FilerWindow *filer_window, GPtrArray *items)
 
 	while ((item = diritem_next(&iter, items, &index)))
 	{
-		MaskedPixmap *pixmap;
 		const guchar *path;
-		gboolean found;
 
 		 if (item->base_type != TYPE_FILE &&
 				(o_display_show_dir_thumbs.int_value != 1 ||
@@ -3116,23 +3105,7 @@ void filer_create_thumbs(FilerWindow *filer_window, GPtrArray *items)
 		   continue;*/
 
 		path = make_path(filer_window->real_path, item->leafname);
-		pixmap = g_fscache_lookup_full(pixmap_cache, path,
-				FSCACHE_LOOKUP_ONLY_NEW, &found);
-
-		if (pixmap)
-			g_object_unref(pixmap);
-
-		/* If we didn't get an image, it could be because:
-		 *
-		 * - We're loading the image now. found is TRUE,
-		 *   and we'll update the item later.
-		 * - We tried to load the image and failed. found
-		 *   is TRUE.
-		 * - We haven't tried loading the image. found is
-		 *   FALSE, and we start creating the thumb here.
-		 */
-		if (!found)
-			filer_create_thumb(filer_window, path);
+		filer_create_thumb(filer_window, path);
 	}
 }
 

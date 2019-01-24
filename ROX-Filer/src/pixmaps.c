@@ -290,6 +290,14 @@ void pixmap_make_small(MaskedPixmap *mp)
 /* -1:not thumb target 0:not created 1:created and loaded */
 gint pixmap_check_thumb(const gchar *path)
 {
+	gboolean found;
+	GdkPixbuf *pixmap = g_fscache_lookup_full(pixmap_cache, path,
+			FSCACHE_LOOKUP_ONLY_NEW, &found);
+	if (pixmap)
+		g_object_unref(pixmap);
+	else
+		if (found) return -2;
+
 	GdkPixbuf *image = pixmap_try_thumb(path, TRUE);
 
 	if (image)
