@@ -490,6 +490,16 @@ static void message_from_child(gpointer 	  data,
 	filer_resize_all(FALSE);
 }
 
+static int progn = 0;
+static int progidx = 0;
+static void rprog(int idx, int n)
+{
+	progn = n;
+	progidx = idx;
+	if(n > 1)
+		printf_send("%%%d", 100 * idx / n);
+}
+
 /* Scans src_dir, calling cb(item, dest_path) for each item */
 static void for_dir_contents(ForDirCB *cb,
 			     const char *src_dir,
@@ -508,6 +518,7 @@ static void for_dir_contents(ForDirCB *cb,
 		return;
 	}
 
+	int cnt = 0;
 	while ((ent = mc_readdir(d)))
 	{
 		if (ent->d_name[0] == '.' && (ent->d_name[1] == '\0'
@@ -515,16 +526,22 @@ static void for_dir_contents(ForDirCB *cb,
 			continue;
 		list = g_list_prepend(list, g_strdup(make_path(src_dir,
 							       ent->d_name)));
+		cnt++;
 	}
 	mc_closedir(d);
 
+	int lidx = progidx * cnt;
+	int ln = progn * (double)cnt * 100 > G_MAXINT ? 0 : progn * cnt;
+
 	for (next = list; next; next = next->next)
 	{
+		rprog(lidx++, ln);
 		send_src(next->data);
 		cb((char *) next->data, dest_path);
 
 		g_free(next->data);
 	}
+	rprog(lidx, ln);
 	g_list_free(list);
 }
 
@@ -609,7 +626,6 @@ static void send_prog(int idx, int n) //idx is current - 1
 	if(n > 1)
 		printf_send("%%%d", 100 * (idx + 1) / n);
 }
-
 static void response(GtkDialog *dialog, gint response, GUIside *gui_side)
 {
 	gchar code;
@@ -1724,17 +1740,30 @@ static int mover(const char *src, const char *dest)
 	if (dir)
 	{
 		GDir *gd = g_dir_open(src, 0, NULL);
+		int cnt = 0;
+		while (g_dir_read_name(gd))
+			cnt++;
+		g_dir_close(gd);
+
+		int lidx = progidx * cnt;
+		int ln = progn * (double)cnt * 100 > G_MAXINT ? 0 : progn * cnt;
+
+		gd = g_dir_open(src, 0, NULL);
 		const char *name;
 		while ((name = g_dir_read_name(gd)))
 		{
 			char *dsrc  = g_build_filename(src , name, NULL);
 			char *ddest = g_build_filename(dest, name, NULL);
 
+			rprog(lidx++, ln);
 			err |= mover(dsrc, ddest);
 
 			g_free(dsrc);
 			g_free(ddest);
 		}
+
+		rprog(lidx, ln);
+
 		g_dir_close(gd);
 	}
 
@@ -2288,11 +2317,12 @@ static void list_cb(gpointer data)
 	{
 		send_src((char *) paths->data);
 
+		rprog(i, n);
 		action_do_func((char *) paths->data, action_dest);
 
 		last = (char *) paths->data;
-		send_prog(i, n);
 	}
+	rprog(n, n);
 
 	send_done();
 
