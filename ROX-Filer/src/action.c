@@ -621,11 +621,6 @@ static gboolean send_error(void)
 	return printf_send("!%s: %s\n", _("ERROR"), g_strerror(errno));
 }
 
-static void send_prog(int idx, int n) //idx is current - 1
-{
-	if(n > 1)
-		printf_send("%%%d", 100 * (idx + 1) / n);
-}
 static void response(GtkDialog *dialog, gint response, GUIside *gui_side)
 {
 	gchar code;
@@ -2087,6 +2082,7 @@ static void usage_cb(gpointer data)
 
 	for (i=0; paths; paths = paths->next, i++)
 	{
+		rprog(i, n);
 		guchar	*path = (guchar *) paths->data;
 
 		send_src(path);
@@ -2101,9 +2097,8 @@ static void usage_cb(gpointer data)
 			    format_double_size(size_tally));
 		g_free(base);
 		total_size += size_tally;
-
-		send_prog(i, n);
 	}
+	rprog(n, n);
 	printf_send("%%-1");
 
 	g_string_printf(message, _("'\nTotal: %s ("),
@@ -2153,7 +2148,7 @@ static void mount_cb(gpointer data)
 		if (target != path)
 			g_free(target);
 
-		send_prog(i, n);
+		rprog(i + 1, n);
 	}
 
 	if (mount_points)
@@ -2184,6 +2179,7 @@ static void delete_cb(gpointer data)
 	n=g_list_length(paths);
 	for (i=0; paths; paths = paths->next, i++)
 	{
+		rprog(i, n);
 		guchar	*path = (guchar *) paths->data;
 		guchar	*dir;
 
@@ -2192,9 +2188,8 @@ static void delete_cb(gpointer data)
 
 		do_delete(path, dir);
 		g_free(dir);
-
-		send_prog(i, n);
 	}
+	rprog(n, n);
 
 	send_done();
 }
@@ -2212,7 +2207,7 @@ static void eject_cb(gpointer data)
 
 		send_src(path);
 		do_eject(path);
-		send_prog(i, n);
+		rprog(i + 1, n);
 	}
 
 	send_done();
@@ -2253,6 +2248,7 @@ static void chmod_cb(gpointer data)
 
 	for (i=0; paths; paths = paths->next, i++)
 	{
+		rprog(i, n);
 		guchar	*path = (guchar *) paths->data;
 		struct stat info;
 
@@ -2267,9 +2263,8 @@ static void chmod_cb(gpointer data)
 		}
 		else
 			do_chmod(path, NULL);
-
-		send_prog(i, n);
 	}
+	rprog(n, n);
 
 	send_done();
 }
@@ -2284,6 +2279,8 @@ static void settype_cb(gpointer data)
 
 	for (i=0; paths; paths = paths->next, i++)
 	{
+		rprog(i, n);
+
 		guchar	*path = (guchar *) paths->data;
 		struct stat info;
 
@@ -2298,9 +2295,8 @@ static void settype_cb(gpointer data)
 		}
 		else
 			do_settype(path, NULL);
-
-		send_prog(i, n);
 	}
+	rprog(n, n);
 
 	send_done();
 }
