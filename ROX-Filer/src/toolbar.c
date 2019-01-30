@@ -814,6 +814,8 @@ static gint bar_scrolled(
 	else
 		filer_dir_link_next(fw, event->direction, FALSE);
 
+	pressbtn = pressx = pressy = 0;
+
 	return TRUE;
 }
 
