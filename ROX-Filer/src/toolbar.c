@@ -739,10 +739,6 @@ static gint bar_released(GtkWidget *widget,
 				GdkEventButton *event,
 				FilerWindow *filer_window)
 {
-	if (event->state & GDK_BUTTON1_MASK
-			&& event->button != 1) return FALSE;
-
-
 	if (pressbtn == event->button)
 		switch (event->button)
 	{
