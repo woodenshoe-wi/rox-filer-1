@@ -680,27 +680,6 @@ static void toolbar_select_clicked(GtkWidget *widget, FilerWindow *filer_window)
 	filer_window->temp_item_selected = FALSE;
 }
 
-static gboolean check_double()
-{
-	gint dct;
-	g_object_get(gtk_settings_get_default(),
-			"gtk-double-click-time", &dct, NULL);
-
-	static gint64 lasttime = 0;
-	gint64 current = g_get_real_time(); //g_get_monotonic_time is too much
-
-	//correctly double click depends on release time. *1.2 is hack
-	//This case we can't get release event because of begin_*_drag
-	if (current - lasttime < dct * 1000 * 1.3)
-	{
-		lasttime = 0;
-		return TRUE;
-	}
-
-	lasttime = current;
-	return FALSE;
-}
-
 static int pressx;
 static int pressy;
 static int pressbtn;
@@ -763,6 +742,34 @@ static gint bar_released(GtkWidget *widget,
 	if (event->state & GDK_BUTTON1_MASK
 			&& event->button != 1) return FALSE;
 
+
+	if (pressbtn == event->button)
+		switch (event->button)
+	{
+	case 1:
+		{
+			ViewIter iter;
+			if ((view_get_cursor(filer_window->view, &iter), iter.peek(&iter)))
+			{
+				view_cursor_to_iter(filer_window->view, NULL);
+				filer_change_to(filer_window,
+						make_path(filer_window->sym_path, iter.peek(&iter)->leafname),
+						NULL);
+			}
+		}
+		break;
+	case 3:
+		{
+			const char *current = filer_window->sym_path;
+			if (current[0] == '/' && current[1] == '\0')
+				break;
+
+			view_cursor_to_iter(filer_window->view, NULL);
+			change_to_parent(filer_window);
+		}
+		break;
+	}
+
 	pressbtn = pressx = pressy = 0;
 	return FALSE;
 }
@@ -774,26 +781,6 @@ static gint bar_pressed(GtkWidget *widget,
 
 	switch (event->button)
 	{
-	case 1:
-		{
-			ViewIter iter;
-			if (check_double() &&
-				(view_get_cursor(filer_window->view, &iter), iter.peek(&iter)))
-			{
-				view_cursor_to_iter(filer_window->view, NULL);
-				filer_change_to(filer_window,
-						make_path(filer_window->sym_path, iter.peek(&iter)->leafname),
-						NULL);
-			}
-			else
-			{
-				pressbtn = event->button;
-				pressx = event->x_root;
-				pressy = event->y_root;
-				return FALSE;
-			}
-		}
-		break;
 	case 2:
 		filer_cut_links(filer_window, 0);
 		if (filer_window->name_scale != 1.0)
@@ -804,26 +791,11 @@ static gint bar_pressed(GtkWidget *widget,
 		view_autosize(filer_window->view, FALSE);
 		view_cursor_to_iter(filer_window->view, NULL);
 		break;
+	case 1:
 	case 3:
-		if (pressbtn == 1 || check_double())
-		{
-			const char *current = filer_window->sym_path;
-			if (current[0] == '/' && current[1] == '\0')
-				break;
-
-			view_cursor_to_iter(filer_window->view, NULL);
-			change_to_parent(filer_window);
-		}
-		else
-		{
-			pressbtn = event->button;
-			pressx = event->x_root;
-			pressy = event->y_root;
-			return FALSE;
-		}
-
-		break;
-
+		pressbtn = event->button;
+		pressx = event->x_root;
+		pressy = event->y_root;
 	default:
 		return FALSE;
 	}
