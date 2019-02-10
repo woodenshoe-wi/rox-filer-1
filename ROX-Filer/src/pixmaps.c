@@ -94,6 +94,8 @@ gchar *thumb_dir = "normal";
 Option o_pixmap_thumb_file_size;
 static Option o_purge_time;
 static Option o_jpeg_thumbs;
+Option o_purge_days;
+
 
 typedef struct _ChildThumbnail ChildThumbnail;
 
@@ -178,6 +180,7 @@ void pixmaps_init(void)
 //	option_add_int(&o_purge_time, "purge_time", PIXMAP_PURGE_TIME);
 	option_add_int(&o_purge_time, "purge_time", 0);
 	option_add_int(&o_jpeg_thumbs, "jpeg_thumbs", TRUE);
+	option_add_int(&o_purge_days, "purge_days", 0);
 	option_add_notify(options_changed);
 
 	gtk_widget_push_colormap(gdk_rgb_get_colormap());
@@ -1206,10 +1209,20 @@ static void purge_disk_cache(GtkWidget *button, gpointer data)
 		goto out;
 	}
 
+	time_t checktime = o_purge_days.int_value ?
+		time(0) - (o_purge_days.int_value * 3600 * 24): 0;
+	struct stat info;
+
 	while ((ent = readdir(dir)))
 	{
 		if (ent->d_name[0] == '.')
 			continue;
+
+		if (o_purge_days.int_value
+				&& !mc_lstat(make_path(path, ent->d_name), &info)
+				&& info.st_atime > checktime)
+			continue;
+
 		list = g_list_prepend(list,
 				      g_strconcat(path, ent->d_name, NULL));
 	}
