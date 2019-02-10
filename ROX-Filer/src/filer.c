@@ -201,7 +201,6 @@ Option o_filer_width_limit;
 Option o_fast_font_calc;
 static Option o_right_gap, o_bottom_gap, o_auto_move;
 static Option o_disable_pointer_warp;
-Option o_create_sub_dir_thumbs;
 Option o_window_link;
 Option o_scroll_speed;
 static Option o_hide_root_msg;
@@ -250,7 +249,6 @@ void filer_init(void)
 	option_add_int(&o_auto_move, "auto_move", TRUE);
 	option_add_int(&o_disable_pointer_warp, "disable_pointer_warp", FALSE);
 	option_add_int(&o_fast_font_calc, "fast_font_calc", TRUE);
-	option_add_int(&o_create_sub_dir_thumbs, "create_sub_dir_thumbs", TRUE);
 
 	option_add_notify(filer_options_changed);
 
@@ -2847,56 +2845,44 @@ static gboolean make_dir_thumb_link()
 	int i = sdinfo.tried;
 	sdinfo.tried += 3;
 	int end = MIN(sdinfo.items->len, 99);
-	int loopend = end * 2;
-	int currentend = MIN(sdinfo.tried, loopend);
+	int currentend = MIN(sdinfo.tried, end);
 
 	for (; i < currentend; i++)
 	{
-		int stage = i / end;
-
-		if (stage > 0 && o_create_sub_dir_thumbs.int_value != 1)
-			break;
-
 		const gchar *subpath = make_path(path,
-				sdinfo.items->pdata[i - end * stage]);
+				sdinfo.items->pdata[i]);
 
 		struct stat	info;
 		if (mc_lstat(subpath, &info) == -1 ||
 			mode_to_base_type(info.st_mode) != TYPE_FILE)
 			continue;
 
-		if (stage > 0)
+		gchar *sp = g_strdup(subpath);
+		switch (pixmap_check_thumb(sp))
 		{
-			gchar *sp = g_strdup(subpath);
-			if (pixmap_check_thumb(sp) == 0)
-			{
-				sdinfo.fw->max_thumbs++;
-				g_queue_push_tail(sdinfo.fw->thumb_queue, sp/*eaten*/);
-				goto done;
-			}
-			g_free(sp);
-
-			continue;
-		}
-
-		GdkPixbuf *image = pixmap_try_thumb(subpath, FALSE);
-		if (image)
-		{
-			char *sub_thumb_path = pixmap_make_thumb_path(subpath);
-			char *rel_path = get_relative_path(thumb_path, sub_thumb_path);
-
-			if (symlink(rel_path, thumb_path) == 0)
-				dir_force_update_path(path, TRUE);
-			//even the symlink fails this loop wills break.
-
-			g_object_unref(image);
-			g_free(rel_path);
-			g_free(sub_thumb_path);
+		case 0:
+			sdinfo.fw->max_thumbs++;
+			g_queue_push_tail(sdinfo.fw->thumb_queue, sp/*eaten*/);
 			goto done;
+		case 1:
+			{
+			char *sub_thumb_path = pixmap_make_thumb_path(sp);
+			char *rel_path = get_relative_path(thumb_path, sub_thumb_path);
+			g_free(sub_thumb_path);
+
+			if (!symlink(rel_path, thumb_path) ||
+					(!unlink(thumb_path) && !symlink(rel_path, thumb_path)))
+				dir_force_update_path(path, TRUE);
+
+			g_free(rel_path);
+			g_free(sp);
+			goto done;
+			}
 		}
+		g_free(sp);
 	}
 
-	if (currentend < loopend)
+	if (currentend < end)
 		return TRUE;
 
 done:
@@ -3143,8 +3129,7 @@ static void filer_options_changed(void)
 	}
 
 	if (all_filer_windows &&
-			(o_create_sub_dir_thumbs.has_changed ||
-			 o_display_show_dir_thumbs.has_changed ||
+			(o_display_show_dir_thumbs.has_changed ||
 			o_pixmap_thumb_file_size.has_changed
 			))
 	{

@@ -176,8 +176,6 @@
 		<toggle name='display_show_thumbs' label='Show image thumbnails'>
 			This is the default setting for new windows. Use the Display menu to turn thumbnails on and off for individual windows.</toggle>
 		<toggle name='display_show_dir_thumbs' label='Show image thumbnail for directory.'>
-			In Icons View, if there is a previously-created thumbnail in a directory, the thumbnail is displayed instead of the directory icon.</toggle>
-		<toggle name='create_sub_dir_thumbs' label='Create sub-directory thumbnails automatically'>
 			When no items in a sub-directory have a thumbnail, this process tries to create a thumbnail. If you don't like the choice, visit the sub-directory and middle-click the scan button in the toolbar to choose the first item.
 		</toggle>
 		<spacer/>

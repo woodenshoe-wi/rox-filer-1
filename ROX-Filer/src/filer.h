@@ -155,7 +155,6 @@ extern Option		o_filer_auto_resize, o_unique_filer_windows;
 extern Option		o_filer_size_limit;
 extern Option		o_filer_width_limit;
 extern Option		o_fast_font_calc;
-extern Option		o_create_sub_dir_thumbs;
 extern Option		o_window_link;
 extern Option		o_scroll_speed;
 extern gint 		fw_font_height;

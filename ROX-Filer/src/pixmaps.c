@@ -747,8 +747,6 @@ char *pixmap_make_thumb_path(const char *path)
 
 static void make_dir_thumb(const gchar *path)
 {
-	if (o_create_sub_dir_thumbs.int_value != 1) return;
-
 	gchar *dir = g_path_get_dirname(path);
 	gchar *dir_thumb_path = pixmap_make_thumb_path(dir);
 	GdkPixbuf *image = gdk_pixbuf_new_from_file(dir_thumb_path, NULL);
