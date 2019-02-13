@@ -1142,9 +1142,11 @@ static gint key_press_event(GtkWidget	*widget,
 			switch (event->keyval)
 			{
 				case GDK_Up:
+				case GDK_KEY_KP_Up:
 					search_in_dir(filer_window, -1);
 					break;
 				case GDK_Down:
+				case GDK_KEY_KP_Down:
 					search_in_dir(filer_window, 1);
 					break;
 				case GDK_Return:
@@ -1164,9 +1166,11 @@ static gint key_press_event(GtkWidget	*widget,
 			switch (event->keyval)
 			{
 				case GDK_Up:
+				case GDK_KEY_KP_Up:
 					shell_recall(filer_window, 1);
 					break;
 				case GDK_Down:
+				case GDK_KEY_KP_Down:
 					shell_recall(filer_window, -1);
 					break;
 				case GDK_Tab:
@@ -1184,9 +1188,11 @@ static gint key_press_event(GtkWidget	*widget,
 			switch (event->keyval)
 			{
 				case GDK_Up:
+				case GDK_KEY_KP_Up:
 					shell_recall(filer_window, 1);
 					break;
 				case GDK_Down:
+				case GDK_KEY_KP_Down:
 					shell_recall(filer_window, -1);
 					break;
 				case GDK_Tab:
@@ -1204,7 +1210,9 @@ static gint key_press_event(GtkWidget	*widget,
 			switch (event->keyval)
 			{
 			case GDK_Page_Up:
+			case GDK_KEY_KP_Page_Up:
 			case GDK_Page_Down:
+			case GDK_KEY_KP_Page_Down:
 				if (filer_window->view_type == VIEW_TYPE_COLLECTION)
 					gtk_widget_event(GTK_WIDGET(
 						VIEW_COLLECTION(filer_window->view)->collection),
@@ -1217,10 +1225,12 @@ static gint key_press_event(GtkWidget	*widget,
 				return TRUE;
 			case GDK_ISO_Left_Tab:
 			case GDK_Up:
+			case GDK_KEY_KP_Up:
 				filer_next_selected(filer_window, -1);
 				break;
 			case GDK_Tab:
 			case GDK_Down:
+			case GDK_KEY_KP_Down:
 				filer_next_selected(filer_window, 1);
 				break;
 			case GDK_Return:
@@ -1240,10 +1250,12 @@ static gint key_press_event(GtkWidget	*widget,
 			{
 				case GDK_ISO_Left_Tab:
 				case GDK_Up:
+				case GDK_KEY_KP_Up:
 					filer_next_selected(filer_window, -1);
 					break;
 				case GDK_Tab:
 				case GDK_Down:
+				case GDK_KEY_KP_Down:
 					filer_next_selected(filer_window, 1);
 					break;
 				case GDK_Return:
@@ -1273,9 +1285,12 @@ static gint key_press_event(GtkWidget	*widget,
 				gtk_widget_grab_focus(GTK_WIDGET(filer_window->view));
 				break;
 			case GDK_Up:
+			case GDK_KEY_KP_Up:
 			case GDK_Down:
+			case GDK_KEY_KP_Down:
 			{
-				gint back = event->keyval == GDK_Up ? VIEW_ITER_BACKWARDS : 0;
+				gint back = (event->keyval == GDK_Up ||
+					event->keyval == GDK_KEY_KP_Up) ? VIEW_ITER_BACKWARDS : 0;
 				view_get_iter(filer_window->view, &cursor,
 						back | VIEW_ITER_FROM_CURSOR);
 
@@ -1287,7 +1302,9 @@ static gint key_press_event(GtkWidget	*widget,
 				break;
 			}
 			case GDK_Page_Up:
+			case GDK_KEY_KP_Page_Up:
 			case GDK_Page_Down:
+			case GDK_KEY_KP_Page_Down:
 				if (filer_window->view_type == VIEW_TYPE_COLLECTION)
 					gtk_widget_event(GTK_WIDGET(
 						VIEW_COLLECTION(filer_window->view)->collection),
