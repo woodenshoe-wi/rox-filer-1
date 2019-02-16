@@ -185,8 +185,10 @@
       </frame>
       <frame label='Thumbnails cache'>
 		  <label help='1'>To speed things up, the generated thumbnails are stored in the hidden ~/.cache/thumbnails directory. Click here to remove all the cached thumbnails. They will be created again as needed.</label>
+	<hbox>
         <thumbs-purge-cache/>
       <numentry name='purge_days' label='being left over ' unit='days' min='0' max='999' width='3'>0 is all.</numentry>
+	</hbox>
 	<spacer/>
         <launch uri="http://www.kerofin.demon.co.uk/2005/interfaces/Thumbs" label="Manage thumbnails" appname="Thumbs"/>
 	<spacer/>
