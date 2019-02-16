@@ -2870,9 +2870,9 @@ static gboolean make_dir_thumb_link()
 			char *rel_path = get_relative_path(thumb_path, sub_thumb_path);
 			g_free(sub_thumb_path);
 
-			if (!symlink(rel_path, thumb_path) ||
-					(!unlink(thumb_path) && !symlink(rel_path, thumb_path)))
+			if (symlink(rel_path, thumb_path) == 0)
 				dir_force_update_path(path, TRUE);
+			//even the symlink fails this loop wills break.
 
 			g_free(rel_path);
 			g_free(sp);

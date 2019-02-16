@@ -837,7 +837,16 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname, gboolean forcheck)
 
 	thumb = gdk_pixbuf_new_from_file(thumb_path, NULL);
 	if (!thumb)
-		goto err;
+	{
+		if (forcheck
+				&& !mc_lstat(thumb_path, &thumbinfo)
+				&& S_ISLNK(thumbinfo.st_mode)
+				&& mc_stat(thumb_path, &thumbinfo)
+		)
+			unlink(thumb_path);
+
+		goto out;
+	}
 
 	/* Note that these don't need freeing... */
 	pic_uri = gdk_pixbuf_get_option(thumb, "tEXt::Thumb::URI");
@@ -883,11 +892,10 @@ static GdkPixbuf *get_thumbnail_for(const char *pathname, gboolean forcheck)
 
 	goto out;
 err:
-	if (thumb) {
-		g_object_unref(thumb);
-		unlink(thumb_path);
-	}
+	g_object_unref(thumb);
+	unlink(thumb_path);
 	thumb = NULL;
+
 out:
 	g_free(pic_path);
 	g_free(path);
