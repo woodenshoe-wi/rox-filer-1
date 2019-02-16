@@ -180,7 +180,6 @@ void pixmaps_init(void)
 //	option_add_int(&o_purge_time, "purge_time", PIXMAP_PURGE_TIME);
 	option_add_int(&o_purge_time, "purge_time", 0);
 	option_add_int(&o_jpeg_thumbs, "jpeg_thumbs", TRUE);
-	option_add_int(&o_purge_days, "purge_days", 0);
 	option_add_int(&o_purge_days, "purge_days", 90);
 	option_add_notify(options_changed);
 
