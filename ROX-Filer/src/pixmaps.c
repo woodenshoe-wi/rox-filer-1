@@ -92,8 +92,8 @@ int thumb_size = PIXMAP_THUMB_SIZE;
 gchar *thumb_dir = "normal";
 
 Option o_pixmap_thumb_file_size;
+Option o_jpeg_thumbs;
 static Option o_purge_time;
-static Option o_jpeg_thumbs;
 Option o_purge_days;
 
 
@@ -166,6 +166,9 @@ static void options_changed()
 		set_thumb_size();
 		g_fscache_purge(thumb_cache, 0);
 	}
+
+	if (o_jpeg_thumbs.has_changed)
+		g_fscache_purge(thumb_cache, 0);
 
 	if (o_purge_time.has_changed)
 		g_fscache_purge(thumb_cache, o_purge_time.int_value);

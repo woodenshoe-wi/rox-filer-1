@@ -3131,6 +3131,7 @@ static void filer_options_changed(void)
 
 	if (all_filer_windows &&
 			(o_display_show_dir_thumbs.has_changed ||
+			o_jpeg_thumbs.has_changed ||
 			o_pixmap_thumb_file_size.has_changed
 			))
 	{

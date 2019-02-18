@@ -37,6 +37,7 @@ extern int small_width; /* SMALL_WIDTH * small_height / SMALL_WIDTH */
 extern int thumb_size;
 
 extern Option o_pixmap_thumb_file_size;
+extern Option o_jpeg_thumbs;
 
 typedef struct _MaskedPixmapClass MaskedPixmapClass;
 

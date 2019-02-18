@@ -888,6 +888,7 @@ static void options_changed(void)
 		flags |= VIEW_UPDATE_NAME; /* Recreate PangoLayout */
 
 	if (o_display_show_dir_thumbs.has_changed ||
+			o_jpeg_thumbs.has_changed ||
 			o_pixmap_thumb_file_size.has_changed
 	)
 		flags |= VIEW_UPDATE_VIEWDATA;
