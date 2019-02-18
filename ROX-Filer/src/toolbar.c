@@ -735,6 +735,13 @@ static int bar_motion(GtkWidget *widget, GdkEventMotion *event, FilerWindow *fw)
 
 	return FALSE;
 }
+static gint btn_released(GtkWidget *widget,
+				GdkEventButton *event,
+				FilerWindow *filer_window)
+{
+	pressbtn = pressx = pressy = 0;
+	return FALSE;
+}
 static gint bar_released(GtkWidget *widget,
 				GdkEventButton *event,
 				FilerWindow *filer_window)
@@ -1048,7 +1055,7 @@ static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 		g_signal_connect(button, "motion-notify-event",
 			G_CALLBACK(bar_motion), filer_window);
 		g_signal_connect(button, "button-release-event",
-			G_CALLBACK(bar_released), filer_window);
+			G_CALLBACK(btn_released), filer_window);
 		g_signal_connect(button, "button_press_event",
 			G_CALLBACK(bar_pressed), filer_window);
 		g_signal_connect_swapped(button, "enter-notify-event",
