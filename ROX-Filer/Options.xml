@@ -199,7 +199,7 @@
 		</menu>
 	</hbox>
 		<toggle name='jpeg_thumbs' label='Use JPEG for thumbnails'>
-			Small file size and about 4-6 times faster, but without alpha channel transparency. This may cause other apps using the thumbnails cache to crash.</toggle>
+			Small file size and about 4-6 times faster, but without alpha channel transparency.</toggle>
 	<spacer/>
 	<hbox>
 		<numentry name='purge_time' label='Purge Time for Memory Cache:' unit='sec' min='0' max='999999' width='6'>
