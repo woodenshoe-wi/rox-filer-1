@@ -1594,10 +1594,10 @@ gint filer_key_press_event(GtkWidget	*widget,
 
 	if ((filer_window->right_link || filer_window->left_link) &&
 			(
-			key == GDK_Left  ||
-			key == GDK_Right ||
-			key == GDK_Up    ||
-			key == GDK_Down  )
+			key == GDK_Left  || key == GDK_KEY_KP_Left ||
+			key == GDK_Right || key == GDK_KEY_KP_Right ||
+			key == GDK_Up    || key == GDK_KEY_KP_Up ||
+			key == GDK_Down  || key == GDK_KEY_KP_Down)
 			)
 		link_cursor(filer_window);
 
@@ -1611,6 +1611,7 @@ gint filer_key_press_event(GtkWidget	*widget,
 			view_clear_selection(view);
 			return FALSE;
 		case GDK_Return:
+		case GDK_KEY_KP_Enter:
 			return_pressed(filer_window, event);
 			break;
 		case GDK_ISO_Left_Tab:
