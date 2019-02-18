@@ -599,7 +599,8 @@ static void save_thumbnail(const char *pathname, GdkPixbuf *full)
 	mkdir(to->str, 0700);
 	g_string_append(to, md5);
 	name_len = to->len + 4; /* Truncate to this length when renaming */
-	g_string_append_printf(to, ".png.ROX-Filer-%ld", (long) getpid());
+	g_string_append_printf(to, ".%s.ROX-Filer-%ld",
+			o_jpeg_thumbs.int_value ? "jpg" : "png", (long) getpid());
 
 	g_free(md5);
 
@@ -669,7 +670,7 @@ static gchar *thumbnail_path(const char *path)
 
 	mkdir(to->str, 0700);
 	g_string_append(to, md5);
-	g_string_append(to, ".png");
+	g_string_append(to, o_jpeg_thumbs.int_value ? ".jpg" : ".png");
 
 	g_free(md5);
 	g_free(uri);
@@ -738,8 +739,8 @@ char *pixmap_make_thumb_path(const char *path)
 	g_free(uri);
 
 	thumb_path = g_strdup_printf(
-			"%s/.cache/thumbnails/%s/%s.png" ,
-			home_dir, thumb_dir, md5);
+			"%s/.cache/thumbnails/%s/%s.%s",
+			home_dir, thumb_dir, md5, o_jpeg_thumbs.int_value ? "jpg" : "png");
 	g_free(md5);
 
 	return thumb_path; /* This return is used unlink! Be carefull */
