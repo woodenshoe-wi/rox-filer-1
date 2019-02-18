@@ -752,7 +752,8 @@ static gint bar_released(GtkWidget *widget,
 	case 1:
 		{
 			ViewIter iter;
-			if ((view_get_cursor(filer_window->view, &iter), iter.peek(&iter)))
+			if ((view_get_cursor(filer_window->view, &iter), iter.peek(&iter))
+				&& iter.peek(&iter)->base_type == TYPE_DIRECTORY)
 			{
 				view_cursor_to_iter(filer_window->view, NULL);
 				filer_change_to(filer_window,
