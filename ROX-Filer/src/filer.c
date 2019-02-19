@@ -601,9 +601,6 @@ static void update_display(Directory *dir,
 			g_free(fw->dir_colour);
 			fw->dir_colour = tmpc;
 
-			if (filer_window->dir_icon)
-				g_object_unref(filer_window->dir_icon);
-
 			MaskedPixmap
 				*fi = get_globicon(filer_window->sym_path);
 			if (!fi)
@@ -615,7 +612,9 @@ static void update_display(Directory *dir,
 
 			set_icon(filer_window, fi ? fi->src_pixbuf : NULL);
 
-			filer_window->dir_icon = fi;
+			if (fi)
+				g_object_unref(fi);
+			filer_window->dir_icon = fi; //just a flag
 
 			set_scanning_display(filer_window, FALSE);
 			toolbar_update_info(filer_window);
@@ -662,8 +661,10 @@ static void update_display(Directory *dir,
 						make_path(filer_window->real_path, ".DirIcon"),
 						FSCACHE_LOOKUP_ONLY_NEW, NULL);
 
-				if (filer_window->dir_icon)
+				if (filer_window->dir_icon) {
 					set_icon(filer_window, filer_window->dir_icon->src_pixbuf);
+					g_object_unref(filer_window->dir_icon);
+				}
 			}
 
 			if (filer_window->view_type != VIEW_TYPE_COLLECTION)
@@ -1014,9 +1015,6 @@ static void filer_window_destroyed(GtkWidget *widget, FilerWindow *filer_window)
 		g_free(filer_window->regexp);
 		g_free(filer_window->temp_filter_string);
 	}
-
-	if (filer_window->dir_icon)
-		g_object_unref(filer_window->dir_icon);
 
 	g_free(filer_window->dir_colour);
 	g_free(filer_window->auto_select);
