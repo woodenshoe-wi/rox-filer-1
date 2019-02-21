@@ -936,9 +936,6 @@ gboolean filer_window_delete(GtkWidget *window,
 	if (mount)
 		may_offer_unmount(filer_window, mount);
 
-	/* Without this, the window will flash more */
-	gdk_window_resize(window->window, 4, 4);
-
 	return FALSE;
 }
 
