@@ -615,7 +615,7 @@ static void update_new_files_menu()
 static void directory_cb(const gchar *app)
 {
 	GList *file_list = g_list_prepend(NULL, window_with_focus->sym_path);
-	run_with_files(app, file_list);
+	run_with_files(app, file_list, FALSE);
 	g_list_free(file_list);
 }
 static void update_directory_menu()
@@ -1807,7 +1807,7 @@ static void do_send_to(gchar *templ)
 {
 	g_return_if_fail(send_to_paths != NULL);
 
-	run_with_files(templ, send_to_paths);
+	run_with_files(templ, send_to_paths, FALSE);
 }
 
 static void new_file_type(gchar *templ)
@@ -2307,9 +2307,9 @@ static void clipboard_get(GtkClipboard *clipboard,
 
 	for (GList *next = selected_paths; next; next = next->next)
 	{
-		g_string_append(data, "file://");
-		g_string_append(data, next->data);
-		g_string_append(data, n);
+		EscapedPath *uri = encode_path_as_uri(next->data);
+		g_string_append_printf(data, "%s%s", (char *) uri, n);
+		g_free(uri);
 	}
 
 	gtk_selection_data_set(selection_data,

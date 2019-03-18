@@ -9,7 +9,7 @@
 #include <gtk/gtk.h>
 
 void run_app(const char *path);
-void run_with_files(const char *path, GList *uri_list);
+void run_with_files(const char *path, GList *uri_list, gboolean isuri);
 void run_with_data(const char *path, gpointer data, gulong length);
 gboolean run_by_path(const guchar *full_path);
 gboolean run_by_uri(const gchar *uri, gchar **errmsg);

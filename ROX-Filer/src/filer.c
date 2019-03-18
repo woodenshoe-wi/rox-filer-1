@@ -1089,25 +1089,31 @@ static void selection_get(GtkWidget *widget,
 	reply = g_string_new(NULL);
 	header = g_string_new(NULL);
 
+	view_get_iter(filer_window->view, &iter, VIEW_ITER_SELECTED);
+
 	switch (info)
 	{
 		case TARGET_STRING:
 			g_string_printf(header, " %s",
 					make_path(filer_window->sym_path, ""));
+
+			while ((item = iter.next(&iter)))
+			{
+				g_string_append(reply, header->str);
+				g_string_append(reply, item->leafname);
+			}
+
 			break;
 		case TARGET_URI_LIST:
-			g_string_printf(header, " file://%s%s",
-					our_host_name_for_dnd(),
-					make_path(filer_window->sym_path, ""));
+			while ((item = iter.next(&iter)))
+			{
+				EscapedPath *uri = encode_path_as_uri(
+						make_path(filer_window->sym_path, item->leafname));
+				g_string_append_printf(reply, " %s", (char *) uri);
+				g_free(uri);
+			}
+
 			break;
-	}
-
-	view_get_iter(filer_window->view, &iter, VIEW_ITER_SELECTED);
-
-	while ((item = iter.next(&iter)))
-	{
-		g_string_append(reply, header->str);
-		g_string_append(reply, item->leafname);
 	}
 
 	if (reply->len > 0)

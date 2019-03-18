@@ -557,6 +557,13 @@ GdkPixbuf *pixmap_try_thumb(const gchar *path, gboolean forcheck)
 /****************************************************************
  *			INTERNAL FUNCTIONS			*
  ****************************************************************/
+static char *thumburi(const char *path)
+{
+	char *tpath = (gchar *) escape_uri_path(path);
+	gchar *ret = g_strconcat("file://", tpath, NULL);
+	g_free(tpath);
+	return ret;
+}
 
 /* Create a thumbnail file for this image */
 static void save_thumbnail(const char *pathname, GdkPixbuf *full)
@@ -586,7 +593,7 @@ static void save_thumbnail(const char *pathname, GdkPixbuf *full)
 	path = pathdup(pathname);
 	uri = g_filename_to_uri(path, NULL, NULL);
 	if (!uri)
-	        uri = g_strconcat("file://", path, NULL);
+	        uri = thumburi(path);
 	md5 = md5_hash(uri);
 	g_free(path);
 
@@ -659,7 +666,7 @@ static gchar *thumbnail_path(const char *path)
 
 	uri = g_filename_to_uri(path, NULL, NULL);
 	if(!uri)
-	       uri = g_strconcat("file://", path, NULL);
+	       uri = thumburi(path);
 	md5 = md5_hash(uri);
 
 	to = g_string_new(home_dir);
@@ -737,7 +744,7 @@ char *pixmap_make_thumb_path(const char *path)
 
 	uri = g_filename_to_uri(path, NULL, NULL);
 	if (!uri)
-	        uri = g_strconcat("file://", path, NULL);
+	        uri = thumburi(path);
 	md5 = md5_hash(uri);
 	g_free(uri);
 

@@ -85,7 +85,7 @@ void run_app(const char *path)
  * URIs that are files on the local machine will be passed as simple
  * pathnames. The uri_list should be freed after this function returns.
  */
-void run_with_files(const char *path, GList *uri_list)
+void run_with_files(const char *path, GList *uri_list, gboolean isurilist)
 {
 	const char	**argv;
 	int		argc = 0, i;
@@ -110,8 +110,9 @@ void run_with_files(const char *path, GList *uri_list)
 		const EscapedPath *uri = uri_list->data;
 		char *local;
 
-		local = get_local_path(uri);
-		if (local)
+		if (!isurilist)
+			argv[argc++] = g_strdup((char *) uri);
+		else if ((local = get_local_path(uri)))
 			argv[argc++] = local;
 		else
 			argv[argc++] = unescape_uri(uri);
