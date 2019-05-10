@@ -13,7 +13,7 @@ provides=('rox')
 license=('GPL')
 url="https://github.com/jun7/rox-filer"
 depends=('sh' 'libsm' 'gtk2')
-makedepends=('python2' 'libxslt' 'git')
+makedepends=('libxslt' 'git')
 source=("git://github.com/jun7/rox-filer.git#branch=$branch")
 md5sums=('SKIP')
 
