@@ -1143,6 +1143,12 @@ static void draw_string(cairo_t *cr,
 	}
 }
 
+static void view_collection_scroll_to_top(ViewIface *view)
+{
+	Collection *col = ((ViewCollection *) view)->collection;
+	gtk_adjustment_set_value(col->vadj, 0);
+}
+
 /* Create the handers for the View interface */
 static void view_collection_iface_init(gpointer giface, gpointer iface_data)
 {
@@ -1176,6 +1182,7 @@ static void view_collection_iface_init(gpointer giface, gpointer iface_data)
 	iface->start_lasso_box = view_collection_start_lasso_box;
 	iface->extend_tip = view_collection_extend_tip;
 	iface->auto_scroll_callback = view_collection_auto_scroll_callback;
+	iface->scroll_to_top = view_collection_scroll_to_top;
 }
 
 static void view_collection_extend_tip(ViewIface *view, ViewIter *iter,

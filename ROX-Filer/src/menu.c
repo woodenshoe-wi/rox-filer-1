@@ -1165,6 +1165,8 @@ static void wink_if(FilerWindow *fw)
 		view_get_iter(fw->view, &iter, VIEW_ITER_SELECTED);
 		if (iter.next(&iter))
 			view_wink_item(fw->view, &iter);
+	} else {
+		view_scroll_to_top(fw->view);
 	}
 }
 static void set_sort(gpointer data, guint action, GtkWidget *widget)

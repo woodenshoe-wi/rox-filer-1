@@ -91,6 +91,7 @@ struct _ViewIfaceClass {
 	void (*start_lasso_box)(ViewIface *obj, GdkEventButton *event);
 	void (*extend_tip)(ViewIface *obj, ViewIter *iter, GString *tip);
 	gboolean (*auto_scroll_callback)(ViewIface *obj);
+	void (*scroll_to_top)(ViewIface *obj);
 };
 
 #define VIEW_TYPE_IFACE           (view_iface_get_type())
@@ -150,5 +151,6 @@ void view_set_base(ViewIface *obj, ViewIter *iter);
 void view_start_lasso_box(ViewIface *obj, GdkEventButton *event);
 void view_extend_tip(ViewIface *obj, ViewIter *iter, GString *tip);
 gboolean view_auto_scroll_callback(ViewIface *obj);
+void view_scroll_to_top(ViewIface *obj);
 
 #endif /* __VIEW_IFACE_H__ */

@@ -1163,6 +1163,13 @@ static void defcols(ViewDetails *view_details)
 	ordering = FALSE;
 }
 
+static void view_details_scroll_to_top(ViewIface *view)
+{
+	gtk_adjustment_set_value(
+			gtk_tree_view_get_vadjustment((GtkTreeView *) view),
+			0);
+}
+
 
 #define ADD_TEXT_COLUMN_NS(name, model_column) \
 	cell = gtk_cell_renderer_text_new();	\
@@ -1299,6 +1306,7 @@ static void view_details_iface_init(gpointer giface, gpointer iface_data)
 	iface->start_lasso_box = view_details_start_lasso_box;
 	iface->extend_tip = view_details_extend_tip;
 	iface->auto_scroll_callback = view_details_auto_scroll_callback;
+	iface->scroll_to_top = view_details_scroll_to_top;
 }
 
 

@@ -412,3 +412,10 @@ gboolean view_auto_scroll_callback(ViewIface *obj)
 	return VIEW_IFACE_GET_CLASS(obj)->auto_scroll_callback(obj);
 }
 
+void view_scroll_to_top(ViewIface *obj)
+{
+	g_return_if_fail(VIEW_IS_IFACE(obj));
+
+	VIEW_IFACE_GET_CLASS(obj)->scroll_to_top(obj);
+}
+
