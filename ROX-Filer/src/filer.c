@@ -3260,7 +3260,13 @@ void filer_perform_action(FilerWindow *fw, GdkEventButton *event)
 	OpenFlags	flags = 0;
 
 	if (event->button > 3)
+	{
+		if (event->button == 8)
+			change_to_parent(fw);
+		if (event->button == 9 && bookmarks_get_recent())
+				filer_change_to(fw, bookmarks_get_recent(), NULL);
 		return;
+	}
 
 	view_get_iter_at_point(view, &iter, event->window, event->x, event->y);
 	item = iter.peek(&iter);
