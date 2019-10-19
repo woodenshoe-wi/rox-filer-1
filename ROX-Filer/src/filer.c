@@ -1957,6 +1957,7 @@ FilerWindow *filer_opendir(const char *path, FilerWindow *src_win,
 	filer_window->temp_item_selected = FALSE;
 	filer_window->flags = (FilerFlags) 0;
 	filer_window->thumb_queue = g_queue_new();
+	filer_window->thumb_bar_time = 0;
 	filer_window->max_thumbs = 0;
 	filer_window->trying_thumbs = 0;
 
@@ -2894,6 +2895,7 @@ done:
 
 void filer_cancel_thumbnails(FilerWindow *filer_window)
 {
+	filer_window->thumb_bar_time = 0;
 	if (gtk_widget_get_visible(filer_window->thumb_bar))
 	{
 		gtk_widget_hide(filer_window->thumb_bar);
@@ -2915,11 +2917,11 @@ void filer_cancel_thumbnails(FilerWindow *filer_window)
  */
 static gboolean filer_next_thumb_real(GObject *window)
 {
-	FilerWindow *filer_window;
+	FilerWindow *filer_window, *fw;
 	gchar	*path;
 	gboolean noorder = FALSE;
 
-	filer_window = g_object_get_data(window, "filer_window");
+	fw = filer_window = g_object_get_data(window, "filer_window");
 
 	if (!filer_window)
 	{
@@ -2998,8 +3000,13 @@ static gboolean filer_next_thumb_real(GObject *window)
 
 	pixmap_background_thumb(path, noorder, (GFunc) filer_next_thumb, window);
 
+	if (!fw->thumb_bar_time) {
+		fw->thumb_bar_time = g_get_monotonic_time();
+	} else
 	if (!gtk_widget_get_visible(filer_window->thumb_bar))
 	{
+		if (g_get_monotonic_time() - fw->thumb_bar_time < .3 * 1000000)
+			goto out;
 		gtk_widget_show_all(filer_window->thumb_bar);
 		filer_autosize(filer_window);
 	}
