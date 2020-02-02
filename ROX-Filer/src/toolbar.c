@@ -94,7 +94,7 @@ static void toolbar_sort_clicked(GtkWidget *widget,
 				   FilerWindow *filer_window);
 static GtkWidget *add_button(GtkWidget *bar, Tool *tool,
 				FilerWindow *filer_window);
-static GtkWidget *create_toolbar(FilerWindow *filer_window);
+static void create_toolbar(GtkWidget *bar, FilerWindow *filer_window);
 static gboolean drag_motion(GtkWidget		*widget,
                             GdkDragContext	*context,
                             gint		x,
@@ -322,11 +322,15 @@ void toolbar_update_toolbar(FilerWindow *filer_window)
 
 	if (o_toolbar.int_value != TOOLBAR_NONE)
 	{
-		filer_window->toolbar = create_toolbar(filer_window);
+		filer_window->toolbar = gtk_toolbar_new();
+
 		gtk_box_pack_start(filer_window->toplevel_vbox,
 				filer_window->toolbar, FALSE, TRUE, 0);
 		gtk_box_reorder_child(filer_window->toplevel_vbox,
 				filer_window->toolbar, 0);
+
+		create_toolbar(filer_window->toolbar, filer_window);
+
 		gtk_widget_show_all(filer_window->toolbar);
 	}
 
@@ -845,13 +849,10 @@ static void toolbar_new_clicked(GtkWidget *widget, FilerWindow *filer_window)
 }
 
 /* If filer_window is NULL, the toolbar is for the options window */
-static GtkWidget *create_toolbar(FilerWindow *filer_window)
+static void create_toolbar(GtkWidget *bar, FilerWindow *filer_window)
 {
-	GtkWidget	*bar;
 	GtkWidget	*b;
 	int i;
-
-	bar = gtk_toolbar_new();
 
 	if (o_toolbar.int_value == TOOLBAR_NORMAL || !filer_window)
 		gtk_toolbar_set_style(GTK_TOOLBAR(bar), GTK_TOOLBAR_ICONS);
@@ -907,8 +908,6 @@ static GtkWidget *create_toolbar(FilerWindow *filer_window)
 		g_signal_connect(bar, "scroll_event",
 			G_CALLBACK(bar_scrolled), filer_window);
 	}
-
-	return bar;
 }
 
 /* This is used to simulate a click when button 3 is used (GtkButton
@@ -1266,11 +1265,11 @@ static GList *build_tool_options(Option *option, xmlNode *node, guchar *label)
 
 	g_return_val_if_fail(option != NULL, NULL);
 
-	bar = create_toolbar(NULL);
+	option->widget = gtk_toolbar_new();
+	create_toolbar(option->widget, NULL);
 
 	option->update_widget = update_tools;
 	option->read_widget = read_tools;
-	option->widget = bar;
 
-	return g_list_append(NULL, bar);
+	return g_list_append(NULL, option->widget);
 }
