@@ -886,7 +886,7 @@ static void create_toolbar(GtkWidget *bar, FilerWindow *filer_window)
 		GtkRequisition req;
 		gtk_widget_size_request(bar, &req);
 		toolbar_min_width = req.width + small_width *
-			(o_toolbar_info.int_value ? 3 : 0);
+			(o_toolbar_info.int_value ? 3.3 : 0);
 
 		gtk_widget_set_size_request(bar, 100, -1);
 
