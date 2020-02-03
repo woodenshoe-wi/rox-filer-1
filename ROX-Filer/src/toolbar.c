@@ -888,7 +888,7 @@ static void create_toolbar(GtkWidget *bar, FilerWindow *filer_window)
 		toolbar_min_width = req.width;
 
 		filer_window->toolbar_text = gtk_label_new(
-				o_toolbar_info.int_value ? _("n Items  ") : "");
+				o_toolbar_info.int_value ? _("_N_Items_") : "");
 		gtk_misc_set_alignment(GTK_MISC(filer_window->toolbar_text),
 					0, 0.5);
 		gtk_toolbar_append_widget(GTK_TOOLBAR(bar),
