@@ -473,6 +473,8 @@ static GtkIconInfo *mime_type_lookup_icon_info(GtkIconTheme *theme,
  */
 MaskedPixmap *type_to_icon(MIME_type *type)
 {
+	static GMutex funcm;
+	MaskedPixmap *ret;
 	GtkIconInfo *full;
 	char	*type_name, *path;
 	time_t	now;
@@ -484,14 +486,18 @@ MaskedPixmap *type_to_icon(MIME_type *type)
 	}
 
 	now = time(NULL);
+
+	g_mutex_lock(&funcm);
+
 	/* Already got an image? */
 	if (type->image)
 	{
 		/* Yes - don't recheck too often */
 		if (labs(now - type->image_time) < 9)
 		{
-			g_object_ref(type->image);
-			return type->image;
+			ret = g_object_ref(type->image);
+			g_mutex_unlock(&funcm);
+			return ret;
 		}
 		g_object_unref(type->image);
 		type->image = NULL;
@@ -553,8 +559,9 @@ out:
 
 	type->image_time = now;
 
-	g_object_ref(type->image);
-	return type->image;
+	ret = g_object_ref(type->image);
+	g_mutex_unlock(&funcm);
+	return ret;
 }
 
 GdkAtom type_to_atom(MIME_type *type)

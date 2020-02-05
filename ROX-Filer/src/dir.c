@@ -269,6 +269,9 @@ static void _dir_check_this(const char *path, bool force)
 	Directory *dir = parent(path);
 	if (dir)
 	{
+		if (dir->scanning && !force)
+			dir->needs_update = TRUE;
+		else
 		if (dir->users || force)
 		{
 			time(&diritem_recent_time);
