@@ -454,13 +454,11 @@ static gboolean do_recheck(gpointer data)
 	if (dir->recheck_list->len > dir->rechecki)
 	{
 		g_mutex_lock(&dir->mutex);
-		DirItem *item = dir->recheck_list->pdata[dir->rechecki++];
+		DirItem *item = dir->recheck_list->pdata[dir->rechecki];
+		                dir->recheck_list->pdata[dir->rechecki++] = NULL;
 
 		if (item->flags & ITEM_FLAG_GONE)
-		{
-			dir->recheck_list->pdata[dir->rechecki - 1] = NULL;
 			diritem_free(item);
-		}
 		else
 		{
 			item->flags &= ~ITEM_FLAG_IN_RESCAN_QUEUE;
@@ -489,14 +487,12 @@ static gboolean do_recheck(gpointer data)
 	if (dir->examine_list->len > dir->examinei)
 	{
 		g_mutex_lock(&dir->mutex);
-		DirItem *item = dir->examine_list->pdata[dir->examinei++];
+		DirItem *item = dir->examine_list->pdata[dir->examinei];
+		                dir->examine_list->pdata[dir->examinei++] = NULL;
 		item->flags &= ~ITEM_FLAG_IN_EXAMINE;
 
 		if (item->flags & ITEM_FLAG_GONE)
-		{
-			dir->examine_list->pdata[dir->examinei - 1] = NULL;
 			diritem_free(item);
-		}
 		else if (item->flags & ITEM_FLAG_NEED_EXAMINE)
 		{
 			if (diritem_examine_dir(
