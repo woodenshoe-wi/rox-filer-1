@@ -457,7 +457,10 @@ static gboolean do_recheck(gpointer data)
 		DirItem *item = dir->recheck_list->pdata[dir->rechecki++];
 
 		if (item->flags & ITEM_FLAG_GONE)
+		{
+			dir->recheck_list->pdata[dir->rechecki - 1] = NULL;
 			diritem_free(item);
+		}
 		else
 		{
 			item->flags &= ~ITEM_FLAG_IN_RESCAN_QUEUE;
@@ -490,7 +493,10 @@ static gboolean do_recheck(gpointer data)
 		item->flags &= ~ITEM_FLAG_IN_EXAMINE;
 
 		if (item->flags & ITEM_FLAG_GONE)
+		{
+			dir->examine_list->pdata[dir->examinei - 1] = NULL;
 			diritem_free(item);
+		}
 		else if (item->flags & ITEM_FLAG_NEED_EXAMINE)
 		{
 			if (diritem_examine_dir(
@@ -888,6 +894,7 @@ static gboolean free_items(gpointer key, gpointer value, gpointer data)
 
 static void _inlist_clear(DirItem *item, gpointer user_data)
 {
+	if (!item) return;
 	if (item->flags & ITEM_FLAG_GONE)
 		diritem_free(item);
 	else
