@@ -1231,6 +1231,7 @@ static void view_details_init(GTypeInstance *object, gpointer gclass)
 	view_details->cols[COL_ICON] = column;
 
 	ADD_TEXT_COLUMN(_("_Name"), COL_LEAF);
+	gtk_tree_view_column_set_expand(column, TRUE);
 
 	ADD_TEXT_COLUMN(_("_Type"), COL_TYPE);
 
