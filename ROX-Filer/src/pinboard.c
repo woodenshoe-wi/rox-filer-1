@@ -223,7 +223,7 @@ static void drag_backdrop_dropped(GtkWidget	*drop_box,
 				  GtkWidget	*dialog);
 static void backdrop_response(GtkWidget *dialog, gint response, gpointer data);
 static void find_free_rect(Pinboard *pinboard, GdkRectangle *rect,
-			   gboolean old, int start, int direction);
+			   gboolean old, int start, int direction, int start_x, int start_y);
 static void update_pinboard_font(void);
 static void draw_lasso(void);
 static gint lasso_motion(GtkWidget *widget, GdkEventMotion *event, gpointer d);
@@ -419,7 +419,7 @@ void pinboard_add_widget(GtkWidget *widget, const gchar *name)
 	/*printf("%s at %d,%d %d\n", name? name: "(nil)", rect->x,
 	  rect->y, found);*/
 	find_free_rect(current_pinboard, rect, found,
-			o_iconify_start.int_value, o_iconify_dir.int_value);
+			o_iconify_start.int_value, o_iconify_dir.int_value, 0, 0);
 	/*printf("%s at %d,%d %d\n", name? name: "(nil)", rect->x,
 	  rect->y, found);*/
 
@@ -454,6 +454,11 @@ void pinboard_moved_widget(GtkWidget *widget, const gchar *name,
  *   The values then indicate where they should be added.
  *   x: -1 means left, -2 means right
  *   y: -1 means top, -2 means bottom
+ *
+ *   Smart placement
+ *   x and y <= -10: try to place icon at abs(x), abs(y) unless
+ *                   that location is occupied, then search.
+ *
  * 'name' is the name to use. If NULL then the leafname of path is used.
  * If update is TRUE and there's already an icon for that path, it is updated.
  */
@@ -540,6 +545,8 @@ void pinboard_pin_with_args(const gchar *path, const gchar *name,
 		GtkRequisition req;
 		GdkRectangle rect;
 		int placement = CORNER_TOP_LEFT;
+		int direction = DIR_VERT;
+		int start_x = 0, start_y = 0;
 
 		switch (x)
 		{
@@ -560,6 +567,13 @@ void pinboard_pin_with_args(const gchar *path, const gchar *name,
 				break;
 		}
 
+		if (x <= -10 && y <= -10)
+		{
+			direction = DIR_HORZ;
+			start_x = abs(x);
+			start_y = abs(y);
+		}
+
 		pinboard_reshape_icon((Icon *) pi);
 		gtk_widget_size_request(pi->widget, &req);
 		rect.width = req.width;
@@ -567,7 +581,9 @@ void pinboard_pin_with_args(const gchar *path, const gchar *name,
 		gtk_widget_size_request(pi->label, &req);
 		rect.width = MAX(rect.width, req.width);
 		rect.height += req.height;
-		find_free_rect(current_pinboard, &rect, FALSE, placement, DIR_VERT);
+		find_free_rect(current_pinboard, &rect, FALSE,
+			placement, direction, start_x, start_y);
+		/* Adjust x and y to center of rect. */
 		x = rect.x + rect.width/2;
 		y = rect.y + rect.height/2;
 	}
@@ -2645,13 +2661,21 @@ static void reload_backdrop(Pinboard *pinboard,
  * free space.
  */
 static void search_free(GdkRectangle *rect, GdkRegion *used,
-			int *outer, int od, int omin, int omax,
-			int *inner, int id, int imin, int imax)
+			int *outer, int od, int omin, int omax, int start_outer,
+			int *inner, int id, int imin, int imax, int start_inner)
 {
 	*outer = od > 0 ? omin : omax;
+	if (start_outer > 0)
+		*outer = start_outer;
+
 	while (*outer >= omin && *outer <= omax)
 	{
 		*inner = id > 0 ? imin : imax;
+		if (start_inner > 0)
+		{
+			*inner = start_inner;
+			start_inner = 0;
+		}
 		while (*inner >= imin && *inner <= imax)
 		{
 			if (gdk_region_rect_in(used, rect) ==
@@ -2672,29 +2696,32 @@ static void search_free(GdkRectangle *rect, GdkRegion *used,
  * the direction of the search.
  */
 static void search_free_area(GdkRectangle *rect, GdkRegion *used,
-		int direction, int dx, int dy, int x0, int y0, int width, int height)
+		int direction, int dx, int dy, int x0, int y0, int width, int height,
+		int start_x, int start_y)
 {
 	if (direction == DIR_VERT)
 	{
 		search_free(rect, used,
-			    &rect->x, dx, x0, width,
-			    &rect->y, dy, y0, height);
+			&rect->x, dx, x0, x0 + width, start_x,
+			&rect->y, dy, y0, y0 + height, start_y);
 	}
 	else
 	{
 		search_free(rect, used,
-			    &rect->y, dy, x0, height,
-			    &rect->x, dx, y0, width);
+			&rect->y, dy, y0, y0 + height, start_y,
+			&rect->x, dx, x0, x0 + width, start_x);
 	}
 }
 
 static gboolean search_free_xinerama(GdkRectangle *rect, GdkRegion *used,
-		int direction, int dx, int dy, int rwidth, int rheight)
+		int direction, int dx, int dy, int rwidth, int rheight,
+		int start_x, int start_y)
 {
 	GdkRectangle *geom = &monitor_geom[get_monitor_under_pointer()];
 
 	search_free_area(rect, used, direction, dx, dy,
-			geom->x, geom->y, geom->width - rwidth, geom->height - rheight);
+			geom->x, geom->y, geom->width - rwidth, geom->height - rheight,
+			start_x, start_y);
 	return rect->x != -1;
 }
 
@@ -2706,7 +2733,7 @@ static gboolean search_free_xinerama(GdkRectangle *rect, GdkRegion *used,
  * If no area is free, returns any old area.
  */
 static void find_free_rect(Pinboard *pinboard, GdkRectangle *rect,
-			   gboolean old, int start, int direction)
+			   gboolean old, int start, int direction, int start_x, int start_y)
 {
 	GdkRegion *used;
 	GList *next;
@@ -2793,13 +2820,32 @@ static void find_free_rect(Pinboard *pinboard, GdkRectangle *rect,
 	    start == CORNER_BOTTOM_RIGHT)
 		dy = -SEARCH_STEP;
 
+
+	/* Adjust start_x and start_y to top left corner of rect. */
+	if (start_x - (rect->width / 2) > 0 )
+		start_x -= (rect->width / 2);
+
+	if (start_y - (rect->height / 2) > 0)
+		start_y -= (rect->height / 2);
+
+
 	/* If pinboard covers more than one monitor, try to find free space on
 	 * monitor under pointer first, then whole screen if that fails */
 	if (n_monitors == 1 || !search_free_xinerama(rect, used,
-			direction, dx, dy, rect->width, rect->height))
+			direction, dx, dy, rect->width, rect->height, start_x, start_y))
 	{
 		search_free_area(rect, used, direction, dx, dy,
-			0, 0, screen_width - rect->width, screen_height - rect->height);
+			0, 0, screen_width - rect->width, screen_height - rect->height,
+			start_x, start_y);
+
+		/* If free space was not found starting at start_x, start_y,
+		 * search again starting at x=0, y=0. */
+		if (rect->x == -1)
+		{
+			search_free_area(rect, used, direction, dx, dy,
+				0, 0, screen_width - rect->width, screen_height - rect->height,
+				0, 0);
+		}
 	}
 
 	gdk_region_destroy(used);

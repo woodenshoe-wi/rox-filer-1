@@ -673,8 +673,9 @@ static void desktop_drag_data_received(GtkWidget      	*widget,
 		path = get_local_path((EscapedPath *) next->data);
 		if (path)
 		{
-			pinboard_pin(path, NULL, x, y, NULL);
-			x += 64;
+			pinboard_pin(path, NULL,
+				x > 10 ? 0 - x : -10,
+				y > 10 ? 0 - y : -10, NULL);
 			g_free(path);
 		}
 		else if (!error_example)
